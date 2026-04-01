@@ -7,10 +7,11 @@ interface CreateActivityCommand {
   isFixed: boolean;
   startTime: Date;
   selectedCommute: string;
+  days: [string];
 }
 
 export const executeCreateActivity = async (command: CreateActivityCommand): Promise<void> => {
-  const { activityName, selectedDuration, isFixed, startTime, selectedCommute } = command;
+  const { activityName, selectedDuration, isFixed, startTime, selectedCommute, days } = command;
   
   const endTime = calculateEndTime(startTime, selectedDuration);
 
@@ -22,7 +23,8 @@ export const executeCreateActivity = async (command: CreateActivityCommand): Pro
           : `${selectedDuration} (Flexible)`,
       isFixed,
       duration: selectedDuration,
-      commute: selectedCommute
+      commute: selectedCommute,
+      days: days
   };
   
   // Aquí llamamos al adaptador de infraestructura

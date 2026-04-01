@@ -39,6 +39,7 @@ const PickerColumn: React.FC<PickerColumnProps> = ({ data, initialIndex, onValue
   return (
     <View style={styles.columnContainer}>
       <Animated.ScrollView
+        nestedScrollEnabled={true}
         showsVerticalScrollIndicator={false}
         snapToInterval={ITEM_HEIGHT}
         decelerationRate="fast"

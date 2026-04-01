@@ -1,6 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// La "llave" con la que guardaremos nuestra caja de datos en el celular
 const STORAGE_KEY = '@ikeep_activities';
 
 export type Activity = {
@@ -10,10 +9,10 @@ export type Activity = {
   isFixed: boolean;
   duration: string;
   commute: string;
+  days: string[];
 };
 
 export const ActivityStorageService = {
-  // Obtener todas las actividades
   getActivities: async (): Promise<Activity[]> => {
     try {
       const jsonValue = await AsyncStorage.getItem(STORAGE_KEY);

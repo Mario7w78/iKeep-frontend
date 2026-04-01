@@ -22,7 +22,7 @@ export default function CreateActivityScreen({ navigation }: any) {
   const [startTime, setStartTime] = useState(new Date());
   const [selectedCommute, setSelectedCommute] = useState('0m');
   const [selectedDays, setSelectedDays] = useState<Frecuencia[]>([]);
-
+  const [scrollEnabled, setScrollEnabled] = useState(true);
   const endTime = calculateEndTime(startTime, selectedDuration);
 
   const updateTime = (hourString: string, minuteString: string) => {
@@ -92,11 +92,21 @@ export default function CreateActivityScreen({ navigation }: any) {
           />
 
           {isFixed && (
-            <TimePickerSection
-              startTime={startTime}
-              endTime={endTime}
-              onTimeChange={updateTime}
-            />
+            <View
+              onStartShouldSetResponderCapture={() => {
+                setScrollEnabled(false); 
+                return false;
+              }}
+              onResponderRelease={() => {
+                setScrollEnabled(true);
+              }}
+            >
+              <TimePickerSection
+                startTime={startTime}
+                endTime={endTime}
+                onTimeChange={updateTime}
+              />
+            </View>
           )}
 
         </ScrollView>

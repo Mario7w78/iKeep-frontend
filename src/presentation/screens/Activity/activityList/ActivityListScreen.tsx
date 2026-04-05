@@ -41,7 +41,7 @@ export default function ActivityListScreen() {
             <ActivityCard
               title={item.title}
               // Si es fija mostramos el rango, si es flexible la duración en min
-              time={item.isFixed()
+              time={item.type === 'FIXED'
                 ? `${item.startTime} - ${item.endTime}`
                 : `${item.durationMinutes} min`}
               onPress={handlePresentModalPress}

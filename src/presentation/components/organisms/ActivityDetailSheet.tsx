@@ -1,57 +1,33 @@
-import React, { forwardRef } from 'react';
-import { Text, StyleSheet } from 'react-native';
-import { 
-  BottomSheetModal, 
-  BottomSheetView, 
-  BottomSheetBackdrop 
-} from '@gorhom/bottom-sheet';
+import React, { forwardRef, useImperativeHandle, useState } from 'react';
+import { Modal, View, Text, StyleSheet, TouchableOpacity, Pressable } from 'react-native';
 
-interface Props {
-  snapPoints: string[];
+export interface BottomSheetModal {
+  present: () => void;
+  dismiss: () => void;
 }
 
-// Usamos forwardRef para recibir el bottomSheetModalRef desde ActivityListScreen
-export const ActivityDetailSheet = forwardRef<BottomSheetModal, Props>(
-  ({ snapPoints }, ref) => {
-    return (
-      <BottomSheetModal
-        ref={ref}
-        index={0}
-        snapPoints={snapPoints}
-        enablePanDownToClose={true}
-        enableDynamicSizing={false}
-        backdropComponent={(props) => (
-          <BottomSheetBackdrop 
-            {...props} 
-            disappearsOnIndex={-1} 
-            appearsOnIndex={0} 
-            pressBehavior="close"
-          />
-        )}
-      >
-        <BottomSheetView style={styles.sheetContainer}>
-          <Text style={styles.sheetTitle}>Detalles de la Actividad</Text>
-          <Text style={styles.sheetText}>Aquí puedes poner los controles de edición.</Text>
-        </BottomSheetView>
-      </BottomSheetModal>
-    );
-  }
-);
+export const ActivityDetailSheet = forwardRef<BottomSheetModal>((_, ref) => {
+  const [visible, setVisible] = useState(false);
+
+  useImperativeHandle(ref, () => ({
+    present: () => setVisible(true),
+    dismiss: () => setVisible(false),
+  }));
+
+  return (
+    <Modal transparent visible={visible} animationType="slide">
+      <Pressable style={styles.backdrop} onPress={() => setVisible(false)} />
+      <View style={styles.sheet}>
+        <Text style={styles.title}>Detalles de la Actividad</Text>
+        <Text style={styles.text}>Aquí puedes poner los controles de edición.</Text>
+      </View>
+    </Modal>
+  );
+});
 
 const styles = StyleSheet.create({
-  sheetContainer: {
-    flex: 1,
-    alignItems: 'center',
-    padding: 24,
-  },
-  sheetTitle: { 
-    fontSize: 20, 
-    fontWeight: 'bold', 
-    marginBottom: 12,
-    color: '#333'
-  },
-  sheetText: {
-    fontSize: 16,
-    color: '#666'
-  }
+  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' },
+  sheet: { backgroundColor: 'white', padding: 24, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
+  title: { fontSize: 20, fontWeight: 'bold', marginBottom: 12 },
+  text: { fontSize: 16, color: '#666' },
 });

@@ -1,19 +1,18 @@
 import React, { useRef, useCallback, useMemo } from 'react';
 import { View, StyleSheet, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { BottomSheetModal } from '@gorhom/bottom-sheet';
+import { ActivityDetailSheet, BottomSheetModal } from '../../../components/organisms/ActivityDetailSheet';
 
 // Importamos componentes atomizados
-import { HeaderTitle } from '../../components/molecules/HeaderTitle';
-import { ActivityDetailSheet } from '../../components/organisms/ActivityDetailSheet';
-import ActivityCard from '../../components/organisms/ActivityCard';
+import { HeaderTitle } from '../../../components/molecules/HeaderTitle';
+import ActivityCard from '../../../components/organisms/ActivityCard';
 
-import useActivityListViewModel from '../../hooks/useActivityListViewModel';
+import useActivityListViewModel from '../../../hooks/useActivityListViewModel';
+import { styles } from '../activityStyles';
 
 export default function ActivityListScreen() {
   const viewModel = useActivityListViewModel();
   const bottomSheetModalRef = useRef<BottomSheetModal>(null);
-  const snapPoints = useMemo(() => ['90%'], []);
 
   const handlePresentModalPress = useCallback(() => {
     bottomSheetModalRef.current?.present();
@@ -38,15 +37,7 @@ export default function ActivityListScreen() {
         )}
       />
 
-      <ActivityDetailSheet
-        ref={bottomSheetModalRef}
-        snapPoints={snapPoints}
-      />
-
+      <ActivityDetailSheet ref={bottomSheetModalRef} />
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8F9FA' },
-});

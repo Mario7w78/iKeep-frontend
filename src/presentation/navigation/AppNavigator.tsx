@@ -5,9 +5,9 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 
-import ActivityListScreen from '../screens/Activity/ActivityListScreen';
+import ActivityListScreen from '../screens/Activity/activityList/ActivityListScreen';
 import ScheduleScreen from '../screens/ScheduleScreen';
-import CreateActivityScreen from '../screens/Activity/CreateActivityScreen';
+import CreateActivityScreen from '../screens/Activity/activityCreation/CreateActivityScreen';
 
 // 1. Tipos para el Stack principal y los Tabs
 export type RootStackParamList = {
@@ -95,7 +95,7 @@ export default function AppNavigator() {
         name="CreateActivityModal" 
         component={CreateActivityScreen} 
         options={{ 
-          presentation: 'modal', // Animación de iOS que sube desde abajo
+          // presentation: 'modal', // Animación de iOS que sube desde abajo
           animation: 'slide_from_bottom' // Para Android
         }} 
       />

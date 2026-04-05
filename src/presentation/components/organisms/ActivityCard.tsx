@@ -1,7 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
-import Reanimated, { SharedValue } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { MaterialIcons } from '@expo/vector-icons';
 
@@ -14,22 +12,10 @@ type ActivityCardProps = {
 };
 
 export default function ActivityCard({ title, time, onPress, onDelete, onEdit }: ActivityCardProps) {
-  
-  const renderRightActions = (progress: SharedValue<number>, dragX: SharedValue<number>) => {
-    return (
-      <View style={styles.actionsContainer}>
-        <TouchableOpacity style={[styles.actionButton]} onPress={onEdit}>
-          <MaterialIcons name="edit" size={24} color="#6C5CE7" />
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.actionButton]} onPress={onDelete}>
-          <MaterialIcons name="delete" size={24} color="#6C5CE7" />
-        </TouchableOpacity>
-      </View>
-    );
-  };
+  const [showActions, setShowActions] = useState(false);
 
   return (
-    <ReanimatedSwipeable renderRightActions={renderRightActions} friction={2}>
+    <View style={styles.wrapper}>
       <TouchableOpacity activeOpacity={0.8} onPress={onPress} style={styles.card}>
         <View style={styles.iconContainer}>
           <MaterialIcons name="shower" size={24} color="#6C5CE7" />
@@ -38,26 +24,43 @@ export default function ActivityCard({ title, time, onPress, onDelete, onEdit }:
           <Text style={styles.timeText}>{time}</Text>
           <Text style={styles.titleText}>{title}</Text>
         </View>
-        <Ionicons name="chevron-forward" size={24} color="#6C5CE7" />
+        <TouchableOpacity onPress={() => setShowActions(!showActions)}>
+          <Ionicons name={showActions ? 'chevron-up' : 'ellipsis-vertical'} size={24} color="#6C5CE7" />
+        </TouchableOpacity>
       </TouchableOpacity>
-    </ReanimatedSwipeable>
+
+      {showActions && (
+        <View style={styles.actionsContainer}>
+          <TouchableOpacity style={styles.actionButton} onPress={() => { onEdit(); setShowActions(false); }}>
+            <MaterialIcons name="edit" size={20} color="#6C5CE7" />
+            <Text style={styles.actionText}>Editar</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionButton} onPress={() => { onDelete(); setShowActions(false); }}>
+            <MaterialIcons name="delete" size={20} color="#E74C3C" />
+            <Text style={[styles.actionText, { color: '#E74C3C' }]}>Eliminar</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  wrapper: {
+    marginHorizontal: 16,
+    marginVertical: 8,
+  },
   card: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     padding: 16,
-    marginHorizontal: 16,
-    marginVertical: 8,
     borderRadius: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3, 
+    elevation: 3,
   },
   iconContainer: {
     width: 40,
@@ -82,19 +85,22 @@ const styles = StyleSheet.create({
   },
   actionsContainer: {
     flexDirection: 'row',
-    marginVertical: 8,
-    marginRight: 16,
+    backgroundColor: '#F8F8F8',
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    gap: 16,
   },
   actionButton: {
-    justifyContent: 'center',
+    flexDirection: 'row',
     alignItems: 'center',
-    width: 50,
-    borderRadius: 12,
-    marginLeft: 2,
-    marginRight: 10,
+    gap: 4,
+    padding: 8,
   },
   actionText: {
-    color: '#FFF',
-    fontWeight: 'bold',
+    color: '#6C5CE7',
+    fontWeight: '600',
+    fontSize: 14,
   },
 });

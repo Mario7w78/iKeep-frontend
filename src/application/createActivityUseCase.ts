@@ -1,19 +1,19 @@
 import { ActivityStorageService } from '../Services/ActivityStorageService';
 import { calculateEndTime, formatTime } from '../domain/timeUtils';
+import { frecuency } from '../domain/entities/activity.types';
 
 interface CreateActivityCommand {
   activityName: string;
   selectedDuration: string;
   isFixed: boolean;
   startTime: Date;
-  selectedCommute: string;
-  days: [string];
+  endTime: Date;
+  selectedTravelTime: string;
+  days: frecuency[];
 }
 
 export const executeCreateActivity = async (command: CreateActivityCommand): Promise<void> => {
-  const { activityName, selectedDuration, isFixed, startTime, selectedCommute, days } = command;
-  
-  const endTime = calculateEndTime(startTime, selectedDuration);
+  const { activityName, selectedDuration, isFixed, startTime, endTime, selectedTravelTime, days } = command;
 
   const newActivity = {
       id: Date.now().toString(),
@@ -23,10 +23,9 @@ export const executeCreateActivity = async (command: CreateActivityCommand): Pro
           : `${selectedDuration} (Flexible)`,
       isFixed,
       duration: selectedDuration,
-      commute: selectedCommute,
+      commute: selectedTravelTime,
       days: days
   };
   
-  // Aquí llamamos al adaptador de infraestructura
   await ActivityStorageService.saveActivity(newActivity);
 };

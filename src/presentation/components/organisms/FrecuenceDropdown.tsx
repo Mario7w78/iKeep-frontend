@@ -3,44 +3,34 @@ import { DropdownMenu } from '../molecules/DropdownMenu';
 import { MenuOptionCheck } from '../atoms/MenuOptionCheck'
 import { View, Text, StyleSheet } from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-
-export enum Frecuencia {
-    Diario = 'Todos los días',
-    Lunes = 'Lunes',
-    Martes = 'Martes',
-    Miercoles = 'Miércoles',
-    Jueves = 'Jueves',
-    Viernes = 'Viernes',
-    Sábado = 'Sábado',
-    Domingo = 'Domingo',
-}
+import { frecuency } from '../../../domain/entities/activity.types';
 
 interface Props {
-    onSelectionChange: (dias: Frecuencia[]) => void;
-    seleccionados: Frecuencia[];
+    onSelectionChange: (dias: frecuency[]) => void;
+    seleccionados: frecuency[];
 }
 
 export default function FrecuenceDropdown({ onSelectionChange, seleccionados }: Props) {
     const [visible, setVisible] = useState(false);
 
-    const toggleSelect = (opcion: Frecuencia) => {
+    const toggleSelect = (opcion: frecuency) => {
         let nuevosSeleccionados = [...seleccionados];
 
-        if (opcion === Frecuencia.Diario) {
-            onSelectionChange([Frecuencia.Diario]);
+        if (opcion === frecuency.Diario) {
+            onSelectionChange([frecuency.Diario]);
             return;
         }
 
         if (nuevosSeleccionados.includes(opcion)) {
             nuevosSeleccionados = nuevosSeleccionados.filter(item => item !== opcion);
         } else {
-            nuevosSeleccionados = nuevosSeleccionados.filter(item => item !== Frecuencia.Diario);
+            nuevosSeleccionados = nuevosSeleccionados.filter(item => item !== frecuency.Diario);
             nuevosSeleccionados.push(opcion);
         }
 
-        const diasSemana = Object.values(Frecuencia).filter(f => f !== Frecuencia.Diario);
+        const diasSemana = Object.values(frecuency).filter(f => f !== frecuency.Diario);
         if (nuevosSeleccionados.length === diasSemana.length) {
-            onSelectionChange([Frecuencia.Diario]);
+            onSelectionChange([frecuency.Diario]);
         } else {
             onSelectionChange(nuevosSeleccionados);
         }
@@ -48,7 +38,7 @@ export default function FrecuenceDropdown({ onSelectionChange, seleccionados }: 
 
     const renderTriggerText = () => {
         if (seleccionados.length === 0) return "Seleccionar días";
-        if (seleccionados.length === Object.keys(Frecuencia).length) return "Todos los días";
+        if (seleccionados.length === Object.keys(frecuency).length) return "Todos los días";
         return seleccionados.join(', ');
     };
 
@@ -68,7 +58,7 @@ export default function FrecuenceDropdown({ onSelectionChange, seleccionados }: 
                     </View>
                 }
             >
-                {Object.values(Frecuencia).map((dia) => (
+                {Object.values(frecuency).map((dia) => (
                     <MenuOptionCheck
                         key={dia}
                         isSelected={seleccionados.includes(dia)}

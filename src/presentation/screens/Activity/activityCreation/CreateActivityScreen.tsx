@@ -7,7 +7,7 @@ import { PrimaryButton } from '../../../components/atoms/PrimaryButton';
 import { SwitchRow } from '../../../components/molecules/SwitchRow';
 import { InputHeader } from '../../../components/molecules/InputHeader';
 import { TimePickerSection } from '../../../components/organisms/TimePickerSection';
-import FrecuenceDropdown  from '../../../components/organisms/FrecuenceDropdown';
+import FrecuenceDropdown from '../../../components/organisms/FrecuenceDropdown';
 import { NumericStepper } from '../../../components/molecules/NumericStepper';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -18,7 +18,7 @@ import {
 }
   from '../../../../domain/timeUtils';
 
-import { executeCreateActivity } from '../../../../application/createActivityUseCase';
+import { CreateActivityUseCase } from '../../../../application/useCase/CreateActivityUseCase';
 import { styles } from '../../Activity/activityStyles'
 import { DayOfWeek } from '../../../../domain/entities/Activity';
 
@@ -36,7 +36,7 @@ export default function CreateActivityScreen({ navigation }: any) {
 
 
   const [selectedDays, setSelectedDays] = useState<DayOfWeek[]>([]);
-  
+
   const [scrollEnabled, setScrollEnabled] = useState(true);
 
   const handleAddGeneric = (
@@ -63,8 +63,8 @@ export default function CreateActivityScreen({ navigation }: any) {
   };
 
   const handleSaveActivity = async () => {
-  
-    await executeCreateActivity({
+
+    await CreateActivityUseCase({
       activityName,
       isFixed,
       startTime,
@@ -92,53 +92,8 @@ export default function CreateActivityScreen({ navigation }: any) {
           nestedScrollEnabled={true}
         >
 
-          <View style={styles.section}>
-
-            <View style={styles.inputSection}>
-              <View style={styles.iconContainer}>
-                <AntDesign name="clock-circle" size={16} color='white' />
-              </View>
-              <Text style={styles.labelSmall}>Duración</Text>
-            </View>
-
-            <NumericStepper 
-              value={durationTimeValue} 
-              selectedTimeType={selectedTimeTypeDuration}
-              onSelectType={setSelectedTypeDuration}
-              onAdd={() => handleAddGeneric(setDurationTime, selectedTimeTypeDuration)}
-              onSubstract={() => handleSubGeneric(setDurationTime, selectedTimeTypeDuration)} 
-              />
-
-          </View>
-
-          <View style={styles.section}>
-
-            <View style={styles.inputSection}>
-              <View style={styles.iconContainer}>
-                <Ionicons name="location-outline" size={20} color='white' />
-              </View>
-              <Text style={styles.labelSmall}>Tiempo de traslado</Text>
-            </View>
-
-            <NumericStepper 
-              value={travelTimeValue} 
-              selectedTimeType={selectedTimeTypeTravel}
-              onSelectType={setSelectedTimeTypeTravel}
-              onAdd={() => handleAddGeneric(setTravelTime, selectedTimeTypeTravel)}
-              onSubstract={() => handleSubGeneric(setTravelTime, selectedTimeTypeTravel)} 
-            />
-            
-          </View>
-
-          <View>
-            <Text>Frecuencia de la actividad</Text>
-            <FrecuenceDropdown
-              seleccionados={selectedDays}
-              onSelectionChange={setSelectedDays} />
-          </View>
-
           <SwitchRow
-            label="Intervalo fijo: "
+            label="Actividad con hora fija"
             value={isFixed}
             onValueChange={setIsFixed}
           />
@@ -146,7 +101,7 @@ export default function CreateActivityScreen({ navigation }: any) {
           {isFixed && (
             <View
               onStartShouldSetResponderCapture={() => {
-                setScrollEnabled(false); 
+                setScrollEnabled(false);
                 return false;
               }}
               onResponderRelease={() => {
@@ -161,6 +116,58 @@ export default function CreateActivityScreen({ navigation }: any) {
             </View>
           )}
 
+          {!isFixed && (
+            <View>
+              <Text style={styles.messages}>
+                (El algoritmo le asignará un intervalo de tiempo óptimo)
+              </Text>
+            </View>
+          )}
+
+          <View style={styles.section}>
+
+            <View style={styles.inputSection}>
+              <View style={styles.iconContainer}>
+                <AntDesign name="clock-circle" size={16} color='white' />
+              </View>
+              <Text style={styles.labelSmall}>Duración</Text>
+            </View>
+
+            <NumericStepper
+              value={durationTimeValue}
+              selectedTimeType={selectedTimeTypeDuration}
+              onSelectType={setSelectedTypeDuration}
+              onAdd={() => handleAddGeneric(setDurationTime, selectedTimeTypeDuration)}
+              onSubstract={() => handleSubGeneric(setDurationTime, selectedTimeTypeDuration)}
+            />
+
+          </View>
+
+          <View style={styles.section}>
+
+            <View style={styles.inputSection}>
+              <View style={styles.iconContainer}>
+                <Ionicons name="location-outline" size={20} color='white' />
+              </View>
+              <Text style={styles.labelSmall}>Tiempo de traslado</Text>
+            </View>
+
+            <NumericStepper
+              value={travelTimeValue}
+              selectedTimeType={selectedTimeTypeTravel}
+              onSelectType={setSelectedTimeTypeTravel}
+              onAdd={() => handleAddGeneric(setTravelTime, selectedTimeTypeTravel)}
+              onSubstract={() => handleSubGeneric(setTravelTime, selectedTimeTypeTravel)}
+            />
+
+          </View>
+
+          <View>
+            <Text>Frecuencia de la actividad</Text>
+            <FrecuenceDropdown
+              seleccionados={selectedDays}
+              onSelectionChange={setSelectedDays} />
+          </View>
         </ScrollView>
       </View>
 

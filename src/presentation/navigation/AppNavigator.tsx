@@ -6,7 +6,7 @@ import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 
 import ActivityListScreen from '../screens/Activity/activityList/ActivityListScreen';
-import ScheduleScreen from '../screens/ScheduleScreen';
+import ScheduleScreen from '../screens/Activity/schedule/ScheduleScreen';
 import CreateActivityScreen from '../screens/Activity/activityCreation/CreateActivityScreen';
 
 // 1. Tipos para el Stack principal y los Tabs

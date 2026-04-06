@@ -44,7 +44,6 @@ export const styles = StyleSheet.create({
   header: { 
     backgroundColor: Theme.colors.primary, 
     paddingHorizontal: 20, 
-    paddingBottom: 20 
   },
   headerTopRow: { 
     flexDirection: 'row', 

@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, Switch, StyleSheet } from 'react-native';
+import { Theme } from '../theme/colors';
 
 interface Props {
   label: string;
@@ -20,6 +21,15 @@ export const SwitchRow = ({ label, value, onValueChange }: Props) => (
 );
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
-  label: { fontSize: 18, fontWeight: 'bold', color: '#333' },
+  row: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    marginBottom: 24 
+  },
+  label: { 
+    fontSize: 20,
+    color: Theme.colors.textSecondary,
+    fontWeight: '700'
+  },
 });

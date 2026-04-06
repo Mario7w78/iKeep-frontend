@@ -1,7 +1,6 @@
-import { ActivityStorageService } from '../Services/ActivityStorageService';
-import { formatTime } from '../domain/timeUtils';
-import { frecuency } from '../domain/entities/activity.types';
-import { Activity, ActivityProps, ActivityType, DayOfWeek, } from '../domain/entities/Activity';
+import { ActivityStorageService } from '../../Services/ActivityStorageService';
+import { formatTime } from '../../domain/timeUtils';
+import { Activity, ActivityProps, ActivityType, DayOfWeek, } from '../../domain/entities/Activity';
 
 interface CreateActivityCommand {
   activityName: string;
@@ -13,7 +12,7 @@ interface CreateActivityCommand {
   days: DayOfWeek[];
 }
 
-export const executeCreateActivity = async (command: CreateActivityCommand): Promise<void> => {
+export const CreateActivityUseCase = async (command: CreateActivityCommand): Promise<void> => {
   const { activityName, isFixed, startTime, endTime, durationTime, travelTime, days } = command;
 
   const props: ActivityProps = {

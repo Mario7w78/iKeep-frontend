@@ -6,7 +6,7 @@ import { ActivityDetailSheet, BottomSheetModal } from '../../../components/organ
 import { HeaderTitle } from '../../../components/molecules/HeaderTitle';
 import ActivityCard from '../../../components/organisms/ActivityCard';
 
-import useActivityList from '../../../hooks/useActivityList';
+import useActivityListAdapter from '../../../hooks/useActivityListAdapter';
 import { styles } from '../activityStyles';
 import { Theme } from '../../../components/theme/colors';
 
@@ -16,7 +16,7 @@ export default function ActivityListScreen() {
     isLoading,
     handleEditActivity,
     handleDeleteActivity
-  } = useActivityList();
+  } = useActivityListAdapter();
 
   const bottomSheetModalRef = useRef<BottomSheetModal>(null);
 

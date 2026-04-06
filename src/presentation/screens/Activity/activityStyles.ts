@@ -47,4 +47,11 @@ export const styles = StyleSheet.create({
         color: Theme.colors.textSecondary,
         fontWeight: '700',
     },
+    messages: {
+        fontSize: 15,
+        color: Theme.colors.textSecondary,
+        fontWeight: '700',
+        textAlign: 'center',
+        marginVertical: 20
+    }
 });

@@ -18,7 +18,7 @@ export default function ActivityCard({ title, time, onPress, onDelete, onEdit }:
     <View style={styles.wrapper}>
       <TouchableOpacity activeOpacity={0.8} onPress={onPress} style={styles.card}>
         <View style={styles.iconContainer}>
-          <MaterialIcons name="shower" size={24} color="#6C5CE7" />
+          <MaterialIcons name="task" size={24} color="#6C5CE7" />
         </View>
         <View style={styles.textContainer}>
           <Text style={styles.timeText}>{time}</Text>

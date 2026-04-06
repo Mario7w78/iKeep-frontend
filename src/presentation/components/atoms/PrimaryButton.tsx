@@ -1,5 +1,6 @@
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { Theme } from '../theme/colors';
 
 interface Props {
   title: string;
@@ -13,6 +14,6 @@ export const PrimaryButton = ({ title, onPress }: Props) => (
 );
 
 const styles = StyleSheet.create({
-  primaryButton: { backgroundColor: '#6200EE', paddingVertical: 16, borderRadius: 30, alignItems: 'center' },
+  primaryButton: { backgroundColor: Theme.colors.primary, paddingVertical: 16, borderRadius: 30, alignItems: 'center' },
   primaryButtonText: { color: '#FFF', fontSize: 18, fontWeight: 'bold' },
 });

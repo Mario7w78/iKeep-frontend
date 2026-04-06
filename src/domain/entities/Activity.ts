@@ -1,4 +1,4 @@
-export type DayOfWeek = 'Lunes' | 'Martes' | 'Miercoles' | 'Jueves' | 'Viernes' | 'Sabado' | 'Domingo';
+export type DayOfWeek = 'Diario'|'Lunes' | 'Martes' | 'Miercoles' | 'Jueves' | 'Viernes' | 'Sabado' | 'Domingo';
 
 export enum ActivityType {
     FIXED = 'FIXED',
@@ -10,7 +10,7 @@ export interface ActivityProps {
     title: string;
     type: ActivityType;
     durationMinutes: number;
-    commuteMinutes: number;
+    travelMinutes: number;
     daysEnabled: DayOfWeek[];
     startTime?: string;
     endTime?: string;   
@@ -21,7 +21,7 @@ export class Activity {
     readonly title: string;
     readonly type: ActivityType;
     readonly durationMinutes: number;
-    readonly commuteMinutes: number;
+    readonly travelMinutes: number;
     readonly daysEnabled: DayOfWeek[];
     readonly startTime?: string;
     readonly endTime?: string;
@@ -31,15 +31,14 @@ export class Activity {
         this.title = props.title;
         this.type = props.type;
         this.durationMinutes = props.durationMinutes;
-        this.commuteMinutes = props.commuteMinutes;
+        this.travelMinutes = props.travelMinutes;
         this.daysEnabled = props.daysEnabled;
         this.startTime = props.startTime;
         this.endTime = props.endTime;
     }
 
-    // Ejemplo de lógica de negocio dentro de la entidad
     getTotalTimeRequired(): number {
-        return this.durationMinutes + this.commuteMinutes;
+        return this.durationMinutes + this.travelMinutes;
     }
 
     isFixed(): boolean {

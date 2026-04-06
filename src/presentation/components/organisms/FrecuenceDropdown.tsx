@@ -1,45 +1,51 @@
 import React, { useState } from 'react';
-import { DropdownMenu } from '../molecules/DropdownMenu';
-import { MenuOptionCheck } from '../atoms/MenuOptionCheck'
 import { View, Text, StyleSheet } from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { frecuency } from '../../../domain/entities/activity.types';
+
+import { DropdownMenu } from '../molecules/DropdownMenu';
+import { MenuOptionCheck } from '../atoms/MenuOptionCheck';
+import { DayOfWeek } from '../../../domain/entities/Activity';
+import { Theme } from '../theme/colors';
+
+const DIAS_DE_LA_SEMANA: DayOfWeek[] = [
+    'Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo'
+];
 
 interface Props {
-    onSelectionChange: (dias: frecuency[]) => void;
-    seleccionados: frecuency[];
+    onSelectionChange: (dias: DayOfWeek[]) => void;
+    seleccionados: DayOfWeek[];
 }
 
 export default function FrecuenceDropdown({ onSelectionChange, seleccionados }: Props) {
     const [visible, setVisible] = useState(false);
 
-    const toggleSelect = (opcion: frecuency) => {
+    const toggleSelect = (dia: DayOfWeek) => {
         let nuevosSeleccionados = [...seleccionados];
 
-        if (opcion === frecuency.Diario) {
-            onSelectionChange([frecuency.Diario]);
-            return;
+        if (nuevosSeleccionados.includes(dia)) {
+            nuevosSeleccionados = nuevosSeleccionados.filter(item => item !== dia);
+        } else {
+            nuevosSeleccionados.push(dia);
         }
 
-        if (nuevosSeleccionados.includes(opcion)) {
-            nuevosSeleccionados = nuevosSeleccionados.filter(item => item !== opcion);
-        } else {
-            nuevosSeleccionados = nuevosSeleccionados.filter(item => item !== frecuency.Diario);
-            nuevosSeleccionados.push(opcion);
-        }
+        onSelectionChange(nuevosSeleccionados);
+    };
 
-        const diasSemana = Object.values(frecuency).filter(f => f !== frecuency.Diario);
-        if (nuevosSeleccionados.length === diasSemana.length) {
-            onSelectionChange([frecuency.Diario]);
+    const handleSelectAll = () => {
+        if (seleccionados.length === DIAS_DE_LA_SEMANA.length) {
+            onSelectionChange([]);
         } else {
-            onSelectionChange(nuevosSeleccionados);
+            onSelectionChange([...DIAS_DE_LA_SEMANA]);
         }
     };
 
     const renderTriggerText = () => {
         if (seleccionados.length === 0) return "Seleccionar días";
-        if (seleccionados.length === Object.keys(frecuency).length) return "Todos los días";
-        return seleccionados.join(', ');
+        if (seleccionados.length === DIAS_DE_LA_SEMANA.length) return "Todos los días";
+            return DIAS_DE_LA_SEMANA
+            .filter(d => seleccionados.includes(d))
+            .map(d => d.substring(0, 3)) 
+            .join(', ');
     };
 
     return (
@@ -58,7 +64,16 @@ export default function FrecuenceDropdown({ onSelectionChange, seleccionados }: 
                     </View>
                 }
             >
-                {Object.values(frecuency).map((dia) => (
+                <MenuOptionCheck
+                    isSelected={seleccionados.length === DIAS_DE_LA_SEMANA.length}
+                    onSelect={handleSelectAll}
+                >
+                    <Text style={[styles.optionText, { fontWeight: 'bold' }]}>Todos los días</Text>
+                </MenuOptionCheck>
+
+                <View style={styles.separator} />
+
+                {DIAS_DE_LA_SEMANA.map((dia) => (
                     <MenuOptionCheck
                         key={dia}
                         isSelected={seleccionados.includes(dia)}
@@ -82,34 +97,28 @@ const styles = StyleSheet.create({
         height: 50,
         width: '100%',
         flexDirection: 'row',
-        justifyContent: 'center',
+        paddingHorizontal: 15,
+        justifyContent: 'space-between',
         alignItems: 'center',
-        borderRadius: 8,
-        backgroundColor: '#6200EE',
+        borderRadius: 12,
+        backgroundColor: Theme.colors.primary, 
         elevation: 3,
     },
     triggerText: {
-        fontSize: 16,
-        fontWeight: 'bold',
+        fontSize: 14,
+        fontWeight: '600',
         color: 'white',
+        flex: 1,
     },
     optionText: {
-        padding: 10,
+        paddingVertical: 10,
+        paddingHorizontal: 5,
         fontSize: 16,
         color: '#333',
     },
-    menu: {
-        position: 'absolute',
-        backgroundColor: 'white',
-        borderRadius: 12,
-        paddingVertical: 8,
-        shadowColor: '#000',
-        shadowOffset: { height: 4, width: 0 },
-        shadowOpacity: 0.15,
-        shadowRadius: 10,
-        elevation: 8,
-        borderWidth: 1,
-        borderColor: '#F0F0F0',
+    separator: {
+        height: 1,
+        backgroundColor: '#EEE',
+        marginVertical: 5,
     }
-
 });

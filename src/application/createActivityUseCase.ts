@@ -1,31 +1,32 @@
 import { ActivityStorageService } from '../Services/ActivityStorageService';
-import { calculateEndTime, formatTime } from '../domain/timeUtils';
+import { formatTime } from '../domain/timeUtils';
 import { frecuency } from '../domain/entities/activity.types';
+import { Activity, ActivityProps, ActivityType, DayOfWeek, } from '../domain/entities/Activity';
 
 interface CreateActivityCommand {
   activityName: string;
-  selectedDuration: string;
   isFixed: boolean;
   startTime: Date;
   endTime: Date;
-  selectedTravelTime: string;
-  days: frecuency[];
+  durationTime: number;
+  travelTime: number;
+  days: DayOfWeek[];
 }
 
 export const executeCreateActivity = async (command: CreateActivityCommand): Promise<void> => {
-  const { activityName, selectedDuration, isFixed, startTime, endTime, selectedTravelTime, days } = command;
+  const { activityName, isFixed, startTime, endTime, durationTime, travelTime, days } = command;
 
-  const newActivity = {
+  const props: ActivityProps = {
       id: Date.now().toString(),
       title: activityName || 'Actividad sin nombre',
-      time: isFixed 
-          ? `${formatTime(startTime)} - ${formatTime(endTime)}` 
-          : `${selectedDuration} (Flexible)`,
-      isFixed,
-      duration: selectedDuration,
-      commute: selectedTravelTime,
-      days: days
+      type: isFixed ? ActivityType.FIXED : ActivityType.FLEXIBLE,
+      durationMinutes: durationTime,
+      travelMinutes: travelTime,
+      daysEnabled: days,
+      startTime: isFixed ? formatTime(startTime) : undefined,
+      endTime: isFixed ? formatTime(endTime) : undefined,
   };
+  const newActivity = new Activity(props);
   
   await ActivityStorageService.saveActivity(newActivity);
 };

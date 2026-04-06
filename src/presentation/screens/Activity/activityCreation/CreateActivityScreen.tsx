@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView } from 'react-native';
 
-import { frecuency, timeType } from '../../../../domain/entities/activity.types';
+import { timeType } from '../../../../domain/entities/activity.types';
 
 import { PrimaryButton } from '../../../components/atoms/PrimaryButton';
 import { SwitchRow } from '../../../components/molecules/SwitchRow';
@@ -20,7 +20,7 @@ import {
 
 import { executeCreateActivity } from '../../../../application/createActivityUseCase';
 import { styles } from '../../Activity/activityStyles'
-import { Theme } from '../../../components/theme/colors';
+import { DayOfWeek } from '../../../../domain/entities/Activity';
 
 export default function CreateActivityScreen({ navigation }: any) {
   const [activityName, setActivityName] = useState('');
@@ -29,13 +29,13 @@ export default function CreateActivityScreen({ navigation }: any) {
   const [selectedTimeTypeDuration, setSelectedTypeDuration] = useState<timeType>(timeType.both);
   const [selectedTimeTypeTravel, setSelectedTimeTypeTravel] = useState<timeType>(timeType.both)
 
-  const [durationTime, setDurationTime] = useState(10)
-  const [travelTime, setTravelTime] = useState(0);
+  const [durationTimeValue, setDurationTime] = useState(10)
+  const [travelTimeValue, setTravelTime] = useState(0);
   const [startTime, setStartTime] = useState(new Date());
-  const endTime = calculateEndTime(startTime, durationTime);
+  const endTime = calculateEndTime(startTime, durationTimeValue);
 
 
-  const [selectedDays, setSelectedDays] = useState<frecuency[]>([]);
+  const [selectedDays, setSelectedDays] = useState<DayOfWeek[]>([]);
   
   const [scrollEnabled, setScrollEnabled] = useState(true);
 
@@ -63,15 +63,14 @@ export default function CreateActivityScreen({ navigation }: any) {
   };
 
   const handleSaveActivity = async () => {
-    const selectedDuration = formatString(durationTime)
-    const selectedTravelTime = formatString(travelTime)
+  
     await executeCreateActivity({
       activityName,
-      selectedDuration,
       isFixed,
       startTime,
       endTime,
-      selectedTravelTime,
+      durationTime: durationTimeValue,
+      travelTime: travelTimeValue,
       days: selectedDays,
     });
     navigation.goBack();
@@ -103,7 +102,7 @@ export default function CreateActivityScreen({ navigation }: any) {
             </View>
 
             <NumericStepper 
-              value={durationTime} 
+              value={durationTimeValue} 
               selectedTimeType={selectedTimeTypeDuration}
               onSelectType={setSelectedTypeDuration}
               onAdd={() => handleAddGeneric(setDurationTime, selectedTimeTypeDuration)}
@@ -122,7 +121,7 @@ export default function CreateActivityScreen({ navigation }: any) {
             </View>
 
             <NumericStepper 
-              value={travelTime} 
+              value={travelTimeValue} 
               selectedTimeType={selectedTimeTypeTravel}
               onSelectType={setSelectedTimeTypeTravel}
               onAdd={() => handleAddGeneric(setTravelTime, selectedTimeTypeTravel)}

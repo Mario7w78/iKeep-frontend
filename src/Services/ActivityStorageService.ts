@@ -1,16 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
+import { Activity } from '../domain/entities/Activity';
 const STORAGE_KEY = '@ikeep_activities';
-
-export type Activity = {
-  id: string;
-  title: string;
-  time: string;
-  isFixed: boolean;
-  duration: string;
-  commute: string;
-  days: string[];
-};
 
 export const ActivityStorageService = {
   getActivities: async (): Promise<Activity[]> => {

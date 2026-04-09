@@ -27,27 +27,23 @@ export class Schedule {
         this.createdAt = props.createdAt;
         this.items = props.scheduledActivities;
     }
-
-    // Retorna todas las actividades del horario
+    
     getAllItems(): ScheduledActivity[] {
         return [...this.items];
     }
 
-    // Filtra el horario por un día específico (Útil para la UI de Continuity)
     getItemsByDay(day: DayOfWeek): ScheduledActivity[] {
         return this.items
             .filter(item => item.day === day)
             .sort((a, b) => a.assignedStartTime.localeCompare(b.assignedStartTime));
     }
 
-    // Calcula el tiempo total ocupado en el horario (en minutos)
     getTotalActiveMinutes(): number {
         return this.items.reduce((total, item) => {
             return total + item.activity.getTotalTimeRequired();
         }, 0);
     }
 
-    // Verifica si hay una actividad en un bloque de tiempo (opcional para validaciones en UI)
     hasActivityAt(day: DayOfWeek, time: string): boolean {
         return this.items.some(item => 
             item.day === day && 

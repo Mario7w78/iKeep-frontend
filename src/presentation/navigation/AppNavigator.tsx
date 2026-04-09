@@ -1,104 +1,122 @@
 import React from 'react';
-import { TouchableOpacity } from 'react-native';
+import { TouchableOpacity, View, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 
-import ActivityListScreen from '../screens/Activity/activityList/ActivityListScreen';
-import ScheduleScreen from '../screens/Activity/schedule/ScheduleScreen';
-import CreateActivityScreen from '../screens/Activity/activityCreation/CreateActivityScreen';
+import ActivityListScreen from '../screens/Activity/activityList/ActivityListView';
+import ScheduleScreen from '../screens/schedule/ScheduleView';
+import CreateActivityScreen from '../screens/Activity/activityCreation/CreateActivityView';
+import { Theme } from '../components/theme/colors';
 
-// 1. Tipos para el Stack principal y los Tabs
 export type RootStackParamList = {
   MainTabs: undefined;
-  CreateActivityModal: undefined; // El modal a pantalla completa
+  CreateActivityModal: undefined;
 };
 
 export type MainTabParamList = {
   ActivityList: undefined;
   Schedule: undefined;
-  // Usamos un nombre falso para el botón del medio
-  CreateActivityButton: undefined; 
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
-// 2. Tu Tab Navigator (El que tiene la barra inferior)
-function TabNavigator() {
+function FABButton() {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
 
   return (
-    <Tab.Navigator
-      screenOptions={({ route }) => ({
-        headerShown: false,
-        tabBarActiveTintColor: '#6200EE',
-        tabBarInactiveTintColor: 'gray',
-        tabBarShowLabel: true,
-        tabBarIcon: ({ focused, color, size }) => {
-          let iconName: keyof typeof Ionicons.glyphMap = 'list';
-          if (route.name === 'ActivityList') {
-            iconName = focused ? 'list' : 'list-outline';
-          } else if (route.name === 'Schedule') {
-            iconName = focused ? 'calendar' : 'calendar-outline';
-          }
-          return <Ionicons name={iconName} size={size} color={color} />;
-        },
-      })}
+    <View style={styles.fabBG}>
+    <TouchableOpacity
+      style={styles.fab}
+      activeOpacity={0.85}
+      onPress={() => navigation.navigate('CreateActivityModal')}
     >
-      <Tab.Screen 
-        name="ActivityList" 
-        component={ActivityListScreen} 
-        options={{ title: 'Actividades' }} 
-      />
-      
-      {/* EL TRUCO: Un botón falso que abre el Modal en lugar de una pestaña */}
-      <Tab.Screen 
-        name="CreateActivityButton" 
-        // Un componente vacío porque nunca se va a renderizar
-        component={ActivityListScreen} 
-        options={{
-          title: 'Crear',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="add-circle" size={size + 4} color={color} />
-          ),
-          tabBarButton: ({ style, children }) => (
-            <TouchableOpacity 
-              style={style} 
-              onPress={() => navigation.navigate('CreateActivityModal')} 
-            >
-              {children}
-            </TouchableOpacity>
-          )
-        }} 
-      />
+      <Ionicons name="add" size={28} color="#fff" />
+    </TouchableOpacity>
+    </View>
+  );
+  
+}
 
-      <Tab.Screen 
-        name="Schedule" 
-        component={ScheduleScreen} 
-        options={{ title: 'Horario' }} 
-      />
-    </Tab.Navigator>
+function TabNavigator() {
+  return (
+    <>
+      <Tab.Navigator
+        screenOptions={({ route }) => ({
+          headerShown: false,
+          tabBarActiveTintColor: Theme.colors.primary,
+          tabBarInactiveTintColor: Theme.colors.surface,
+          tabBarShowLabel: true,
+          tabBarIcon: ({ focused, color, size }) => {
+            const icons: Record<string, [string, string]> = {
+              ActivityList: ['list',     'list-outline'],
+              Schedule:     ['calendar', 'calendar-outline'],
+            };
+            const [active, inactive] = icons[route.name] ?? ['ellipse', 'ellipse-outline'];
+            return (
+              <Ionicons
+                name={(focused ? active : inactive) as keyof typeof Ionicons.glyphMap}
+                size={size}
+                color={color}
+              />
+            );
+          },
+          tabBarStyle: styles.tabBar,
+          tabBarLabelStyle: styles.tabLabel,
+        })}
+      >
+        <Tab.Screen name="ActivityList" options={{ title: 'Actividades' }} component={ActivityListScreen} />
+        <Tab.Screen name="Schedule"     options={{ title: 'Horario' }}     component={ScheduleScreen} />
+      </Tab.Navigator>
+      <FABButton />
+    </>
   );
 }
 
-// 3. El Stack Navigator (El contenedor principal)
 export default function AppNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      {/* Tus pestañas normales */}
       <Stack.Screen name="MainTabs" component={TabNavigator} />
-      
-      {/* La pantalla de crear, configurada para abrirse como modal sobre las pestañas */}
-      <Stack.Screen 
-        name="CreateActivityModal" 
-        component={CreateActivityScreen} 
-        options={{ 
-          // presentation: 'modal', // Animación de iOS que sube desde abajo
-          animation: 'slide_from_bottom' // Para Android
-        }} 
+      <Stack.Screen
+        name="CreateActivityModal"
+        component={CreateActivityScreen}
+        options={{ animation: 'slide_from_bottom' }}
       />
     </Stack.Navigator>
   );
 }
+
+const styles = StyleSheet.create({
+  tabBar: {
+    backgroundColor: Theme.colors.lightBackground,
+    borderTopWidth: 0,
+    height: 72,
+    paddingBottom: 10,
+  },
+  tabLabel: {
+    fontSize: 12,
+  },
+  fabBG: {
+     position: 'absolute',
+    bottom: 15,           
+    alignSelf: 'center',  
+    backgroundColor: Theme.colors.lightBackground,
+    padding: 10,
+    borderRadius: 50,
+  },
+  fab: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: Theme.colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: Theme.colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+});

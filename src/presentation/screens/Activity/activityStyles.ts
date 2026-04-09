@@ -2,48 +2,78 @@ import { StyleSheet } from 'react-native';
 import { Theme } from '../../components/theme/colors';
 
 export const styles = StyleSheet.create({
-    headerContainer: {
-        flex: 1,
-        backgroundColor: '#6200EE'
-    },
     container: { 
         flex: 1, 
-        backgroundColor: '#F8F9FA'
+        backgroundColor: Theme.colors.background,
      },
     formContainerBackground: { 
         flex: 1, 
-        backgroundColor: '#FFF' 
     },
     scrollForm: { flex: 1 },
     scrollContent: { 
         paddingHorizontal: 24, 
         paddingTop: 30, 
-        paddingBottom: 20 
+        paddingBottom: 20,
+        gap: 20
     },
-    section: { marginBottom: 24 },
+    section: { 
+        width:'50%',
+     },
+    timeSection: {
+        flexDirection: 'column',
+        backgroundColor: Theme.colors.lightBackground,
+        borderRadius: Theme.generalBorder,
+        padding: 20,
+    },
+    timeInnerSection: {
+        flexDirection: 'row',
+    },
     footer: {
         paddingHorizontal: 24, 
         paddingBottom: 30, 
         paddingTop: 10, 
-        backgroundColor: '#F8F9FA' 
     },
     inputSection: {
         flexDirection: 'row',
-        gap: 10,
+        gap: 5,
+        justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 20
+        marginBottom: 10
     },
     iconContainer: {
         backgroundColor: Theme.colors.border,
-        borderRadius: 12,
-        padding: 8,
-        width: 40,  
-        height: 40, 
+        borderRadius: 7,
+        width: 25,  
+        height: 25, 
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    icon2Container: {
+        backgroundColor: Theme.colors.primary,
+        borderRadius: 7,
+        width: 35,  
+        height: 35, 
         justifyContent: 'center',
         alignItems: 'center',
     },
     labelSmall: {
         fontSize: 20,
+        color: Theme.colors.textSecondary,
+        fontWeight: '700',
+        marginBottom: 10
+    },
+    label: {
+        fontSize: 20,
+        color: Theme.colors.textSecondary,
+        fontWeight: '700',
+    },
+    subLabelSmall: {
+        fontSize: 16,
+        color: Theme.colors.textSecondary,
+        fontWeight: '700',
+    },
+    descriptionLabel: {
+        fontSize: 12,
         color: Theme.colors.textSecondary,
         fontWeight: '700',
     },
@@ -53,5 +83,5 @@ export const styles = StyleSheet.create({
         fontWeight: '700',
         textAlign: 'center',
         marginVertical: 20
-    }
+    },
 });

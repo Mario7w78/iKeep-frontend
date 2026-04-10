@@ -5,7 +5,7 @@ import { PrimaryButton } from '../../../components/atoms/Common/PrimaryButton';
 import { SwitchRow } from '../../../components/atoms/Common/SwitchRow';
 import { InputHeader } from '../../../components/molecules/Header/InputHeader';
 import { TimePickerSection } from '../../../components/organisms/Time/TimePickerSection';
-import FrecuenceDropdown from '../../../components/organisms/DropDownMenu/FrecuenceDropdown';
+import { FrecuencySelector } from '../../../components/organisms/Time/FrecuencySelector';
 import { NumericStepper } from '../../../components/molecules/Time/NumericStepper';
 import PopUpAlert from '../../../components/atoms/Common/PopUpAlert';
 import AntDesign from '@expo/vector-icons/AntDesign';
@@ -30,10 +30,29 @@ export default function CreateActivityView({ navigation }: any) {
   const [travelTimeValue, setTravelTime] = useState(0);
   const [startTime, setStartTime] = useState(new Date());
   const endTime = calculateEndTime(startTime, durationTimeValue);
+
   const [selectedDays, setSelectedDays] = useState<DayOfWeek[]>([]);
 
   const [scrollEnabled, setScrollEnabled] = useState(true);
   const [shouldPopUpAlert, setShouldPopUpAlert] = useState(false)
+
+  const options: DayOfWeek[] = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo'];
+  const allOptions: DayOfWeek[] = ['Diario', ...options]; 
+
+  const handleSelect = (val: DayOfWeek) => {
+    if (val === 'Diario') {
+      setSelectedDays(prev =>
+        prev.length === options.length ? [] : options 
+      );
+      return;
+    }
+    setSelectedDays(prev => {
+      const withoutDiario = prev.filter(v => v !== 'Diario');
+      return withoutDiario.includes(val)
+        ? withoutDiario.filter(v => v !== val)
+        : [...withoutDiario, val];
+    });
+  };
 
   const {
     handleCreateActivity
@@ -71,21 +90,21 @@ export default function CreateActivityView({ navigation }: any) {
     setStartTime(newDate);
   };
 
-  const handleEmptyFields = () => {
+  const handleEmptyFields = (days: DayOfWeek[]) => {
     const missingName = !activityName.trim();
-    const missingDays = selectedDays.length === 0;
+    const missingDays = days.length === 0;
     const invalidDuration = durationTimeValue <= 0;
 
     if (missingName || missingDays || invalidDuration) {
       setShouldPopUpAlert(true);
       return true;
     }
-    return false
-  }
+    return false;
+  };
 
   const handleSaveActivity = async () => {
 
-    const isEmpty = handleEmptyFields()
+    const isEmpty = handleEmptyFields(selectedDays);
 
     if (isEmpty) {
       setShouldPopUpAlert(true)
@@ -163,9 +182,6 @@ export default function CreateActivityView({ navigation }: any) {
             )}
           </View>
 
-
-
-
           <View style={styles.timeSection}>
             <Text style={styles.labelSmall}>Tiempo</Text>
             <View style={styles.timeInnerSection}>
@@ -202,17 +218,21 @@ export default function CreateActivityView({ navigation }: any) {
                   onAdd={() => handleAddGeneric(setTravelTime, selectedTimeTypeTravel)}
                   onSubstract={() => handleSubGeneric(setTravelTime, selectedTimeTypeTravel)}
                 />
-
               </View>
             </View>
           </View>
 
-          <View>
-            <Text style={styles.labelSmall}>Frecuencia de la actividad</Text>
-            <FrecuenceDropdown
-              seleccionados={selectedDays}
-              onSelectionChange={setSelectedDays} />
+          <View style={styles.frecuencySection}>
+            <Text style={styles.labelSmall}>Frecuencia</Text>
+            <FrecuencySelector
+              days={allOptions}
+              selectedValue={selectedDays.length === options.length
+                ? [...selectedDays, 'Diario']
+                : selectedDays}
+              onSelect={handleSelect}
+            />
           </View>
+
         </ScrollView>
 
       </View>
@@ -224,7 +244,6 @@ export default function CreateActivityView({ navigation }: any) {
         isVisible={shouldPopUpAlert}
         onClose={() => setShouldPopUpAlert(false)}
       />
-
     </View>
   );
 }

@@ -1,4 +1,4 @@
-export type DayOfWeek = 'Diario'|'Lunes' | 'Martes' | 'Miercoles' | 'Jueves' | 'Viernes' | 'Sabado' | 'Domingo';
+export type DayOfWeek = 'Diario' |'Lunes' | 'Martes' | 'Miercoles' | 'Jueves' | 'Viernes' | 'Sabado' | 'Domingo';
 
 export enum ActivityType {
     FIXED = 'FIXED',

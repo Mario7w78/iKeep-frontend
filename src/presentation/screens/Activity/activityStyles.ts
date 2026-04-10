@@ -84,4 +84,10 @@ export const styles = StyleSheet.create({
         textAlign: 'center',
         marginVertical: 20
     },
+    frecuencySection: {
+        flexDirection: 'column',
+        backgroundColor: Theme.colors.lightBackground,
+        borderRadius: Theme.generalBorder,
+        padding: 20,
+    }
 });

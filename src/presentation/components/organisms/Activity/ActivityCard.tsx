@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Theme } from '../../theme/colors';
+import { DayOfWeek } from '../../../../domain/entities/Activity';
 
 type ActivityCardProps = {
   title: string;

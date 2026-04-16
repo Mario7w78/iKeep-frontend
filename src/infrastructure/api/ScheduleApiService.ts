@@ -5,13 +5,17 @@ import { mapActivitiesForBackend, mapBackendToSchedule } from './mappers/schedul
 
 const API_BASE_URL = 'https://ikeep-backend.onrender.com/api/v1/horarios';
 
-export const ScheduleApiService = async (activities: Activity[]): Promise<Schedule> => {
+export const ScheduleApiService = async (
+  activities: Activity[],
+  startHour: number,
+  endHour: number
+): Promise<Schedule> => {
   const response = await fetch(`${API_BASE_URL}/generar`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      hora_inicio_dia: 0,
-      hora_fin_dia: 1439,
+      hora_inicio_dia: startHour,
+      hora_fin_dia: endHour,
       actividades: mapActivitiesForBackend(activities),
     }),
   });
@@ -21,5 +25,5 @@ export const ScheduleApiService = async (activities: Activity[]): Promise<Schedu
     throw new Error(err.detail || 'Error al generar el horario');
   }
   const raw: any[] = await response.json();
-  return mapBackendToSchedule(raw, activities);  
+  return mapBackendToSchedule(raw, activities);
 };

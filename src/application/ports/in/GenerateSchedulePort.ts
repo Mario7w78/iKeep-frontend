@@ -2,5 +2,5 @@
 import { Schedule } from '../../../domain/entities/Schedule';
 
 export interface GenerateSchedulePort {
-    execute(): Promise<Schedule>;
+    execute(startHour: number, endHour: number): Promise<Schedule>;
 }

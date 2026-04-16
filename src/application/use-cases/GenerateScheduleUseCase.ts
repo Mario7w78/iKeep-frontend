@@ -10,13 +10,13 @@ export class GenerateScheduleUseCase implements GenerateSchedulePort {
         private activityRepository: ActivityRepository
     ) { }
 
-    async execute(): Promise<Schedule> {
+    async execute(startHour: number, endHour: number): Promise<Schedule> {
         const activities = await this.activityRepository.getAll();
         
         if (activities.length === 0) {
             throw new Error("No hay actividades para generar un horario");
         }
         
-        return await this.scheduleRepository.generate(activities);
+        return await this.scheduleRepository.generate(activities, startHour, endHour);;
     }
 }

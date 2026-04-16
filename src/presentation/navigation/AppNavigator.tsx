@@ -5,14 +5,17 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 
+import OnBoardingView from '../components/organisms/Onboarding/OnboardingVIew';
 import ActivityListScreen from '../screens/Activity/activityList/ActivityListView';
-import ScheduleScreen from '../screens/schedule/ScheduleView';
+import ScheduleScreen from '../screens/Schedule/ScheduleView';
 import CreateActivityScreen from '../screens/Activity/activityCreation/CreateActivityView';
 import { Theme } from '../components/theme/colors';
+import { useAppStore } from '../../infrastructure/store/useAppStore';
 
 export type RootStackParamList = {
   MainTabs: undefined;
   CreateActivityModal: undefined;
+  OnBoardingView: undefined
 };
 
 export type MainTabParamList = {
@@ -28,16 +31,16 @@ function FABButton() {
 
   return (
     <View style={styles.fabBG}>
-    <TouchableOpacity
-      style={styles.fab}
-      activeOpacity={0.85}
-      onPress={() => navigation.navigate('CreateActivityModal')}
-    >
-      <Ionicons name="add" size={28} color="#fff" />
-    </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.fab}
+        activeOpacity={0.85}
+        onPress={() => navigation.navigate('CreateActivityModal')}
+      >
+        <Ionicons name="add" size={28} color="#fff" />
+      </TouchableOpacity>
     </View>
   );
-  
+
 }
 
 function TabNavigator() {
@@ -51,8 +54,8 @@ function TabNavigator() {
           tabBarShowLabel: true,
           tabBarIcon: ({ focused, color, size }) => {
             const icons: Record<string, [string, string]> = {
-              ActivityList: ['list',     'list-outline'],
-              Schedule:     ['calendar', 'calendar-outline'],
+              ActivityList: ['list', 'list-outline'],
+              Schedule: ['calendar', 'calendar-outline'],
             };
             const [active, inactive] = icons[route.name] ?? ['ellipse', 'ellipse-outline'];
             return (
@@ -68,7 +71,7 @@ function TabNavigator() {
         })}
       >
         <Tab.Screen name="ActivityList" options={{ title: 'Actividades' }} component={ActivityListScreen} />
-        <Tab.Screen name="Schedule"     options={{ title: 'Horario' }}     component={ScheduleScreen} />
+        <Tab.Screen name="Schedule" options={{ title: 'Horario' }} component={ScheduleScreen} />
       </Tab.Navigator>
       <FABButton />
     </>
@@ -76,8 +79,14 @@ function TabNavigator() {
 }
 
 export default function AppNavigator() {
+  const hasSeenOnboarding = useAppStore((s) => s.hasSeenOnboarding);
+
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator
+      screenOptions={{ headerShown: false }}
+      initialRouteName={hasSeenOnboarding ? 'MainTabs' : 'OnBoardingView'}
+    >
+      <Stack.Screen name="OnBoardingView" component={OnBoardingView} />
       <Stack.Screen name="MainTabs" component={TabNavigator} />
       <Stack.Screen
         name="CreateActivityModal"
@@ -99,9 +108,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   fabBG: {
-     position: 'absolute',
-    bottom: 15,           
-    alignSelf: 'center',  
+    position: 'absolute',
+    bottom: 15,
+    alignSelf: 'center',
     backgroundColor: Theme.colors.lightBackground,
     padding: 10,
     borderRadius: 50,

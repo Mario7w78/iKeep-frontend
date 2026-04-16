@@ -1,7 +1,7 @@
 // Ubicación recomendada: src/infrastructure/repositories/AsyncStorageActivityRepository.ts
 
 import { ActivityRepository } from '../../domain/repositories/ActivityRepository';
-import { Activity, ActivityProps } from '../../domain/entities/Activity';
+import { Activity } from '../../domain/entities/Activity';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const STORAGE_KEY = '@ikeep_activities';

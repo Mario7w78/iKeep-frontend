@@ -1,4 +1,4 @@
-import { formatTime } from '../../domain/timeUtils';
+import { formatTime } from '../../presentation/utils/timeUtils';
 import { Activity, ActivityProps, ActivityType, } from '../../domain/entities/Activity';
 import { CreateActivityPort, CreateActivityCommand } from '../ports/in/CreateActivityPort';
 import { ActivityRepository } from '../../domain/repositories/ActivityRepository'

@@ -80,13 +80,13 @@ const PickerColumn: React.FC<PickerColumnProps> = ({ data, initialIndex, onValue
 };
 
 interface TimePickerProps {
-  onTimeChange?: (hour: string, minute: string, period: string) => void;
+  onTimeChange?: (hour: string, minute: string, period: string, id?: string) => void;
 }
 
 const TimePicker: React.FC<TimePickerProps> = ({ onTimeChange }) => {
   const now = new Date();
-  const initialHour12 = now.getHours() % 12 || 12; // 0 → 12, resto igual
-  const initialPeriod = now.getHours() < 12 ? 0 : 1; // índice en PERIODS
+  const initialHour12 = now.getHours() % 12 || 12; 
+  const initialPeriod = now.getHours() < 12 ? 0 : 1; 
 
   const selectedHourRef = useRef(HOURS[initialHour12 - 1]);
   const selectedMinuteRef = useRef(MINUTES[now.getMinutes()]);

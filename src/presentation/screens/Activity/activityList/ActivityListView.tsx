@@ -1,22 +1,29 @@
 import React, { useRef, useCallback } from 'react';
 import { FlatList, ActivityIndicator, View } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActivityDetailSheet, BottomSheetModal } from '../../../components/organisms/Activity/ActivityDetailSheet';
 
 import { HeaderTitle } from '../../../components/molecules/Header/HeaderTitle';
 import ActivityCard from '../../../components/organisms/Activity/ActivityCard';
 
-import useActivityList from '../../../hooks/useActivity';
 import { styles } from '../activityStyles';
 import { Theme } from '../../../components/theme/colors';
+import { useActivityStore } from '../../../../infrastructure/store/useActivityStore';
 
 export default function ActivityListView() {
+
   const {
     activities,
     isLoading,
     handleEditActivity,
-    handleDeleteActivity
-  } = useActivityList();
+    handleDeleteActivity,
+    loadActivities
+  } = useActivityStore();
+
+  useFocusEffect(useCallback(() => {
+    loadActivities();
+  }, []));
 
   const bottomSheetModalRef = useRef<BottomSheetModal>(null);
 

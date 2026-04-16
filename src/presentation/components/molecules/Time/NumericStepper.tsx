@@ -7,7 +7,7 @@ import {
 } from 'react-native';
 import { Theme } from '../../theme/colors';
 import AntDesign from '@expo/vector-icons/AntDesign';
-import { getHours, getMinutes } from '../../../../domain/timeUtils';
+import { getHours, getMinutes } from '../../../utils/timeUtils';
 import { timeType } from '../../../../domain/entities/activity.types';
 
 interface Props {

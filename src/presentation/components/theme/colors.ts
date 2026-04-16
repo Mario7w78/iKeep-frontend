@@ -26,3 +26,7 @@ export const DARK_COLORS = [
   { bg: '#331F0A', border: '#804E15', text: '#FDE0B4' },
   { bg: '#381A12', border: '#853A26', text: '#F7CDBE' },
 ];
+
+export const Screen = {
+  margin: 40
+}

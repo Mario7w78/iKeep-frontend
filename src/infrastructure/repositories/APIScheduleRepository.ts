@@ -5,8 +5,7 @@ import { Schedule } from '../../domain/entities/Schedule';
 import { ScheduleApiService } from '../api/ScheduleApiService';
 
 export class ApiScheduleRepository implements ScheduleRepository {
-    async generate(activities: Activity[]): Promise<Schedule> {
-        const schedule = await ScheduleApiService(activities);
-        return schedule;
-    }
+  async generate(activities: Activity[], startHour: number, endHour: number): Promise<Schedule> {
+    return await ScheduleApiService(activities, startHour, endHour);
+  }
 }

@@ -2,11 +2,20 @@
 import { View, ActivityIndicator, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { ScheduleHeader } from '../../components/organisms/Schedule/ScheduleHeader';
 import { ScheduleGrid } from '../../components/organisms/Schedule/ScheduleGrid';
-import useSchedule from '../../hooks/useSchedule';
 import { Theme } from '../../components/theme/colors';
+import { useScheduleStore } from '../../../infrastructure/store/useScheduleStore';
 
 export default function ScheduleView() {
-  const { schedule, isLoading, handleGenerateSchedule, selectedDay, setSelectedDay, activitiesForDay } = useSchedule();
+  const {
+    activitiesForDay,
+    handleGenerateSchedule,
+    isLoading,
+    schedule,
+    selectedDay,
+    setSelectedDay
+  } = useScheduleStore();
+
+  const items = activitiesForDay();
 
   if (isLoading) return (
     <View style={s.center}>
@@ -30,7 +39,7 @@ export default function ScheduleView() {
         activityCount={activitiesForDay.length}
         onSelectDay={setSelectedDay}
       />
-      <ScheduleGrid activities={activitiesForDay} />
+      <ScheduleGrid activities={items} />
     </View>
   );
 }

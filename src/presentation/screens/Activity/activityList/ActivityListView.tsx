@@ -1,5 +1,5 @@
 import React, { useRef, useCallback } from 'react';
-import { FlatList, ActivityIndicator, View } from 'react-native';
+import { FlatList, ActivityIndicator, View, StyleSheet } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActivityDetailSheet, BottomSheetModal } from '../../../components/organisms/Activity/ActivityDetailSheet';
@@ -7,7 +7,6 @@ import { ActivityDetailSheet, BottomSheetModal } from '../../../components/organ
 import { HeaderTitle } from '../../../components/molecules/Header/HeaderTitle';
 import ActivityCard from '../../../components/organisms/Activity/ActivityCard';
 
-import { styles } from '../activityStyles';
 import { Theme } from '../../../components/theme/colors';
 import { useActivityStore } from '../../../../infrastructure/store/useActivityStore';
 
@@ -62,3 +61,7 @@ export default function ActivityListView() {
     </SafeAreaView>
   );
 }
+
+export const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: Theme.colors.background }
+})

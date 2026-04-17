@@ -30,3 +30,13 @@ export const DARK_COLORS = [
 export const Screen = {
   margin: 40
 }
+
+export const GROUP_COLORS: { bg: string; text: string }[] = [
+  { bg: '#D6E4FF', text: '#1D3E8F' },
+  { bg: '#D6F5E3', text: '#145C30' },
+  { bg: '#FFF0CC', text: '#7A4F00' },
+  { bg: '#F5D6FF', text: '#5C1478' },
+  { bg: '#FFD6D6', text: '#7A1414' },
+  { bg: '#D6F0FF', text: '#0A4A6E' },
+  { bg: '#FFE8D6', text: '#7A3300' },
+];

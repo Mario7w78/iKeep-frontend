@@ -3,20 +3,21 @@ import AntDesign from '@expo/vector-icons/AntDesign';
 import { SwitchRow } from '../../atoms/Common/SwitchRow';
 import { Theme } from '../../theme/colors';
 import { TimePickerSection } from '../../molecules/Time/TimePickerSection';
+
 interface props {
     isFixed: boolean,
     setIsFixed: React.Dispatch<React.SetStateAction<boolean>>,
     updateTime: (hourString: string, minuteString: string, period: string) => void,
     onStartResponderCapture: ((event: GestureResponderEvent) => boolean) | undefined
-    onResponderRelease: ((event: GestureResponderEvent) => void) | undefined
+    onResponderRelease: ((event: GestureResponderEvent) => void) | undefined,
 }
-export const HourSection =
-    ({
+export const HourSection =(
+    {
         isFixed,
         setIsFixed,
         updateTime,
         onStartResponderCapture,
-        onResponderRelease
+        onResponderRelease,
     }: props) => {
         return (
             <View style={styles.timeSection}>
@@ -72,7 +73,6 @@ export const styles = StyleSheet.create({
     timeInnerSection: {
         flexDirection: 'row',
     },
-
     inputSection: {
         flexDirection: 'row',
         gap: 5,
@@ -124,4 +124,23 @@ export const styles = StyleSheet.create({
         textAlign: 'center',
         marginVertical: 20
     },
+    dayListContainer: {
+        flexDirection: 'row',
+        gap: 15,
+        marginBottom: 15,
+    },
+    dayContainer: {
+        backgroundColor: Theme.colors.border,
+        justifyContent: 'center',
+        alignItems: 'center',
+        width: 35,
+        height: 25,
+        borderRadius: 50,
+    },
+    dayText: {
+        color: Theme.colors.surface,
+        fontWeight: 'bold',
+        fontSize: 15
+    }
+
 });

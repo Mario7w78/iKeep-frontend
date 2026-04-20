@@ -24,7 +24,8 @@ const styles = StyleSheet.create({
   primaryButton: { 
     backgroundColor: Theme.colors.primary, 
     paddingVertical: 16, 
-    borderRadius: 30, 
+    borderRadius: 15, 
+    width: '50%',
     alignItems: 'center' 
   },
   primaryButtonText: { 

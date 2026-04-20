@@ -14,8 +14,8 @@ import { HourSection } from "../../../components/organisms/Time/HourSection";
 import { TimeSection } from "../../../components/organisms/Time/TimeSection";
 import { DayOfWeek } from "../../../../domain/entities/Activity";
 import { Theme, GROUP_COLORS } from "../../../components/theme/colors";
-
 import PopUpAlert from "../../../components/atoms/Common/PopUpAlert";
+import SplitActivityButton from "../../../components/molecules/Time/splitActivityButton";
 
 import useFrecuency from "../../../hooks/useFrecuency";
 import useTimeForm from "../../../hooks/useTimeForm";
@@ -167,6 +167,7 @@ export default function CreateActivityView({ navigation }: any) {
               </View>
             )}
           </View>
+          <SplitActivityButton />
           <HourSection
             isFixed={isFixed}
             onResponderRelease={() => setScrollEnabled(true)}
@@ -201,16 +202,39 @@ export default function CreateActivityView({ navigation }: any) {
       </View>
 
       <View style={styles.footer}>
+
+        <TouchableOpacity
+          style={[
+            styles.saveButton,
+            selectedDays.length === 0 && styles.saveButtonDisabled,
+          ]}
+          onPress={() =>
+            handleUpdateFrecuency({
+              startTime: startTime,
+              endTime: endTime,
+              durationTimeValue: durationTimeValue,
+              travelTimeValue: travelTimeValue,
+            })
+          }
+          disabled={selectedDays.length === 0}
+        >
+          <Text style={styles.saveButtonText}>
+            {editingGroupId !== null ? "Actualizar" : "Guardar"}
+          </Text>
+        </TouchableOpacity>
+
         <PrimaryButton
           title="Continuar"
-          onPress={() =>
+          onPress={() => {
             handleSaveActivity({
               daysDict,
               selectedDays,
               setAlertText,
               setShouldPopUpAlert,
-            })
-          }
+            });
+            navigation.goBack();
+          }}
+          
         />
       </View>
 
@@ -228,7 +252,7 @@ export const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Theme.colors.background,
   },
-  formContainerBackground: { 
+  formContainerBackground: {
     flex: 1,
   },
   scrollForm: { flex: 1 },
@@ -239,6 +263,7 @@ export const styles = StyleSheet.create({
     gap: 20,
   },
   footer: {
+    flexDirection: 'row',
     paddingHorizontal: 24,
     paddingBottom: 30,
     paddingTop: 10,
@@ -266,11 +291,16 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '45%',
+    marginRight: 5
   },
   saveButtonDisabled: { opacity: 0.4 },
   saveButtonText: {
-    fontWeight: "bold",
-    color: Theme.colors.surface,
+    color: '#FFF', 
+    fontSize: 18, 
+    fontWeight: 'bold' 
   },
   groupsContainer: {
     marginTop: 12,

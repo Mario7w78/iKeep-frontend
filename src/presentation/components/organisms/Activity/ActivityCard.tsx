@@ -7,13 +7,12 @@ import { DayOfWeek } from '../../../../domain/entities/Activity';
 
 type ActivityCardProps = {
   title: string;
-  time: string;
   onPress: () => void;
   onDelete: () => void;
   onEdit: () => void;
 };
 
-export default function ActivityCard({ title, time, onPress, onDelete, onEdit }: ActivityCardProps) {
+export default function ActivityCard({ title, onPress, onDelete, onEdit }: ActivityCardProps) {
   const [showActions, setShowActions] = useState(false);
 
   return (
@@ -23,7 +22,6 @@ export default function ActivityCard({ title, time, onPress, onDelete, onEdit }:
           <MaterialIcons name="task" size={24} color={Theme.colors.surface} />
         </View>
         <View style={styles.textContainer}>
-          <Text style={styles.timeText}>{time}</Text>
           <Text style={styles.titleText}>{title}</Text>
         </View>
         <TouchableOpacity onPress={() => setShowActions(!showActions)}>

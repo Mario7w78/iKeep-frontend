@@ -46,9 +46,6 @@ export default function ActivityListView() {
           renderItem={({ item }) => (
             <ActivityCard
               title={item.title}
-              time={item.type === 'FIXED'
-                ? `${item.startTime} - ${item.endTime}`
-                : `${item.durationMinutes} min`}
               onPress={handlePresentModalPress}
               onEdit={() => handleEditActivity(item.id, item.title)}
               onDelete={() => handleDeleteActivity(item.id)}

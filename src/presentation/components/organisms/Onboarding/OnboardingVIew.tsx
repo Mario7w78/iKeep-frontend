@@ -1,5 +1,5 @@
 // screens/Onboarding/OnBoardingView.tsx
-import React, { use, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
     View,
     Text,
@@ -8,6 +8,7 @@ import {
     Dimensions,
     TouchableOpacity,
     ViewToken,
+    Alert,
 } from 'react-native';
 import { NavigationProp, useNavigation } from '@react-navigation/native';
 import { useAppStore } from '../../../../infrastructure/store/useAppStore';
@@ -16,6 +17,7 @@ import { Theme } from '../../theme/colors';
 import { TimePickerSection } from '../../molecules/Time/TimePickerSection';
 import { useScheduleStore } from '../../../../infrastructure/store/useScheduleStore';
 import { dateToMinutes, formatTime } from '../../../utils/timeUtils';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
 
@@ -59,8 +61,8 @@ export default function OnBoardingView() {
     const flatListRef = useRef<FlatList>(null);
 
     const { setStartHour, setEndHour } = useScheduleStore();
-    const [startTime, setStartTime] = useState(new Date())
-    const [endTime, setEndTime] = useState(new Date())
+    const [startTime, setStartTime] = useState(new Date(new Date().setHours(4, 0, 0, 0)))
+    const [endTime, setEndTime] = useState(new Date(new Date().setHours(22, 0, 0, 0)))
 
     const updateTime = (hourString: string, minuteString: string, period: string, id?: string) => {
         const baseTime = id === '4' ? startTime : endTime;
@@ -104,9 +106,27 @@ export default function OnBoardingView() {
         }
     };
 
-    const handleFinish = () => {
-        setStartHour(dateToMinutes(startTime))
-        setEndHour(dateToMinutes(endTime))
+    const handleFinish = async () => {
+        const startMin = dateToMinutes(startTime);
+        const endMin = dateToMinutes(endTime);
+
+        if (startMin >= endMin) {
+            Alert.alert(
+                "Horario inválido",
+                "La hora de inicio debe ser anterior a la hora de fin. ¡Por favor, revisa tus selecciones!"
+            );
+            return;
+        }
+        
+        try {
+            await AsyncStorage.setItem('@day_start_hour', startMin.toString());
+            await AsyncStorage.setItem('@day_end_hour', endMin.toString());
+        } catch (e) {
+            console.error('Error guardando límites del día:', e);
+        }
+
+        setStartHour(startMin);
+        setEndHour(endMin);
         setHasSeenOnboarding(true);
         navigation.navigate('MainTabs');
     };

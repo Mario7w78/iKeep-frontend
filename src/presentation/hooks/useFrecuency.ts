@@ -21,15 +21,12 @@ export default function useFrecuency() {
         return groups;
     };
 
-    const handleUpdateFrecuency = ({startTime, endTime, travelTimeValue, durationTimeValue}: frecuencyProps) => {
+    const handleUpdateFrecuency = ({ partitions }: frecuencyProps) => {
         if (selectedDays.length === 0) return;
         const groupId = editingGroupId !== null ? editingGroupId : nextGroupId;
 
         const config: DayConfig = {
-            startHour: startTime,
-            endHour: endTime,
-            durationTime: durationTimeValue,
-            travelTime: travelTimeValue,
+            partitions,
             groupId,
         };
 
@@ -54,10 +51,9 @@ export default function useFrecuency() {
         setSelectedDays([]);
     };
 
-    const handleEditGroup = ({groupId, days, config, setStartTime, setDurationTime, setTravelTime}: editGroupProps) => {
-        setStartTime(config.startHour);
-        setDurationTime(config.durationTime);
-        setTravelTime(config.travelTime);
+    const handleEditGroup = ({groupId, days, config, setPartitions, setActivePartitionIndex}: editGroupProps) => {
+        setPartitions(config.partitions);
+        setActivePartitionIndex(0);
         setSelectedDays(days);
         setEditingGroupId(groupId);
     };

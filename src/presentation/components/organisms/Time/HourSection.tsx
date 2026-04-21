@@ -12,6 +12,8 @@ interface props {
     minuteString: string,
     period: string,
   ) => void;
+  time?: Date;
+  flashTrigger?: number;
   onStartResponderCapture:
     | ((event: GestureResponderEvent) => boolean)
     | undefined;
@@ -21,6 +23,8 @@ export const HourSection = ({
   isFixed,
   setIsFixed,
   updateTime,
+  time,
+  flashTrigger,
   onStartResponderCapture,
   onResponderRelease,
 }: props) => {
@@ -50,7 +54,7 @@ export const HourSection = ({
           onStartShouldSetResponderCapture={onStartResponderCapture}
           onResponderRelease={onResponderRelease}
         >
-          <TimePickerSection onTimeChange={updateTime} />
+          <TimePickerSection onTimeChange={updateTime} time={time} flashTrigger={flashTrigger} />
         </View>
       )}
 

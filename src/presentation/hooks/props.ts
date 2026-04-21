@@ -1,27 +1,27 @@
 import { DayOfWeek } from '../../domain/entities/Activity';
 
-export type DayConfig = {
+export type PartitionConfig = {
     startHour: Date;
     endHour: Date;
     durationTime: number;
     travelTime: number;
+};
+
+export type DayConfig = {
+    partitions: PartitionConfig[];
     groupId: number;
 };
 
 export type frecuencyProps = {
-    startTime: Date, 
-    endTime: Date, 
-    travelTimeValue: number, 
-    durationTimeValue: number
+    partitions: PartitionConfig[];
 }
 
 export type editGroupProps = {
     groupId: number, 
     days: DayOfWeek[], 
     config: DayConfig,
-    setStartTime: React.Dispatch<React.SetStateAction<Date>>,
-    setDurationTime: React.Dispatch<React.SetStateAction<number>>,
-    setTravelTime: React.Dispatch<React.SetStateAction<number>>,
+    setPartitions: React.Dispatch<React.SetStateAction<PartitionConfig[]>>,
+    setActivePartitionIndex: React.Dispatch<React.SetStateAction<number>>,
 }
 
 export type saveActivityProps = {

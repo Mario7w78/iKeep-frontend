@@ -20,16 +20,28 @@ export class AsyncStorageActivityRepository implements ActivityRepository {
 
         const rawActivities = JSON.parse(data);
         
-        return rawActivities.map((raw: any) => new Activity({ 
-            id: raw.id, 
-            title: raw.title,
-            type: raw.type,
-            durationMinutes: raw.durationMinutes,
-            travelMinutes: raw.travelMinutes,
-            daysEnabled: raw.daysEnabled,
-            startTime: raw.startTime,
-            endTime: raw.endTime,
-        }));
+        return rawActivities.map((raw: any) => {
+            // Restore Date objects inside partitions of daysConfig
+            const restoredDaysConfig = raw.daysConfig ? { ...raw.daysConfig } : {};
+            Object.keys(restoredDaysConfig).forEach(day => {
+                const config = restoredDaysConfig[day];
+                if (config && config.partitions) {
+                    config.partitions = config.partitions.map((p: any) => ({
+                        ...p,
+                        startHour: new Date(p.startHour),
+                        endHour: new Date(p.endHour)
+                    }));
+                }
+            });
+
+            return new Activity({ 
+                id: raw.id, 
+                title: raw.title,
+                type: raw.type,
+                daysEnabled: raw.daysEnabled,
+                daysConfig: restoredDaysConfig,
+            });
+        });
     }
 
     async delete(id: string): Promise<void> {

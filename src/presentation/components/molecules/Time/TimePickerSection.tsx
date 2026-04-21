@@ -6,12 +6,14 @@ import { Theme } from '../../theme/colors';
 
 interface Props {
   onTimeChange: (hourString: string, minuteString: string, period: string, id?: string) => void; 
+  time?: Date;
+  flashTrigger?: number;
 }
 
-export const TimePickerSection = ({ onTimeChange }: Props) => (
+export const TimePickerSection = ({ onTimeChange, time, flashTrigger }: Props) => (
   <View style={styles.timePickerSection}>
     <View style={styles.centeredPicker}>
-      <TimePicker onTimeChange={onTimeChange} />
+      <TimePicker onTimeChange={onTimeChange} time={time} flashTrigger={flashTrigger} />
     </View>
   </View>
 );

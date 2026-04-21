@@ -15,28 +15,29 @@ export const Theme = {
 };
 
 export const LIGHT_COLORS = [
-  { bg: '#EEEDFE', border: '#AFA9EC', text: '#3C3489' },
-  { bg: '#E1F5EE', border: '#5DCAA5', text: '#085041' },
-  { bg: '#FAEEDA', border: '#EF9F27', text: '#633806' },
-  { bg: '#FAECE7', border: '#F0997B', text: '#712B13' },
-];
-export const DARK_COLORS = [
-  { bg: '#1A1835', border: '#423C7B', text: '#D6D2F0' },
-  { bg: '#11251E', border: '#28624C', text: '#B5E3D2' },
-  { bg: '#331F0A', border: '#804E15', text: '#FDE0B4' },
-  { bg: '#381A12', border: '#853A26', text: '#F7CDBE' },
+  { bg: '#EEEAFE', border: '#B6A7F5', text: '#4A359C' }, // violeta
+  { bg: '#E8F7F1', border: '#78D3B0', text: '#1F6B55' }, // verde suave
+  { bg: '#FFF3E3', border: '#F2B45A', text: '#8A5614' }, // ámbar suave
+  { bg: '#FDEDEA', border: '#F1A18E', text: '#8A3C2A' }, // coral suave
 ];
 
+export const DARK_COLORS = [
+  { bg: '#221A3D', border: '#5D4BB3', text: '#DDD6FF' }, // violeta
+  { bg: '#162A23', border: '#3C8D70', text: '#C8F2E2' }, // verde
+  { bg: '#33240F', border: '#A86A1F', text: '#FFE3B8' }, // ámbar
+  { bg: '#351D18', border: '#A65542', text: '#FFD5CB' }, // coral
+];
+
+export const GROUP_COLORS = [
+  { bg: '#E9E4FF', text: '#4A359C' }, // violeta
+  { bg: '#E3F6EE', text: '#1F6B55' }, // verde
+  { bg: '#FFF3E3', text: '#8A5614' }, // ámbar
+  { bg: '#F8E5FF', text: '#7A2FA0' }, // magenta suave
+  { bg: '#FDEAEA', text: '#8A3C2A' }, // coral
+  { bg: '#E3F2FF', text: '#1E5B8A' }, // azul suave
+  { bg: '#FFF0E5', text: '#9A4E1A' }, // naranja suave
+];
 export const Screen = {
   margin: 40
 }
 
-export const GROUP_COLORS: { bg: string; text: string }[] = [
-  { bg: '#D6E4FF', text: '#1D3E8F' },
-  { bg: '#D6F5E3', text: '#145C30' },
-  { bg: '#FFF0CC', text: '#7A4F00' },
-  { bg: '#F5D6FF', text: '#5C1478' },
-  { bg: '#FFD6D6', text: '#7A1414' },
-  { bg: '#D6F0FF', text: '#0A4A6E' },
-  { bg: '#FFE8D6', text: '#7A3300' },
-];

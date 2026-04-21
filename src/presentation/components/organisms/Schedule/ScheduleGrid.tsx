@@ -23,8 +23,11 @@ export function ScheduleGrid({ activities }: { activities: ScheduledActivity[] }
     <ScrollView ref={ref} showsVerticalScrollIndicator={false}>
       <View style={{ height: (END_HOUR - START_HOUR) * HOUR_HEIGHT, position: 'relative', marginVertical: 10 }}>
         {HOURS.map(h => <HourRow key={h} hour={h} />)}
-        {activities.map((act, i) => (
-          <ActivityBlock key={`${act.activity.id}-${act.day}`} item={act} colorIndex={i} />
+        {activities.map((act) => (
+          <ActivityBlock 
+            key={`${act.activity.id}-${act.day}-${act.assignedStartTime}`} 
+            item={act} 
+          />
         ))}
         {showNow && <NowIndicator top={nowTop} />}
       </View>

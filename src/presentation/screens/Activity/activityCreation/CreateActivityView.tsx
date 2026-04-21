@@ -15,7 +15,7 @@ import { TimeSection } from "../../../components/organisms/Time/TimeSection";
 import { DayOfWeek } from "../../../../domain/entities/Activity";
 import { Theme, GROUP_COLORS } from "../../../components/theme/colors";
 import PopUpAlert from "../../../components/atoms/Common/PopUpAlert";
-import SplitActivityButton from "../../../components/molecules/Time/splitActivityButton";
+import SplitActivityButton from "../../../components/molecules/Time/SplitActivityButton";
 
 import useFrecuency from "../../../hooks/useFrecuency";
 import useTimeForm from "../../../hooks/useTimeForm";
@@ -25,6 +25,10 @@ export default function CreateActivityView({ navigation }: any) {
   const [scrollEnabled, setScrollEnabled] = useState(true);
   const [shouldPopUpAlert, setShouldPopUpAlert] = useState(false);
   const [alertText, setAlertText] = useState("");
+  const [flashTrigger, setFlashTrigger] = useState(0);
+
+  const triggerFlash = () => setFlashTrigger((prev) => prev + 1);
+
   const options: DayOfWeek[] = [
     "Lunes",
     "Martes",
@@ -53,6 +57,8 @@ export default function CreateActivityView({ navigation }: any) {
     travelTimeValue,
     startTime,
     endTime,
+    partitions,
+    activePartitionIndex,
     setActivityName,
     setIsFixed,
     setSelectedTypeDuration,
@@ -64,6 +70,10 @@ export default function CreateActivityView({ navigation }: any) {
     handleSubGeneric,
     updateTime,
     handleSaveActivity,
+    setPartitions,
+    setActivePartitionIndex,
+    handleAddPartition,
+    resetPartitions,
   } = useTimeForm();
 
   return (
@@ -98,14 +108,12 @@ export default function CreateActivityView({ navigation }: any) {
                 ),
               )}
               editingGroupId={editingGroupId!}
-              handleUpdateFrecuency={() =>
+              handleUpdateFrecuency={() => {
                 handleUpdateFrecuency({
-                  startTime: startTime,
-                  endTime: endTime,
-                  durationTimeValue: durationTimeValue,
-                  travelTimeValue: travelTimeValue,
-                })
-              }
+                  partitions: partitions,
+                });
+                resetPartitions();
+              }}
               selectedDays={selectedDays}
             />
             {Object.keys(groups).length > 0 && (
@@ -117,16 +125,16 @@ export default function CreateActivityView({ navigation }: any) {
                   return (
                     <TouchableOpacity
                       key={gid}
-                      onPress={() =>
+                      onPress={() => {
                         handleEditGroup({
                           groupId: gid,
                           days: days,
                           config: config,
-                          setStartTime: setStartTime,
-                          setDurationTime: setDurationTime,
-                          setTravelTime: setTravelTime,
-                        })
-                      }
+                          setPartitions: setPartitions,
+                          setActivePartitionIndex: setActivePartitionIndex,
+                        });
+                        triggerFlash();
+                      }}
                       style={[
                         styles.groupTag,
                         { backgroundColor: color.bg, borderColor: color.text },
@@ -138,19 +146,22 @@ export default function CreateActivityView({ navigation }: any) {
                       >
                         {days.map((d) => d.substring(0, 3)).join(" · ")}
                       </Text>
-                      <Text
-                        style={[styles.groupTagInfo, { color: color.text }]}
-                      >
-                        {config.startHour.toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                        {"  ·  "}
-                        {config.durationTime} min
-                        {config.travelTime > 0
-                          ? `  ·  +${config.travelTime} traslado`
-                          : ""}
-                      </Text>
+                      {config.partitions.map((p, idx) => (
+                        <Text
+                          key={idx}
+                          style={[styles.groupTagInfo, { color: color.text }]}
+                        >
+                          {p.startHour.toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                          {"  ·  "}
+                          {p.durationTime} min
+                          {p.travelTime > 0
+                            ? `  ·  +${p.travelTime} traslado`
+                            : ""}
+                        </Text>
+                      ))}
                       {isEditing && (
                         <Text
                           style={[
@@ -167,7 +178,15 @@ export default function CreateActivityView({ navigation }: any) {
               </View>
             )}
           </View>
-          <SplitActivityButton />
+          <SplitActivityButton
+            partitions={partitions}
+            activeIndex={activePartitionIndex}
+            onSelect={(idx) => {
+              setActivePartitionIndex(idx);
+              triggerFlash();
+            }}
+            onAdd={handleAddPartition}
+          />
           <HourSection
             isFixed={isFixed}
             onResponderRelease={() => setScrollEnabled(true)}
@@ -177,6 +196,8 @@ export default function CreateActivityView({ navigation }: any) {
             }}
             setIsFixed={setIsFixed}
             updateTime={updateTime}
+            time={startTime}
+            flashTrigger={flashTrigger}
           />
           <TimeSection
             durationTimeValue={durationTimeValue}
@@ -202,29 +223,26 @@ export default function CreateActivityView({ navigation }: any) {
       </View>
 
       <View style={styles.footer}>
-
         <TouchableOpacity
           style={[
             styles.saveButton,
             selectedDays.length === 0 && styles.saveButtonDisabled,
           ]}
-          onPress={() =>
+          onPress={() => {
             handleUpdateFrecuency({
-              startTime: startTime,
-              endTime: endTime,
-              durationTimeValue: durationTimeValue,
-              travelTimeValue: travelTimeValue,
-            })
-          }
+              partitions: partitions,
+            });
+            resetPartitions();
+          }}
           disabled={selectedDays.length === 0}
         >
           <Text style={styles.saveButtonText}>
-            {editingGroupId !== null ? "Actualizar" : "Guardar"}
+            {editingGroupId !== null ? "Actualizar hora" : "Guardar hora"}
           </Text>
         </TouchableOpacity>
 
         <PrimaryButton
-          title="Continuar"
+          title="Listo"
           onPress={() => {
             handleSaveActivity({
               daysDict,

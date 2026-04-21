@@ -5,15 +5,17 @@ import { LIGHT_COLORS, DARK_COLORS } from '../../theme/colors';
 
 interface Props {
   item: ScheduledActivity;
-  colorIndex: number;
 }
 
-export function ActivityBlock({ item, colorIndex }: Props) {
+export function ActivityBlock({ item }: Props) {
   const startMin = hhmmToMinutes(item.assignedStartTime);
   const endMin   = hhmmToMinutes(item.assignedEndTime);
   const top    = minutesToTop(startMin);
   const height = durationToHeight(startMin, endMin);
-  const color  = DARK_COLORS[colorIndex % DARK_COLORS.length];
+  
+  // Use a hash of the activity ID to ensure consistent color across different days
+  const idNum = parseInt(item.activity.id.slice(-6), 10) || 0;
+  const color = DARK_COLORS[idNum % DARK_COLORS.length];
 
   return (
     <View style={[s.block, { top, height, backgroundColor: color.bg, borderLeftColor: color.border }]}>

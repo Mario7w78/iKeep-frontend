@@ -45,7 +45,7 @@ export default function ActivityListView() {
           contentContainerStyle={{ paddingBottom: 20 }}
           renderItem={({ item }) => (
             <ActivityCard
-              title={item.title}
+              activity={item}
               onPress={handlePresentModalPress}
               onEdit={() => handleEditActivity(item.id, item.title)}
               onDelete={() => handleDeleteActivity(item.id)}

@@ -64,6 +64,20 @@ export default function useFrecuency() {
         );
     };
 
+    const handleDiscardGroup = (groupId: number) => {
+        setDaysDict(prev => {
+            const next = { ...prev };
+            (Object.keys(next) as DayOfWeek[]).forEach(day => {
+                if (next[day]?.groupId === groupId) delete next[day];
+            });
+            return next;
+        });
+        if (editingGroupId === groupId) {
+            setEditingGroupId(null);
+            setSelectedDays([]);
+        }
+    };
+
     const isDayConfigured = (day: DayOfWeek) => !!daysDict[day];
     const groups = getGroups();
 
@@ -79,6 +93,7 @@ export default function useFrecuency() {
         setEditingGroupId,
         handleUpdateFrecuency,
         handleEditGroup,
+        handleDiscardGroup,
         handleSelect,
         isDayConfigured,
     };

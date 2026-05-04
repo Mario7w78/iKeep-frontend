@@ -32,3 +32,16 @@ export const getMinutes = (time: number): string => {
   const minutes = time % 60; 
   return minutes.toString().padStart(2, '0');
 };
+
+export const minutesToDate = (minutes: number): Date => {
+  const date = new Date();
+  date.setHours(Math.floor(minutes / 60));
+  date.setMinutes(minutes % 60);
+  date.setSeconds(0);
+  date.setMilliseconds(0);
+  return date;
+};
+
+export const areOverlapping = (start1: number, end1: number, start2: number, end2: number): boolean => {
+  return start1 < end2 && start2 < end1;
+};

@@ -9,6 +9,7 @@ interface Props {
   activeIndex: number;
   onSelect: (index: number) => void;
   onAdd: () => void;
+  onDelete?: () => void;
 }
 
 export default function SplitActivityButton({
@@ -16,12 +17,14 @@ export default function SplitActivityButton({
   activeIndex,
   onSelect,
   onAdd,
+  onDelete,
 }: Props) {
   return (
     <View>
       <View
         style={{
           flexDirection: "row",
+          alignItems: "center",
           gap: 10,
         }}
       >
@@ -66,6 +69,23 @@ export default function SplitActivityButton({
         >
           <AntDesign name="plus" size={12} color={Theme.colors.surface} />
         </TouchableOpacity>
+
+        {partitions.length > 1 && onDelete && (
+          <TouchableOpacity
+            onPress={onDelete}
+            style={{
+              marginLeft: "auto",
+              backgroundColor: Theme.colors.error || "#ff4d4d",
+              width: 30,
+              height: 30,
+              borderRadius: 50,
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            <AntDesign name="delete" size={14} color="#FFF" />
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );

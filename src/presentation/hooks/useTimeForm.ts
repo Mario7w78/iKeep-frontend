@@ -1,9 +1,10 @@
 import { useState, useCallback } from "react";
 import { useFocusEffect } from "@react-navigation/native";
 import { DayOfWeek } from "../../domain/entities/Activity";
-import { calculateEndTime } from "../../presentation/utils/timeUtils";
+import { calculateEndTime, areOverlapping, dateToMinutes, formatTime } from "../../presentation/utils/timeUtils";
 import { timeType } from "../../domain/entities/activity.types";
 import { useActivityStore } from "../../infrastructure/store/useActivityStore";
+import { useScheduleStore } from "../../infrastructure/store/useScheduleStore";
 import { saveActivityProps, PartitionConfig } from "./props";
 
 export default function useTimeForm() {
@@ -19,7 +20,7 @@ export default function useTimeForm() {
     {
       startHour: new Date(),
       endHour: calculateEndTime(new Date(), 10),
-      durationTime: 10,
+      durationTime: 0,
       travelTime: 0,
     },
   ]);
@@ -31,6 +32,9 @@ export default function useTimeForm() {
   const travelTimeValue = activePartition.travelTime;
   const startTime = activePartition.startHour;
   const endTime = activePartition.endHour;
+
+  const { handleCreateActivity, activities } = useActivityStore();
+  const { startHour: dayStartMin, endHour: dayEndMin } = useScheduleStore();
 
   const updateActivePartition = (updates: Partial<PartitionConfig>) => {
     setPartitions((prev) =>
@@ -51,8 +55,7 @@ export default function useTimeForm() {
   };
 
   const setDurationTime = (val: number | ((prev: number) => number)) => {
-    const newValue =
-      typeof val === "function" ? val(durationTimeValue) : val;
+    const newValue = typeof val === "function" ? val(durationTimeValue) : val;
     updateActivePartition({ durationTime: newValue });
   };
 
@@ -68,7 +71,7 @@ export default function useTimeForm() {
 
   const handleAddPartition = () => {
     const lastPartition = partitions[partitions.length - 1];
-    const newStart = new Date(lastPartition.endHour.getTime() + 30 * 60000); // 30 min after last one
+    const newStart = new Date(lastPartition.endHour.getTime() + 30 * 60000); 
     const newPartition: PartitionConfig = {
       startHour: newStart,
       endHour: calculateEndTime(newStart, 10),
@@ -79,7 +82,11 @@ export default function useTimeForm() {
     setActivePartitionIndex(partitions.length);
   };
 
-  const { handleCreateActivity } = useActivityStore();
+  const handleDiscardPartition = () => {
+    if (partitions.length <= 1) return;
+    setPartitions((prev) => prev.filter((_, i) => i !== activePartitionIndex));
+    setActivePartitionIndex((prev) => (prev > 0 ? prev - 1 : 0));
+  };
 
   const handleAddGeneric = (
     setFn: (val: number | ((prev: number) => number)) => void,
@@ -114,6 +121,68 @@ export default function useTimeForm() {
     setStartTime(newDate);
   };
 
+  
+
+  const validatePartitions = (
+    targetPartitions: PartitionConfig[],
+    targetDays: DayOfWeek[],
+    setAlertText: React.Dispatch<React.SetStateAction<string>>,
+    setShouldPopUpAlert: React.Dispatch<React.SetStateAction<boolean>>,
+  ): boolean => {
+    for (const day of targetDays) {
+      for (let i = 0; i < targetPartitions.length; i++) {
+        const p = targetPartitions[i];
+        const sMin = dateToMinutes(new Date(p.startHour));
+        const eMin = dateToMinutes(new Date(p.endHour));
+
+        // Validar límites
+        if (sMin < dayStartMin || eMin > dayEndMin) {
+          setAlertText(
+            `La actividad en ${day} excede los límites del día (${formatTime(new Date(p.startHour))} - ${formatTime(new Date(p.endHour))})`,
+          );
+          setShouldPopUpAlert(true);
+          return false;
+        }
+
+        for (let j = i + 1; j < targetPartitions.length; j++) {
+          const p2 = targetPartitions[j];
+          if (
+            areOverlapping(
+              sMin,
+              eMin,
+              dateToMinutes(new Date(p2.startHour)),
+              dateToMinutes(new Date(p2.endHour)),
+            )
+          ) {
+            setAlertText(`Hay un solapamiento entre tus propias particiones en ${day}`);
+            setShouldPopUpAlert(true);
+            return false;
+          }
+        }
+
+        // Validar solapamientos externos
+        for (const otherAct of activities) {
+          const otherConfig = otherAct.daysConfig[day];
+          if (otherConfig) {
+            for (const otherP of otherConfig.partitions) {
+              const osMin = dateToMinutes(new Date(otherP.startHour));
+              const oeMin = dateToMinutes(new Date(otherP.endHour));
+
+              if (areOverlapping(sMin, eMin, osMin, oeMin)) {
+                setAlertText(
+                  `Conflicto en ${day}: coincide con "${otherAct.title}" (${formatTime(new Date(otherP.startHour))})`,
+                );
+                setShouldPopUpAlert(true);
+                return false;
+              }
+            }
+          }
+        }
+      }
+    }
+    return true;
+  };
+
   const handleSaveActivity = async ({
     daysDict,
     selectedDays,
@@ -127,16 +196,34 @@ export default function useTimeForm() {
       setShouldPopUpAlert(true);
       return;
     }
+
     if (configuredDays.length === 0) {
       setAlertText("Guardá la configuración de al menos un día");
       setShouldPopUpAlert(true);
       return;
     }
+
     if (selectedDays.length > 0) {
       setAlertText(`Guardá la configuración de: ${selectedDays.join(", ")}`);
       setShouldPopUpAlert(true);
       return;
     }
+
+    // Usar la función de validación centralizada
+    for (const day of configuredDays) {
+      const config = daysDict[day]!;
+      if (
+        !validatePartitions(
+          config.partitions,
+          [day],
+          setAlertText,
+          setShouldPopUpAlert,
+        )
+      ) {
+        return;
+      }
+    }
+
     await handleCreateActivity({
       activityName,
       isFixed,
@@ -144,13 +231,12 @@ export default function useTimeForm() {
       days: configuredDays,
     });
   };
-
   const resetPartitions = () => {
     setPartitions([
       {
         startHour: new Date(),
         endHour: calculateEndTime(new Date(), 10),
-        durationTime: 10,
+        durationTime: 0,
         travelTime: 0,
       },
     ]);
@@ -178,10 +264,12 @@ export default function useTimeForm() {
     handleAddGeneric,
     handleSubGeneric,
     updateTime,
+    validatePartitions,
     handleSaveActivity,
     setPartitions,
     setActivePartitionIndex,
     handleAddPartition,
+    handleDiscardPartition,
     resetPartitions,
   };
 }

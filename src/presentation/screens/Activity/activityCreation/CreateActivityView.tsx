@@ -47,6 +47,7 @@ export default function CreateActivityView({ navigation }: any) {
     isDayConfigured,
     handleUpdateFrecuency,
     handleEditGroup,
+    handleDiscardGroup,
   } = useFrecuency();
   const {
     activityName,
@@ -69,10 +70,12 @@ export default function CreateActivityView({ navigation }: any) {
     handleAddGeneric,
     handleSubGeneric,
     updateTime,
+    validatePartitions,
     handleSaveActivity,
     setPartitions,
     setActivePartitionIndex,
     handleAddPartition,
+    handleDiscardPartition,
     resetPartitions,
   } = useTimeForm();
 
@@ -186,6 +189,7 @@ export default function CreateActivityView({ navigation }: any) {
               triggerFlash();
             }}
             onAdd={handleAddPartition}
+            onDelete={handleDiscardPartition}
           />
           <HourSection
             isFixed={isFixed}
@@ -229,10 +233,19 @@ export default function CreateActivityView({ navigation }: any) {
             selectedDays.length === 0 && styles.saveButtonDisabled,
           ]}
           onPress={() => {
-            handleUpdateFrecuency({
-              partitions: partitions,
-            });
-            resetPartitions();
+            if (
+              validatePartitions(
+                partitions,
+                selectedDays,
+                setAlertText,
+                setShouldPopUpAlert,
+              )
+            ) {
+              handleUpdateFrecuency({
+                partitions: partitions,
+              });
+              resetPartitions();
+            }
           }}
           disabled={selectedDays.length === 0}
         >
@@ -240,6 +253,18 @@ export default function CreateActivityView({ navigation }: any) {
             {editingGroupId !== null ? "Actualizar hora" : "Guardar hora"}
           </Text>
         </TouchableOpacity>
+
+        {editingGroupId !== null && (
+          <TouchableOpacity
+            style={[styles.saveButton, { backgroundColor: "#ff4d4d" }]}
+            onPress={() => {
+              handleDiscardGroup(editingGroupId);
+              resetPartitions();
+            }}
+          >
+            <Text style={styles.saveButtonText}>Descartar</Text>
+          </TouchableOpacity>
+        )}
 
         <PrimaryButton
           title="Listo"

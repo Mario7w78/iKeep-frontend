@@ -68,12 +68,22 @@ export const useScheduleStore = create<ScheduleStore>((set, get) => ({
 
     setSelectedDay: (day) => set({ selectedDay: day }),
 
-    setStartHour(hour) {
-        set({ startHour: hour })
+    setStartHour: async (hour) => {
+        try {
+            await AsyncStorage.setItem('@day_start_hour', hour.toString());
+            set({ startHour: hour });
+        } catch (e) {
+            console.error('Error guardando hora de inicio:', e);
+        }
     },
 
-    setEndHour(hour) {
-        set({ endHour: hour })
+    setEndHour: async (hour) => {
+        try {
+            await AsyncStorage.setItem('@day_end_hour', hour.toString());
+            set({ endHour: hour });
+        } catch (e) {
+            console.error('Error guardando hora de fin:', e);
+        }
     },
 
 }));

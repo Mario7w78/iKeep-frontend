@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Theme } from "../../theme/colors";
@@ -10,6 +11,7 @@ type ActivityCardProps = {
   onPress: () => void;
   onDelete: () => void;
   onEdit: () => void;
+  isFixed?: boolean;
 };
 
 export default function ActivityCard({
@@ -17,29 +19,40 @@ export default function ActivityCard({
   onPress,
   onDelete,
   onEdit,
+  isFixed = false,
 }: ActivityCardProps) {
   const [showActions, setShowActions] = useState(false);
+
+  const activityStyle = isFixed ? Theme.activity.fixed : Theme.activity.flexible;
 
   return (
     <View style={styles.wrapper}>
       <TouchableOpacity
         activeOpacity={0.8}
         onPress={onPress}
-        style={styles.card}
+        style={{ flex: 1 }}
       >
+        <LinearGradient
+          colors={activityStyle.gradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.card, { borderColor: activityStyle.borderColor }]}
+        >
         <View>
-
-        <View>
-          <View style={styles.textContainer}>
-            <Text style={styles.titleText}>{activity.title}</Text>
-            <View style={styles.dayContainer}>
-              {activity.daysEnabled.map((day, index) => (
-                <Text key={index} style={styles.dayText}>{day.substring(0, 1)}</Text>
-              ))}
+          <View>
+            <View style={styles.textContainer}>
+              <Text style={styles.titleText}>{activity.title}</Text>
+              <View style={styles.dayContainer}>
+                {activity.daysEnabled.map((day, index) => (
+                  <View key={index} style={[styles.dayBox, { backgroundColor: activityStyle.dayBoxColor }]}>
+                    <Text style={styles.dayText}>{day.substring(0, 1)}</Text>
+                  </View>
+                ))}
+              </View>
             </View>
           </View>
         </View>
-        </View>
+        </LinearGradient>
       </TouchableOpacity>
     </View>
   );
@@ -47,47 +60,38 @@ export default function ActivityCard({
 
 const styles = StyleSheet.create({
   wrapper: {
-    marginHorizontal: 16,
+    marginHorizontal: 8,
     marginVertical: 8,
   },
   card: {
     flexDirection: "row",
-    justifyContent: 'space-between',
+    justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: Theme.colors.lightBackground,
-    padding: 16,
-    borderRadius: 12,
-    shadowColor: "#000",
+    marginHorizontal: 12,
+    paddingVertical: 20,
+    paddingHorizontal: 20,
+    borderRadius: 30,
+    borderWidth: 1,
+    borderColor: "#8145b3",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-  },
-  iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 16,
+    overflow: "hidden",
   },
   textContainer: {
     flex: 1,
-    justifyContent: 'space-between'
-  },
-  timeText: {
-    fontSize: 12,
-    color: Theme.colors.textSecondary,
-    marginBottom: 4,
+    justifyContent: "space-between",
+    gap: 5
   },
   titleText: {
-    fontSize: 16,
+    fontSize: 24,
     fontWeight: "bold",
     color: Theme.colors.surface,
   },
   dayContainer: {
     flexDirection: "row",
-    gap: 4,
+    gap: 10,
   },
   actionsContainer: {
     flexDirection: "row",
@@ -99,7 +103,17 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   dayText: {
+    fontSize: 16,
     color: Theme.colors.surface,
+    fontWeight: "bold",
+    textAlign: "center",
+  },
+  dayBox: {
+    justifyContent: 'center',
+    borderRadius: 50,
+    backgroundColor: "#8145b3",
+    width: 30,
+    height: 30,
   },
   actionButton: {
     flexDirection: "row",

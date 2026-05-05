@@ -25,7 +25,7 @@ export type RootStackParamList = {
 export type MainTabParamList = {
   ActivityList: undefined;
   Schedule: undefined;
-  Setting: undefined
+  Setting: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -41,7 +41,7 @@ function FABButton() {
         styles.fabBG,
         {
           bottom: insets.bottom + (Platform.OS === "android" ? 70 : 65),
-          right: 15
+          right: 15,
         },
       ]}
     >
@@ -50,7 +50,7 @@ function FABButton() {
         activeOpacity={0.85}
         onPress={() => navigation.navigate("CreateActivityModal")}
       >
-        <Ionicons name="add" size={28} color="#fff" />
+        <Ionicons name="add" size={28} color="#ffffff" />
       </TouchableOpacity>
     </View>
   );
@@ -145,7 +145,7 @@ export default function AppNavigator() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    backgroundColor: Theme.colors.lightBackground,
+    backgroundColor: Theme.colors.headerCard,
     borderTopWidth: 0,
   },
   tabLabel: {
@@ -155,13 +155,12 @@ const styles = StyleSheet.create({
     position: "absolute",
   },
   fab: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: Theme.colors.primary,
+    width: 60,
+    height: 60,
+    borderRadius: 50,
+    backgroundColor: "#f84d9c",
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: Theme.colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

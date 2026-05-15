@@ -1,4 +1,4 @@
-import { ActivityRepository } from '../../domain/repositories/ActivityRepository'
+import { ActivityRepository } from '../ports/out/ActivityRepository'
 import { DeleteActivityPort } from '../ports/in/DeleteActivityPort';
 
 export class DeleteActivityUseCase implements DeleteActivityPort {

@@ -1,6 +1,4 @@
-// Ubicación recomendada: src/infrastructure/repositories/AsyncStorageActivityRepository.ts
-
-import { ActivityRepository } from '../../domain/repositories/ActivityRepository';
+import { ActivityRepository } from '../../application/ports/out/ActivityRepository';
 import { Activity } from '../../domain/entities/Activity';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 

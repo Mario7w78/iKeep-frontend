@@ -19,7 +19,7 @@ import SplitActivityButton from "../../../components/molecules/Time/SplitActivit
 
 import useFrecuency from "../../../hooks/useFrecuency";
 import useTimeForm from "../../../hooks/useTimeForm";
-import { DayConfig } from "../../../hooks/props";
+import { DayConfig } from "../../../../domain/entities/activity.types";
 
 export default function CreateActivityView({ navigation }: any) {
   const [scrollEnabled, setScrollEnabled] = useState(true);

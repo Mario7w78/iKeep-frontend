@@ -1,6 +1,6 @@
 import { Schedule, ScheduledActivity } from '../../../domain/entities/Schedule';
 import { Activity, DayOfWeek, ActivityType } from '../../../domain/entities/Activity';
-import { PartitionConfig } from '../../../presentation/hooks/props';
+import { PartitionConfig } from '../../../domain/entities/activity.types';
 
 const INT_TO_DAY: Record<number, DayOfWeek> = {
     0: 'Lunes', 1: 'Martes', 2: 'Miercoles',

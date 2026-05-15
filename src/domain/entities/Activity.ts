@@ -1,4 +1,4 @@
-import { DayConfig } from "../../presentation/hooks/props";
+import { DayConfig } from './activity.types';
 
 export type DayOfWeek = 'Lunes' | 'Martes' | 'Miercoles' | 'Jueves' | 'Viernes' | 'Sabado' | 'Domingo';
 
@@ -22,7 +22,6 @@ export class Activity {
     readonly daysEnabled: DayOfWeek[];
     readonly daysConfig: Partial<Record<DayOfWeek, DayConfig>>;
 
-
     constructor(props: ActivityProps) {
         this.id = props.id;
         this.title = props.title;
@@ -33,5 +32,18 @@ export class Activity {
 
     isFixed(): boolean {
         return this.type === ActivityType.FIXED;
+    }
+
+    getTotalTimeRequired(): number {
+        let total = 0;
+        for (const day of Object.keys(this.daysConfig) as DayOfWeek[]) {
+            const config = this.daysConfig[day];
+            if (config) {
+                for (const partition of config.partitions) {
+                    total += partition.durationTime + partition.travelTime;
+                }
+            }
+        }
+        return total / Math.max(Object.keys(this.daysConfig).length, 1);
     }
 }

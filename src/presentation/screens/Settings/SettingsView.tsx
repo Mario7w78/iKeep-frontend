@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Theme } from "../../components/theme/colors";
-import { useScheduleStore } from "../../../infrastructure/store/useScheduleStore";
+import { useScheduleStore } from "../../../di/Dependencies";
 import {
   dateToMinutes,
   minutesToDate,

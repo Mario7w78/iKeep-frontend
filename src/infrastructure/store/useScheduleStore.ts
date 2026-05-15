@@ -1,26 +1,37 @@
-// src/infrastructure/store/useScheduleStore.ts
-import { create } from 'zustand';
+import { create, StoreApi, UseBoundStore } from 'zustand';
 import { Schedule } from '../../domain/entities/Schedule';
 import { DayOfWeek } from '../../domain/entities/Activity';
 import { JS_DAY_TO_DAYOFWEEK } from '../../presentation/utils/scheduleUtils';
-import { generateScheduleUseCase } from '../../di/Dependecies';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { GenerateSchedulePort } from '../../application/ports/in/GenerateSchedulePort';
 
-interface ScheduleStore {
-    schedule: Schedule | null;
-    isLoading: boolean;
-    selectedDay: DayOfWeek;
-    startHour: number;
-    endHour: number;
-    activitiesForDay: () => ReturnType<Schedule['getItemsByDay']>;
-    handleGenerateSchedule: () => Promise<void>;
-    loadDayLimits: () => Promise<void>;
-    setSelectedDay: (day: DayOfWeek) => void;
-    setStartHour: (hour: number) => void;
-    setEndHour: (hour: number) => void;
+interface DayLimitPersistence {
+  getStartHour: () => Promise<number>;
+  getEndHour: () => Promise<number>;
+  setStartHour: (hour: number) => Promise<void>;
+  setEndHour: (hour: number) => Promise<void>;
 }
 
-export const useScheduleStore = create<ScheduleStore>((set, get) => ({
+interface ScheduleStoreState {
+  schedule: Schedule | null;
+  isLoading: boolean;
+  selectedDay: DayOfWeek;
+  startHour: number;
+  endHour: number;
+  activitiesForDay: () => ReturnType<Schedule['getItemsByDay']>;
+  handleGenerateSchedule: () => Promise<void>;
+  loadDayLimits: () => Promise<void>;
+  setSelectedDay: (day: DayOfWeek) => void;
+  setStartHour: (hour: number) => void;
+  setEndHour: (hour: number) => void;
+}
+
+export type ScheduleStore = UseBoundStore<StoreApi<ScheduleStoreState>>;
+
+export function createScheduleStore(
+  generateScheduleUseCase: GenerateSchedulePort,
+  dayLimitPersistence: DayLimitPersistence
+): ScheduleStore {
+  return create<ScheduleStoreState>((set, get) => ({
     schedule: null,
     isLoading: false,
     startHour: 0,
@@ -28,62 +39,63 @@ export const useScheduleStore = create<ScheduleStore>((set, get) => ({
     selectedDay: JS_DAY_TO_DAYOFWEEK[new Date().getDay()],
 
     activitiesForDay: () => {
-        const { schedule, selectedDay } = get();
-        return schedule ? schedule.getItemsByDay(selectedDay) : [];
+      const { schedule, selectedDay } = get();
+      return schedule ? schedule.getItemsByDay(selectedDay) : [];
     },
 
     loadDayLimits: async () => {
-        try {
-            const start = await AsyncStorage.getItem('@day_start_hour');
-            const end = await AsyncStorage.getItem('@day_end_hour');
-            
-            let sH = start !== null ? parseInt(start, 10) : 240; // 4 AM
-            let eH = end !== null ? parseInt(end, 10) : 1320;   // 10 PM
+      try {
+        const start = await dayLimitPersistence.getStartHour();
+        const end = await dayLimitPersistence.getEndHour();
 
-            // Safeguard: If stored values are invalid (start >= end), reset to defaults
-            if (sH >= eH) {
-                sH = 240;
-                eH = 1320;
-            }
+        let sH = start !== null ? start : 240;
+        let eH = end !== null ? end : 1320;
 
-            set({ startHour: sH, endHour: eH });
-        } catch (e) {
-            console.error('Error cargando límites del día:', e);
+        if (sH >= eH) {
+          sH = 240;
+          eH = 1320;
         }
+
+        set({ startHour: sH, endHour: eH });
+      } catch (e) {
+        console.error('Error cargando límites del día:', e);
+      }
     },
 
     handleGenerateSchedule: async () => {
-        await get().loadDayLimits(); // Asegurarnos de tener los límites del onboarding
-        const { startHour, endHour } = get();
-        set({ isLoading: true });
-        try {
-            const generated = await generateScheduleUseCase.execute(startHour, endHour);
-            set({ schedule: generated });
-        } catch (e) {
-            console.error('Error generando horario:', e);
-        } finally {
-            set({ isLoading: false });
-        }
+      await get().loadDayLimits();
+      const { startHour, endHour } = get();
+      set({ isLoading: true });
+      try {
+        const generated = await generateScheduleUseCase.execute(startHour, endHour);
+        set({ schedule: generated });
+      } catch (e) {
+        console.error('Error generando horario:', e);
+      } finally {
+        set({ isLoading: false });
+      }
     },
 
     setSelectedDay: (day) => set({ selectedDay: day }),
 
     setStartHour: async (hour) => {
-        try {
-            await AsyncStorage.setItem('@day_start_hour', hour.toString());
-            set({ startHour: hour });
-        } catch (e) {
-            console.error('Error guardando hora de inicio:', e);
-        }
+      try {
+        await dayLimitPersistence.setStartHour(hour);
+        set({ startHour: hour });
+      } catch (e) {
+        console.error('Error guardando hora de inicio:', e);
+      }
     },
 
     setEndHour: async (hour) => {
-        try {
-            await AsyncStorage.setItem('@day_end_hour', hour.toString());
-            set({ endHour: hour });
-        } catch (e) {
-            console.error('Error guardando hora de fin:', e);
-        }
+      try {
+        await dayLimitPersistence.setEndHour(hour);
+        set({ endHour: hour });
+      } catch (e) {
+        console.error('Error guardando hora de fin:', e);
+      }
     },
+  }));
+}
 
-}));
+export type { DayLimitPersistence };

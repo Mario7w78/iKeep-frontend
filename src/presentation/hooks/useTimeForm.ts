@@ -3,9 +3,9 @@ import { useFocusEffect } from "@react-navigation/native";
 import { DayOfWeek } from "../../domain/entities/Activity";
 import { calculateEndTime, areOverlapping, dateToMinutes, formatTime } from "../../presentation/utils/timeUtils";
 import { timeType } from "../../domain/entities/activity.types";
-import { useActivityStore } from "../../infrastructure/store/useActivityStore";
-import { useScheduleStore } from "../../infrastructure/store/useScheduleStore";
-import { saveActivityProps, PartitionConfig } from "./props";
+import { useActivityStore, useScheduleStore } from "../../di/Dependencies";
+import { PartitionConfig } from "../../domain/entities/activity.types";
+import { saveActivityProps } from "./props";
 
 export default function useTimeForm() {
   const [activityName, setActivityName] = useState("");

@@ -1,20 +1,20 @@
 import React from "react";
-import { TouchableOpacity, View, StyleSheet } from "react-native";
+import { TouchableOpacity, View, StyleSheet, Platform } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useNavigation, NavigationProp } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Platform } from "react-native";
 
 import OnBoardingView from "../components/organisms/Onboarding/OnboardingVIew";
 import ActivityListScreen from "../screens/Activity/activityList/ActivityListView";
 import ScheduleScreen from "../screens/Schedule/ScheduleView";
 import CreateActivityScreen from "../screens/Activity/activityCreation/CreateActivityView";
+import SettingsView from "../screens/Settings/SettingsView";
 import { Theme } from "../components/theme/colors";
 import { useAppStore } from "../../infrastructure/store/useAppStore";
-import SettingsView from "../screens/Settings/SettingsView";
-import { useScheduleStore } from "../../infrastructure/store/useScheduleStore";
+import { useScheduleStore } from "../../di/Dependencies";
+
 
 export type RootStackParamList = {
   MainTabs: undefined;
@@ -28,21 +28,32 @@ export type MainTabParamList = {
   Setting: undefined;
 };
 
+// ─── Navigators ──────────────────────────────────────────────
+
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
-function FABButton() {
+// 🐸 Lista de items en la tabview
+
+const TAB_ICONS: Record<string, [string, string]> = {
+  ActivityList: ["list", "list-outline"],
+  Schedule: ["calendar", "calendar-outline"],
+  Setting: ["settings", "settings-outline"],
+};
+
+const FAB_COLOR = Theme.componentColors.buttonBg;
+
+// 🐸 Boton de creación de actividad 
+
+function CreateActivityButton() {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const insets = useSafeAreaInsets();
 
   return (
     <View
       style={[
-        styles.fabBG,
-        {
-          bottom: insets.bottom + (Platform.OS === "android" ? 70 : 65),
-          right: 15,
-        },
+        styles.fabContainer,
+        { bottom: insets.bottom + (Platform.OS === "android" ? 70 : 65) },
       ]}
     >
       <TouchableOpacity
@@ -56,45 +67,40 @@ function FABButton() {
   );
 }
 
+// ─── Tab Navigator ───────────────────────────────────────────
+
 function TabNavigator() {
   const insets = useSafeAreaInsets();
+
+  const tabBarDynamicStyle = {
+    height: Platform.OS === "ios" ? 80 : 50 + insets.bottom,
+    paddingBottom: Platform.OS === "ios" ? 20 : insets.bottom,
+    paddingTop: Platform.OS === "ios" ? 6 : insets.top,
+  };
+
   return (
     <>
       <Tab.Navigator
         screenOptions={({ route }) => ({
           headerShown: false,
-          tabBarActiveTintColor: Theme.colors.primary,
-          tabBarInactiveTintColor: Theme.colors.surface,
+          tabBarActiveTintColor: "white",
+          tabBarInactiveTintColor: Theme.colors.font,
           tabBarShowLabel: true,
           tabBarIcon: ({ focused, color, size }) => {
-            const icons: Record<string, [string, string]> = {
-              ActivityList: ["list", "list-outline"],
-              Schedule: ["calendar", "calendar-outline"],
-              Setting: ["settings", "settings-outline"],
-            };
-            const [active, inactive] = icons[route.name] ?? [
+            const [active, inactive] = TAB_ICONS[route.name] ?? [
               "ellipse",
               "ellipse-outline",
             ];
+            const iconName = focused ? active : inactive;
             return (
               <Ionicons
-                name={
-                  (focused
-                    ? active
-                    : inactive) as keyof typeof Ionicons.glyphMap
-                }
+                name={iconName as keyof typeof Ionicons.glyphMap}
                 size={size}
                 color={color}
               />
             );
           },
-          tabBarStyle: [
-            styles.tabBar,
-            {
-              height: Platform.OS === "ios" ? 80 : 50 + insets.bottom,
-              paddingBottom: Platform.OS === "ios" ? 10 : insets.bottom,
-            },
-          ],
+          tabBarStyle: [styles.tabBar, tabBarDynamicStyle],
           tabBarLabelStyle: styles.tabLabel,
         })}
       >
@@ -114,10 +120,12 @@ function TabNavigator() {
           component={SettingsView}
         />
       </Tab.Navigator>
-      <FABButton />
+      <CreateActivityButton />
     </>
   );
 }
+
+// ─── Root Navigator ──────────────────────────────────────────
 
 export default function AppNavigator() {
   const hasSeenOnboarding = useAppStore((s) => s.hasSeenOnboarding);
@@ -143,22 +151,24 @@ export default function AppNavigator() {
   );
 }
 
+
 const styles = StyleSheet.create({
   tabBar: {
-    backgroundColor: Theme.colors.headerCard,
+    backgroundColor: Theme.componentColors.lightBackground,
     borderTopWidth: 0,
   },
   tabLabel: {
     fontSize: 12,
   },
-  fabBG: {
+  fabContainer: {
     position: "absolute",
+    right: 15,
   },
   fab: {
     width: 60,
     height: 60,
-    borderRadius: 50,
-    backgroundColor: "#f84d9c",
+    borderRadius: 30,
+    backgroundColor: FAB_COLOR,
     justifyContent: "center",
     alignItems: "center",
     shadowOffset: { width: 0, height: 4 },

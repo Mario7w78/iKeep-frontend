@@ -1,12 +1,12 @@
 // src/application/use-cases/GenerateScheduleUseCase.ts
 import { GenerateSchedulePort } from '../ports/in/GenerateSchedulePort'
-import { ScheduleRepository } from '../../domain/repositories/ScheduleRepository';
-import { ActivityRepository } from '../../domain/repositories/ActivityRepository';
+import { ScheduleGenerator } from '../ports/out/ScheduleGenerator';
+import { ActivityRepository } from '../ports/out/ActivityRepository';
 import { Schedule } from '../../domain/entities/Schedule';
 
 export class GenerateScheduleUseCase implements GenerateSchedulePort {
     constructor(
-        private scheduleRepository: ScheduleRepository,
+        private scheduleGenerator: ScheduleGenerator,
         private activityRepository: ActivityRepository
     ) { }
 
@@ -17,6 +17,6 @@ export class GenerateScheduleUseCase implements GenerateSchedulePort {
             throw new Error("No hay actividades para generar un horario");
         }
         
-        return await this.scheduleRepository.generate(activities, startHour, endHour);;
+        return await this.scheduleGenerator.generate(activities, startHour, endHour);
     }
 }

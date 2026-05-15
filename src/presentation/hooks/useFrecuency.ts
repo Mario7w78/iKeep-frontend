@@ -1,7 +1,8 @@
 import { useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { DayOfWeek } from '../../domain/entities/Activity';
-import { DayConfig, frecuencyProps, editGroupProps } from './props';
+import { DayConfig } from '../../domain/entities/activity.types';
+import { frecuencyProps, editGroupProps } from './props';
 
 export default function useFrecuency() {
     const [selectedDays, setSelectedDays] = useState<DayOfWeek[]>([]);

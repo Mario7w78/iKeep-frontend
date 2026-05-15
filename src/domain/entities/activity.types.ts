@@ -3,6 +3,7 @@ export enum timeType {
     minute,
     both
 }
+
 export enum frecuency {
     Diario = 'Todos los días',
     Lunes = 'Lunes',
@@ -13,3 +14,15 @@ export enum frecuency {
     Sábado = 'Sábado',
     Domingo = 'Domingo',
 }
+
+export type PartitionConfig = {
+    startHour: Date;
+    endHour: Date;
+    durationTime: number;
+    travelTime: number;
+};
+
+export type DayConfig = {
+    partitions: PartitionConfig[];
+    groupId: number;
+};

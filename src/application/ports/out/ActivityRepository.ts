@@ -1,4 +1,4 @@
-import { Activity } from '../entities/Activity';
+import { Activity } from '../../../domain/entities/Activity';
 
 export interface ActivityRepository {
     save(activity: Activity): Promise<void>;

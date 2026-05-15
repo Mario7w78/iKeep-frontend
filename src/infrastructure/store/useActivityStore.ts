@@ -1,9 +1,11 @@
-import { create } from 'zustand';
+import { create, StoreApi, UseBoundStore } from 'zustand';
 import { Activity } from '../../domain/entities/Activity';
-import { deleteActivityUseCase, getActivityUseCase, createActivityUseCase } from '../../di/Dependecies';
 import { CreateActivityCommand } from '../../application/ports/in/CreateActivityPort';
+import { GetActivityPort } from '../../application/ports/in/GetActivityPort';
+import { CreateActivityPort } from '../../application/ports/in/CreateActivityPort';
+import { DeleteActivityPort } from '../../application/ports/in/DeleteActivityPort';
 
-interface ActivityStore {
+interface ActivityStoreState {
   activities: Activity[];
   isLoading: boolean;
   loadActivities: () => Promise<void>;
@@ -12,41 +14,49 @@ interface ActivityStore {
   handleEditActivity: (id: string, title: string) => void;
 }
 
-export const useActivityStore = create<ActivityStore>((set, get) => ({
-  activities: [],
-  isLoading: false,
+export type ActivityStore = UseBoundStore<StoreApi<ActivityStoreState>>;
 
-  loadActivities: async () => {
-    set({ isLoading: true });
-    try {
-      const activities = await getActivityUseCase.execute();
-      set({ activities });
-    } catch (error) {
-      console.error('Error al recuperar actividades:', error);
-    } finally {
-      set({ isLoading: false });
-    }
-  },
+export function createActivityStore(
+  getActivityUseCase: GetActivityPort,
+  createActivityUseCase: CreateActivityPort,
+  deleteActivityUseCase: DeleteActivityPort
+): ActivityStore {
+  return create<ActivityStoreState>((set, get) => ({
+    activities: [],
+    isLoading: false,
 
-  handleCreateActivity: async (cmd) => {
-    try {
-      await createActivityUseCase.execute(cmd);
-      await get().loadActivities();
-    } catch (error) {
-      console.error('Error al crear la actividad:', error);
-    }
-  },
+    loadActivities: async () => {
+      set({ isLoading: true });
+      try {
+        const activities = await getActivityUseCase.execute();
+        set({ activities });
+      } catch (error) {
+        console.error('Error al recuperar actividades:', error);
+      } finally {
+        set({ isLoading: false });
+      }
+    },
 
-  handleDeleteActivity: async (id) => {
-    try {
-      await deleteActivityUseCase.execute(id);
-      await get().loadActivities();
-    } catch (error) {
-      console.error('Error al eliminar:', error);
-    }
-  },
+    handleCreateActivity: async (cmd) => {
+      try {
+        await createActivityUseCase.execute(cmd);
+        await get().loadActivities();
+      } catch (error) {
+        console.error('Error al crear la actividad:', error);
+      }
+    },
 
-  handleEditActivity: (id, title) => {
-    console.log('Editando:', title);
-  },
-}));
+    handleDeleteActivity: async (id) => {
+      try {
+        await deleteActivityUseCase.execute(id);
+        await get().loadActivities();
+      } catch (error) {
+        console.error('Error al eliminar:', error);
+      }
+    },
+
+    handleEditActivity: (id, title) => {
+      console.log('Editando:', title);
+    },
+  }));
+}

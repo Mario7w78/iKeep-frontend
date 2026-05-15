@@ -1,5 +1,5 @@
 import { DayOfWeek } from "../../../domain/entities/Activity";
-import { DayConfig } from "../../../presentation/hooks/props";
+import { DayConfig } from "../../../domain/entities/activity.types";
 
 export interface CreateActivityCommand {
   activityName: string;

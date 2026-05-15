@@ -1,16 +1,5 @@
 import { DayOfWeek } from '../../domain/entities/Activity';
-
-export type PartitionConfig = {
-    startHour: Date;
-    endHour: Date;
-    durationTime: number;
-    travelTime: number;
-};
-
-export type DayConfig = {
-    partitions: PartitionConfig[];
-    groupId: number;
-};
+import { PartitionConfig, DayConfig } from '../../domain/entities/activity.types';
 
 export type frecuencyProps = {
     partitions: PartitionConfig[];

@@ -3,7 +3,7 @@ import { View, ActivityIndicator, TouchableOpacity, Text, StyleSheet } from 'rea
 import { ScheduleHeader } from '../../components/organisms/Schedule/ScheduleHeader';
 import { ScheduleGrid } from '../../components/organisms/Schedule/ScheduleGrid';
 import { Theme } from '../../components/theme/colors';
-import { useScheduleStore } from '../../../infrastructure/store/useScheduleStore';
+import { useScheduleStore } from '../../../di/Dependencies';
 
 export default function ScheduleView() {
   const {

@@ -2,7 +2,7 @@ import { View, Text, TouchableOpacity } from "react-native";
 import React from "react";
 import { Theme } from "../../theme/colors";
 import { AntDesign } from "@expo/vector-icons";
-import { PartitionConfig } from "../../../hooks/props";
+import { PartitionConfig } from "../../../../domain/entities/activity.types";
 
 interface Props {
   partitions: PartitionConfig[];

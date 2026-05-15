@@ -1,12 +1,13 @@
 export const Theme = {
+  //Posiblemente en desuso
     colors: {
-        primary: '#ffffff',
-        lightPrimary: '#ebc7ff',
-        veryLightPrimary: '#c3ade9',
+        primary: '#000000',
+        lightPrimary: '#000000',
+        veryLightPrimary: '#ffffff',
         lowOpacityPrimary: '#5e3aed74',
         background: '#180b23',
         lightBackground: '#2b1e29',
-        surface: '#FFFFFF',
+        surface: '#ffffff',
         text: '#1A1A1A',
         textSecondary: '#d4d4d4', 
         border: '#F97316',
@@ -14,7 +15,27 @@ export const Theme = {
         headerCard: '#322248',
         fixedActivityCard: "#39105dd7",
         flexibleActivityCard: "#8b36d176",
+        font: '#e0e0e0',
     },
+
+    componentColors: {
+      background: '#2b2d3b',
+      lightBackground: '#494c65',
+      buttonBg: '#676386',
+    },
+
+    comfyColors: {
+      green: '#a9de68',
+      skyBlue: '#a5b2eb',
+      orange: '#ffae71',
+    },
+
+    comfyFontColores: {
+      green: '#394b23',
+      skyBlue: '#343950',
+      orange: '#523e2f',
+    },
+
     activity: {
         fixed: {
             gradient: ['#39105dd7', '#4b1d7de6'] as const,

@@ -15,9 +15,9 @@ import { useAppStore } from '../../../../infrastructure/store/useAppStore';
 import { RootStackParamList } from '../../../navigation/AppNavigator';
 import { Theme } from '../../theme/colors';
 import { TimePickerSection } from '../../molecules/Time/TimePickerSection';
-import { useScheduleStore } from '../../../../infrastructure/store/useScheduleStore';
+import { useScheduleStore } from '../../../../di/Dependencies';
 import { dateToMinutes, formatTime } from '../../../utils/timeUtils';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { onboardingDayLimitPersistence } from '../../../../infrastructure/persistence/OnboardingDayLimitPersistence';
 
 const { width } = Dimensions.get('window');
 
@@ -119,8 +119,7 @@ export default function OnBoardingView() {
         }
         
         try {
-            await AsyncStorage.setItem('@day_start_hour', startMin.toString());
-            await AsyncStorage.setItem('@day_end_hour', endMin.toString());
+            await onboardingDayLimitPersistence.saveDayLimits(startMin, endMin);
         } catch (e) {
             console.error('Error guardando límites del día:', e);
         }

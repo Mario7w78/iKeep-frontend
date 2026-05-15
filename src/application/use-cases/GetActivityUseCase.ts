@@ -1,5 +1,5 @@
 import { Activity } from '../../domain/entities/Activity'
-import { ActivityRepository } from '../../domain/repositories/ActivityRepository'
+import { ActivityRepository } from '../ports/out/ActivityRepository'
 import { GetActivityPort } from '../ports/in/GetActivityPort'
 
 export class GetActivityUseCase implements GetActivityPort {

@@ -1,60 +1,23 @@
 import { Schedule, ScheduledActivity } from '../../../domain/entities/Schedule';
 import { Activity, DayOfWeek, ActivityType } from '../../../domain/entities/Activity';
-import { PartitionConfig } from '../../../domain/entities/activity.types';
+import { ScheduleRequestDto } from '../dto/ScheduleRequestDto';
+import { ScheduleResponseDto } from '../dto/ScheduleResponseDto';
+import { ActividadFijaDto, TareaPendienteDto, BackendActivityType, BackendDifficulty } from '../dto/ActivityDto';
+import { GenerateScheduleOptions } from '../../../application/ports/in/GenerateSchedulePort';
+
+const DAY_TO_INT: Record<DayOfWeek, number> = {
+    'Lunes': 0, 'Martes': 1, 'Miercoles': 2, 'Jueves': 3,
+    'Viernes': 4, 'Sabado': 5, 'Domingo': 6,
+};
 
 const INT_TO_DAY: Record<number, DayOfWeek> = {
     0: 'Lunes', 1: 'Martes', 2: 'Miercoles',
     3: 'Jueves', 4: 'Viernes', 5: 'Sabado', 6: 'Domingo',
 };
 
-const mapDaysToInt = (days: string[]): number[] => {
-    const dayMap: Record<string, number> = {
-        'Lunes': 0, 'Martes': 1, 'Miercoles': 2, 'Jueves': 3,
-        'Viernes': 4, 'Sabado': 5, 'Domingo': 6
-    };
-    return days.map(d => dayMap[d]).filter(d => d !== undefined);
-};
-
 const dateToMinutes = (date: Date): number => {
     const d = new Date(date);
     return d.getHours() * 60 + d.getMinutes();
-};
-
-export const mapActivitiesForBackend = (activities: Activity[]) => {
-    const result: any[] = [];
-    activities.forEach(act => {
-        const isFixed = act.type === ActivityType.FIXED;
-
-        // Agrupamos días que comparten la misma configuración de particiones
-        const uniqueConfigs = new Map<number, { days: DayOfWeek[], partitions: PartitionConfig[] }>();
-        Object.entries(act.daysConfig).forEach(([day, config]) => {
-            if (config) {
-                if (!uniqueConfigs.has(config.groupId)) {
-                    uniqueConfigs.set(config.groupId, { days: [], partitions: config.partitions });
-                }
-                uniqueConfigs.get(config.groupId)!.days.push(day as DayOfWeek);
-            }
-        });
-
-        uniqueConfigs.forEach((cfg, groupId) => {
-            cfg.partitions.forEach((partition, pIdx) => {
-                const inicio = dateToMinutes(partition.startHour);
-                const fin = dateToMinutes(partition.endHour);
-                result.push({
-                    id: `${act.id}-${groupId}-${pIdx}`, // ID compuesto para el backend
-                    id_actividad_original: act.id,
-                    nombre: act.title || "Actividad sin nombre",
-                    es_fija: isFixed,
-                    duracion_minutos: Number(partition.durationTime) || 0,
-                    tiempo_traslado_minutos: Number(partition.travelTime) || 0,
-                    dias_permitidos: mapDaysToInt(cfg.days),
-                    inicio_minutos: inicio,
-                    fin_minutos: fin
-                });
-            });
-        });
-    });
-    return result;
 };
 
 const minutesToHHmm = (minutes: number): string => {
@@ -63,33 +26,93 @@ const minutesToHHmm = (minutes: number): string => {
     return `${h < 10 ? '0' + h : h}:${m < 10 ? '0' + m : m}`;
 };
 
-export const mapBackendToSchedule = (
-    rawItems: any[],
+export const domainToScheduleRequest = (
+    activities: Activity[],
+    startHour: number,
+    endHour: number,
+    options?: GenerateScheduleOptions
+): ScheduleRequestDto => {
+    const actividades_fijas: ActividadFijaDto[] = [];
+    const tareas_pendientes: TareaPendienteDto[] = [];
+
+    activities.forEach(act => {
+        act.daysEnabled.forEach(day => {
+            const config = act.daysConfig[day];
+            if (!config) return;
+
+            config.partitions.forEach((partition, pIdx) => {
+                const inicio = dateToMinutes(partition.startHour);
+                const fin = dateToMinutes(partition.endHour);
+
+                const baseDto = {
+                    id: `${act.id}-${config.groupId}-${pIdx}`,
+                    nombre: act.title || 'Actividad sin nombre',
+                    tipo: 'tarea' as BackendActivityType,
+                    dia: DAY_TO_INT[day],
+                    hora_inicio: inicio,
+                    hora_fin: fin,
+                    ubicacion_id: 'default',
+                    prioridad: 5,
+                    duracion_estimada: partition.durationTime,
+                    dificultad: 'media' as BackendDifficulty,
+                };
+
+                if (act.type === ActivityType.FIXED) {
+                    actividades_fijas.push(baseDto);
+                } else {
+                    tareas_pendientes.push(baseDto);
+                }
+            });
+        });
+    });
+
+    return {
+        actividades_fijas,
+        tareas_pendientes,
+        ubicaciones: options?.ubicaciones ?? [],
+        tiempos_traslado: options?.tiempos_traslado ?? [],
+        contexto_usuario: {
+            nivel_energia: options?.nivel_energia ?? 5,
+            horario_inicio: startHour,
+            horario_fin: endHour,
+            bloques_sueno: options?.bloques_sueno ?? [],
+        },
+    };
+};
+
+export const scheduleResponseToDomain = (
+    response: ScheduleResponseDto,
     originalActivities: Activity[]
 ): Schedule => {
-    console.log("DATA DEL BACKEND:", JSON.stringify(rawItems, null, 2));
-    const scheduledActivities: ScheduledActivity[] = rawItems.map(item => {
-        // El backend devuelve id_actividad_original o id_actividad. 
-        // Usamos id_actividad_original si existe, sino parseamos id_actividad.
-        const originalId = item.id_actividad_original 
-            ? String(item.id_actividad_original) 
-            : String(item.id_actividad).split('-')[0];
-            
+    // Filter out travel blocks
+    const filteredBloques = response.bloques.filter(bloque => {
+        if (bloque.tipo === 'viaje') return false;
+        if (bloque.id_actividad.startsWith('viaje_')) return false;
+        return true;
+    });
+
+    const scheduledActivities: ScheduledActivity[] = filteredBloques.map(bloque => {
+        const originalId = bloque.id_actividad.split('-')[0];
         const activity = originalActivities.find(a => String(a.id) === originalId);
 
-        if (!activity) throw new Error(`Actividad no encontrada: ${originalId}`);
+        if (!activity) {
+            throw new Error(`Actividad no encontrada: ${originalId}`);
+        }
 
         return {
             activity,
-            assignedStartTime: minutesToHHmm(item.inicio),
-            assignedEndTime: minutesToHHmm(item.fin),
-            day: INT_TO_DAY[item.dia] || 'Lunes',
+            assignedStartTime: minutesToHHmm(bloque.hora_inicio),
+            assignedEndTime: minutesToHHmm(bloque.hora_fin),
+            day: INT_TO_DAY[bloque.dia] || 'Lunes',
         };
     });
+
     return new Schedule({
         id: `schedule-${Date.now()}`,
         userId: 'local',
         createdAt: new Date(),
         scheduledActivities,
+        estado: response.estado,
+        mensaje: response.mensaje,
     });
 };

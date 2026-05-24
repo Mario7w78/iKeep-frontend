@@ -13,18 +13,24 @@ export interface ScheduleProps {
     userId: string;
     createdAt: Date;
     scheduledActivities: ScheduledActivity[];
+    estado?: string;
+    mensaje?: string;
 }
 
 export class Schedule {
     readonly id: string;
     readonly userId: string;
     readonly createdAt: Date;
+    readonly estado?: string;
+    readonly mensaje?: string;
     private readonly items: ScheduledActivity[];
 
     constructor(props: ScheduleProps) {
         this.id = props.id;
         this.userId = props.userId;
         this.createdAt = props.createdAt;
+        this.estado = props.estado;
+        this.mensaje = props.mensaje;
         this.items = props.scheduledActivities;
     }
     

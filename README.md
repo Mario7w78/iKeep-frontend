@@ -1,83 +1,107 @@
 # ikeep-app — Arquitectura Hexagonal (Ports & Adapters)
 
 ```
-┌──────────────────────────────────────────────────────────────────┐
-│                        PRESENTATION                              │
-│                  (React Native — Screens, Atoms, Hooks)          │
-│                                                                  │
-│   ┌───────────────┐  ┌──────────────┐  ┌───────────────────┐   │
-│   │ ActivityList  │  │ ScheduleView │  │ SettingsView      │   │
-│   └───────┬───────┘  └──────┬───────┘  └───────────────────┘   │
-│           │                 │                                    │
-│           ▼                 ▼                                    │
-│   ┌──────────────────────────────────────────────────────┐      │
-│   │            ZUSTAND STORES (Bridge UI→App)            │      │
-│   │  useActivityStore  │  useScheduleStore               │      │
-│   └────────────────────┼─────────────────────────────────┘      │
-│                        │                                        │
-├────────────────────────┼────────────────────────────────────────┤
-│                 DI LAYER (Dependencies.ts)                       │
-│           "Composition Root" — wirea todo                        │
-├────────────────────────┼────────────────────────────────────────┤
-│                        │                                        │
-│           ┌────────────▼────────────────────────────┐           │
-│           │        APPLICATION LAYER                │           │
-│           │                                         │           │
-│           │  ┌─────────────────────────────────┐    │           │
-│           │  │   PORTS IN (Driving Ports)      │    │           │
-│           │  │  ┌────────────────────────┐     │    │           │
-│           │  │  │ CreateActivityPort     │     │    │           │
-│           │  │  │ DeleteActivityPort     │     │    │           │
-│           │  │  │ GetActivityPort        │     │    │           │
-│           │  │  │ GenerateSchedulePort   │     │    │           │
-│           │  │  └───────────┬────────────┘     │    │           │
-│           │  └──────────────┼──────────────────┘    │           │
-│           │                 │                        │           │
-│           │  ┌──────────────▼──────────────────┐    │           │
-│           │  │      USE CASES                  │    │           │
-│           │  │  CreateActivityUseCase          │    │           │
-│           │  │  DeleteActivityUseCase          │    │           │
-│           │  │  GetActivityUseCase             │    │           │
-│           │  │  GenerateScheduleUseCase        │    │           │
-│           │  │         │                       │    │           │
-│           │  │         │ (usa interfaces, no   │    │           │
-│           │  │         │  implementaciones)    │    │           │
-│           │  └─────────┼───────────────────────┘    │           │
-│           │            │                            │           │
-│           │  ┌─────────▼───────────────────────┐    │           │
-│           │  │   PORTS OUT (Driven Ports)      │    │           │
-│           │  │  ┌────────────────────────┐     │    │           │
-│           │  │  │ ActivityRepository     │     │    │           │
-│           │  │  │ ScheduleGenerator      │     │    │           │
-│           │  │  └────────────────────────┘     │    │           │
-│           │  └─────────────────────────────────┘    │           │
-│           └────────────────┬───────────────────────┘           │
-│                            │                                    │
-├────────────────────────────┼────────────────────────────────────┤
-│                            ▼                                    │
-│           ┌──────────────────────────────────────┐              │
-│           │      INFRASTRUCTURE (Adapters)        │              │
-│           │                                       │              │
-│           │  ActivityRepository     ScheduleGenerator           │
-│           │  (interfaz)            (interfaz)      │              │
-│           │       │                     │          │              │
-│           │       ▼                     ▼          │              │
-│           │  AsyncStorage          ApiSchedule    │              │
-│           │  ActivityRepository    Generator      │              │
-│           │  (AsyncStorage)        (REST API)     │              │
-│           └───────────────────────────────────────┘              │
-│                                                                  │
-│   ┌──────────────────────────────────────────────────────────┐   │
-│   │                    DOMAIN (Core)                         │   │
-│   │                                                         │   │
-│   │   ┌──────────────┐    ┌──────────────────┐              │   │
-│   │   │   Activity    │    │    Schedule      │              │   │
-│   │   │   (entidad)   │    │    (entidad)     │              │   │
-│   │   └──────────────┘    └──────────────────┘              │   │
-│   │                                                         │   │
-│   │   Dependencia: NINGUNA (0 imports externos)             │   │
-│   └─────────────────────────────────────────────────────────┘   │
-└──────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────────────┐
+│                         PRESENTATION                                  │
+│                   (React Native — Screens, Atoms, Hooks)              │
+│                                                                       │
+│   ┌───────────────┐  ┌──────────────┐  ┌───────────────────┐        │
+│   │ ActivityList  │  │ ScheduleView │  │ SettingsView      │        │
+│   └───────┬───────┘  └──────┬───────┘  └───────────────────┘        │
+│           │                 │                                        │
+│           ▼                 ▼                                        │
+│   ┌─────────────────────────────────────────────────────────┐       │
+│   │            ZUSTAND STORES (Bridge UI→App)               │       │
+│   │  useActivityStore  │  useScheduleStore                  │       │
+│   │                    │  (generate + reschedule + suggest) │       │
+│   └────────────────────┼────────────────────────────────────┘       │
+│                        │                                            │
+├────────────────────────┼────────────────────────────────────────────┤
+│                 DI LAYER (Dependencies.ts)                           │
+│           "Composition Root" — wirea todo                            │
+├────────────────────────┼────────────────────────────────────────────┤
+│                        │                                            │
+│           ┌────────────▼────────────────────────────┐               │
+│           │        APPLICATION LAYER                │               │
+│           │                                         │               │
+│           │  ┌─────────────────────────────────┐    │               │
+│           │  │   PORTS IN (Driving Ports)      │    │               │
+│           │  │  ┌────────────────────────┐     │    │               │
+│           │  │  │ CreateActivityPort     │     │    │               │
+│           │  │  │ DeleteActivityPort     │     │    │               │
+│           │  │  │ GetActivityPort        │     │    │               │
+│           │  │  │ GenerateSchedulePort   │     │    │               │
+│           │  │  │ ReschedulePort         │     │    │               │
+│           │  │  │ SuggestTaskPort        │     │    │               │
+│           │  │  └───────────┬────────────┘     │    │               │
+│           │  └──────────────┼──────────────────┘    │               │
+│           │                 │                        │               │
+│           │  ┌──────────────▼──────────────────┐    │               │
+│           │  │      USE CASES                  │    │               │
+│           │  │  CreateActivityUseCase          │    │               │
+│           │  │  DeleteActivityUseCase          │    │               │
+│           │  │  GetActivityUseCase             │    │               │
+│           │  │  GenerateScheduleUseCase        │    │               │
+│           │  │  RescheduleUseCase              │    │               │
+│           │  │  SuggestTaskUseCase             │    │               │
+│           │  │         │                       │    │               │
+│           │  │         │ (usa interfaces, no   │    │               │
+│           │  │         │  implementaciones)    │    │               │
+│           │  └─────────┼───────────────────────┘    │               │
+│           │            │                            │               │
+│           │  ┌─────────▼───────────────────────┐    │               │
+│           │  │   PORTS OUT (Driven Ports)      │    │               │
+│           │  │  ┌────────────────────────┐     │    │               │
+│           │  │  │ ActivityRepository     │     │    │               │
+│           │  │  │ ScheduleGenerator      │     │    │               │
+│           │  │  │ RescheduleGenerator    │     │    │               │
+│           │  │  │ TaskSuggester          │     │    │               │
+│           │  │  └────────────────────────┘     │    │               │
+│           │  └─────────────────────────────────┘    │               │
+│           └────────────────┬───────────────────────┘               │
+│                            │                                        │
+├────────────────────────────┼────────────────────────────────────────┤
+│                            ▼                                        │
+│           ┌───────────────────────────────────────────────────┐     │
+│           │      INFRASTRUCTURE (Adapters)                     │     │
+│           │                                                   │     │
+│           │ ┌──────────────────────────────────────────────┐  │     │
+│           │ │             DTO LAYER (Tipos planos)          │  │     │
+│           │ │  ActivityDto │ LocationDto │ TravelTimeDto    │  │     │
+│           │ │  UserContextDto │ ScheduleRequestDto          │  │     │
+│           │ │  ScheduleResponseDto │ RescheduleRequestDto   │  │     │
+│           │ │  SuggestTaskDto                                │  │     │
+│           │ └──────────────────────┬───────────────────────┘  │     │
+│           │                        │                          │     │
+│           │ ┌──────────────────────▼───────────────────────┐  │     │
+│           │ │             API SERVICES + MAPPERS            │  │     │
+│           │ │  ScheduleApiService  ← scheduleMapper        │  │     │
+│           │ │  RescheduleApiService ← rescheduleMapper     │  │     │
+│           │ │  SuggestTaskApiService ← suggestTaskMapper   │  │     │
+│           │ └──────────────────────┬───────────────────────┘  │     │
+│           │                        │                          │     │
+│           │ ┌──────────────────────▼───────────────────────┐  │     │
+│           │ │           REPOSITORIES (Adapters)             │  │     │
+│           │ │  AsyncStorageActivityRepository              │  │     │
+│           │ │  ApiScheduleGenerator                        │  │     │
+│           │ │  ApiRescheduleGenerator                      │  │     │
+│           │ │  ApiTaskSuggester                            │  │     │
+│           │ └──────────────────────────────────────────────┘  │     │
+│           │                                                   │     │
+│           │   Almacenamiento: AsyncStorage  │  API REST       │     │
+│           └───────────────────────────────────────────────────┘     │
+│                                                                      │
+│   ┌──────────────────────────────────────────────────────────────┐  │
+│   │                    DOMAIN (Core)                             │  │
+│   │                                                              │  │
+│   │   ┌──────────────┐    ┌──────────────────┐                  │  │
+│   │   │   Activity    │    │    Schedule      │                  │  │
+│   │   │   (entidad)   │    │    (entidad)     │                  │  │
+│   │   └──────────────┘    └──────────────────┘                  │  │
+│   │                                                              │  │
+│   │   Dependencia: NINGUNA (0 imports externos)                  │  │
+│   └──────────────────────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Principio Fundamental: Regla de Dependencia
@@ -146,13 +170,15 @@ export interface GenerateSchedulePort {
 }
 ```
 
-Hay 4 puertos de entrada:
+Hay 6 puertos de entrada:
 | Puerto | Método |
 |--------|--------|
 | `CreateActivityPort` | `execute(cmd)` |
 | `DeleteActivityPort` | `execute(id)` |
 | `GetActivityPort` | `execute()` |
-| `GenerateSchedulePort` | `execute(startHour, endHour)` |
+| `GenerateSchedulePort` | `execute(startHour, endHour, options?)` |
+| `ReschedulePort` | `execute(request)` |
+| `SuggestTaskPort` | `execute(freeMinutes, preferredDay?)` |
 
 #### Puertos de Salida (Driven Ports) — `ports/out/`
 
@@ -170,9 +196,31 @@ export interface ActivityRepository {
 ```typescript
 // src/application/ports/out/ScheduleGenerator.ts
 export interface ScheduleGenerator {
-    generate(activities: Activity[], startHour: number, endHour: number): Promise<Schedule>;
+    generate(activities: Activity[], startHour: number, endHour: number, options?: GenerateScheduleOptions): Promise<Schedule>;
 }
 ```
+
+```typescript
+// src/application/ports/out/RescheduleGenerator.ts
+export interface RescheduleGenerator {
+    replanificar(request: RescheduleRequestDto): Promise<ScheduleResponseDto>;
+}
+```
+
+```typescript
+// src/application/ports/out/TaskSuggester.ts
+export interface TaskSuggester {
+    suggestTasks(request: SugerirTareaRequestDto): Promise<SugerirTareaResponseDto>;
+}
+```
+
+Hay 4 puertos de salida:
+| Puerto | Método | Implementación |
+|--------|--------|----------------|
+| `ActivityRepository` | `save`, `getAll`, `delete` | `AsyncStorageActivityRepository` |
+| `ScheduleGenerator` | `generate(activities, startHour, endHour, options?)` | `ApiScheduleGenerator` |
+| `RescheduleGenerator` | `replanificar(request)` | `ApiRescheduleGenerator` |
+| `TaskSuggester` | `suggestTasks(request)` | `ApiTaskSuggester` |
 
 #### Casos de Uso — `use-cases/`
 
@@ -200,12 +248,60 @@ export class GenerateScheduleUseCase implements GenerateSchedulePort {
         private activityRepository: ActivityRepository      ← INTERFAZ
     ) { }
 
-    async execute(startHour: number, endHour: number): Promise<Schedule> {
+    async execute(startHour: number, endHour: number, options?: GenerateScheduleOptions): Promise<Schedule> {
         const activities = await this.activityRepository.getAll();
-        return await this.scheduleGenerator.generate(activities, startHour, endHour);
+        return await this.scheduleGenerator.generate(activities, startHour, endHour, options);
     }
 }
 ```
+
+```typescript
+// src/application/use-cases/RescheduleUseCase.ts
+export class RescheduleUseCase implements ReschedulePort {
+    constructor(
+        private rescheduleGenerator: RescheduleGenerator,  ← INTERFAZ
+        private activityRepository: ActivityRepository      ← INTERFAZ
+    ) {}
+
+    async execute(request: RescheduleRequestDto): Promise<Schedule> {
+        const response = await this.rescheduleGenerator.replanificar(request);
+        const activities = await this.activityRepository.getAll();
+        return scheduleResponseToDomain(response, activities);
+    }
+}
+```
+
+```typescript
+// src/application/use-cases/SuggestTaskUseCase.ts
+export class SuggestTaskUseCase implements SuggestTaskPort {
+    constructor(
+        private taskSuggester: TaskSuggester,              ← INTERFAZ
+        private activityRepository: ActivityRepository      ← INTERFAZ
+    ) {}
+
+    async execute(freeMinutes: number, preferredDay?: number): Promise<SugerenciaTareaDto[]> {
+        const allActivities = await this.activityRepository.getAll();
+        const pending = allActivities.filter(a => !a.isFixed());
+        const request = {
+            tiempo_libre_minutos: freeMinutes,
+            tareas_pendientes: domainToTareaPendiente(pending),
+        };
+        const response = await this.taskSuggester.suggestTasks(request);
+        return response.sugerencias;
+    }
+}
+```
+
+Hay 6 casos de uso:
+
+| Caso de Uso | Puerto que implementa | Puertos de salida que usa |
+|---|---|---|
+| `CreateActivityUseCase` | `CreateActivityPort` | `ActivityRepository` |
+| `DeleteActivityUseCase` | `DeleteActivityPort` | `ActivityRepository` |
+| `GetActivityUseCase` | `GetActivityPort` | `ActivityRepository` |
+| `GenerateScheduleUseCase` | `GenerateSchedulePort` | `ActivityRepository`, `ScheduleGenerator` |
+| `RescheduleUseCase` | `ReschedulePort` | `ActivityRepository`, `RescheduleGenerator` |
+| `SuggestTaskUseCase` | `SuggestTaskPort` | `ActivityRepository`, `TaskSuggester` |
 
 ---
 
@@ -214,10 +310,12 @@ export class GenerateScheduleUseCase implements GenerateSchedulePort {
 Contiene las **implementaciones concretas** de los puertos de salida. Cada adapter implementa una interfaz del `ports/out/`.
 
 ```
-Puerto (interfaz)          →  Adapter (implementación)
-─────────────────────────────────────────────────────
-ActivityRepository         →  AsyncStorageActivityRepository  (persistencia local)
-ScheduleGenerator          →  ApiScheduleGenerator            (llamada HTTP)
+Puerto (interfaz)          →  Adapter (implementación)       (stack)
+───────────────────────────────────────────────────────────────────────
+ActivityRepository         →  AsyncStorageActivityRepository  (AsyncStorage)
+ScheduleGenerator          →  ApiScheduleGenerator            (REST API /generar)
+RescheduleGenerator        →  ApiRescheduleGenerator          (REST API /replanificar)
+TaskSuggester              →  ApiTaskSuggester                (REST API /suggest-task)
 ```
 
 ```typescript
@@ -237,16 +335,55 @@ export class AsyncStorageActivityRepository implements ActivityRepository {
 ```typescript
 // src/infrastructure/repositories/ApiScheduleGenerator.ts
 export class ApiScheduleGenerator implements ScheduleGenerator {
-    async generate(activities: Activity[], startHour: number, endHour: number): Promise<Schedule> {
-        return await ScheduleApiService(activities, startHour, endHour);
+    async generate(activities, startHour, endHour, options?): Promise<Schedule> {
+        const requestDto = domainToScheduleRequest(activities, startHour, endHour, options);
+        const responseDto = await ScheduleApiService(requestDto);
+        return scheduleResponseToDomain(responseDto, activities);
     }
 }
 ```
 
 Además, aquí viven:
-- **Zustand Stores** (`infrastructure/store/`) — actúan como bridge entre la UI y los casos de uso. Reciben casos de uso inyectados y exponen un API Reactivo.
-- **API Service** (`infrastructure/api/`) — cliente HTTP + mappers para el backend REST.
-- **Persistencia** (`infrastructure/persistence/`) — lectura/escritura de AsyncStorage para configuración.
+
+#### DTO Layer (`infrastructure/api/dto/`)
+
+**8 archivos** de tipos planos TypeScript que reflejan exactamente los schemas Pydantic del backend:
+
+| DTO | Propósito |
+|-----|-----------|
+| `ActivityDto` | `ActividadFijaDto`, `TareaPendienteDto`, enums `BackendActivityType`, `BackendDifficulty` |
+| `LocationDto` | `UbicacionDto` (id, nombre, latitud, longitud) |
+| `TravelTimeDto` | `TiempoTrasladoDto` (origen, destino, minutos) |
+| `UserContextDto` | `ContextoUsuarioDto`, `BloqueSuenoDto` |
+| `ScheduleRequestDto` | Payload completo para POST /generar |
+| `ScheduleResponseDto` | `{ estado, bloques, mensaje }` con `ScheduleEstado` |
+| `RescheduleRequestDto` | Payload para POST /replanificar |
+| `SuggestTaskDto` | Requests/responses para POST /suggest-task |
+
+Los DTOs son la **frontera con el backend**. Los mappers (`infrastructure/api/mappers/`) convierten entre estos DTOs y las entidades de dominio.
+
+#### API Services (`infrastructure/api/`)
+
+| Servicio | Endpoint | Mapper |
+|----------|----------|--------|
+| `ScheduleApiService` | `POST /api/v1/horarios/generar` | `scheduleMapper.ts` |
+| `RescheduleApiService` | `POST /api/v1/horarios/replanificar` | `rescheduleMapper.ts` |
+| `SuggestTaskApiService` | `POST /schedule/suggest-task` | `suggestTaskMapper.ts` |
+
+#### Zustand Stores (`infrastructure/store/`)
+
+Actúan como bridge entre la UI y los casos de uso. Reciben casos de uso inyectados y exponen un API Reactivo:
+
+```typescript
+// useScheduleStore expone:
+// - handleGenerateSchedule()       → genera horario completo
+// - handleReschedule(id, minutos)  → replanifica cuando cambia una actividad
+// - handleSuggestTask(minutos)     → sugiere tareas para tiempo libre
+```
+
+#### Persistencia (`infrastructure/persistence/`)
+
+Lectura/escritura de AsyncStorage para configuración del usuario (horario de inicio/fin del día).
 
 ---
 
@@ -258,19 +395,28 @@ Es el **único lugar** donde se crean las instancias concretas y se wirean las d
 // 1. Crear adapters concretos
 const activityRepository: ActivityRepository = new AsyncStorageActivityRepository();
 const scheduleGenerator: ScheduleGenerator = new ApiScheduleGenerator();
+const rescheduleGenerator: RescheduleGenerator = new ApiRescheduleGenerator();
+const taskSuggester: TaskSuggester = new ApiTaskSuggester();
 
 // 2. Inyectar adapters en casos de uso
 export const generateScheduleUseCase = new GenerateScheduleUseCase(
-    scheduleGenerator,
-    activityRepository
+    scheduleGenerator, activityRepository
 );
 export const createActivityUseCase = new CreateActivityUseCase(activityRepository);
+export const rescheduleUseCase = new RescheduleUseCase(
+    rescheduleGenerator, activityRepository
+);
+export const suggestTaskUseCase = new SuggestTaskUseCase(
+    taskSuggester, activityRepository
+);
 
 // 3. Inyectar casos de uso en stores (zustand)
 export const useActivityStore = createActivityStore(
-    getActivityUseCase,
-    createActivityUseCase,
-    deleteActivityUseCase
+    getActivityUseCase, createActivityUseCase, deleteActivityUseCase
+);
+export const useScheduleStore = createScheduleStore(
+    generateScheduleUseCase, asyncStorageDayLimitPersistence,
+    rescheduleUseCase, suggestTaskUseCase
 );
 ```
 
@@ -327,15 +473,59 @@ ScheduleView
        ↓  llama
 useScheduleStore.handleGenerateSchedule()
        ↓  delega
-GenerateScheduleUseCase.execute(startHour, endHour)  ← Driving Port
-       ↓  llama interfaz
-ActivityRepository.getAll()          ← Driven Port (interfaz)
-ScheduleGenerator.generate(...)      ← Driven Port (interfaz)
+GenerateScheduleUseCase.execute(startHour, endHour, options?)  ← Driving Port
+       ↓  llama interfaces
+ActivityRepository.getAll()           ← Driven Port (interfaz)
+ScheduleGenerator.generate(...)       ← Driven Port (interfaz)
        ↓  ejecutan adapters
 AsyncStorageActivityRepository.getAll()
 ApiScheduleGenerator.generate(...)
+       │
+       ├─ domainToScheduleRequest()   ← mapper: entidades → DTOs
+       ├─ ScheduleApiService(dto)     ← HTTP POST → Backend
+       └─ scheduleResponseToDomain()  ← mapper: DTOs → entidades
        ↓
-AsyncStorage  +  HTTP POST → Backend
+Schedule con estado + bloques
+```
+
+### Replanificar Horario
+
+```
+Usuario elimina/modifica una actividad
+       ↓
+Vista → useScheduleStore.handleReschedule(id, minutosPerdidos)
+       ↓  delega
+RescheduleUseCase.execute(request)    ← Driving Port
+       ↓  llama interfaz
+RescheduleGenerator.replanificar(request)  ← Driven Port
+       ↓  ejecuta adapter
+ApiRescheduleGenerator.replanificar()
+       │
+       ├─ scheduleToBloqueTiempo()    ← mapper: Schedule actual → DTO
+       ├─ RescheduleApiService(dto)   ← HTTP POST → Backend
+       └─ scheduleResponseToDomain()  ← mapper: DTOs → Schedule
+       ↓
+Schedule re-optimizado
+```
+
+### Sugerir Tareas
+
+```
+Usuario tiene tiempo libre
+       ↓
+Vista → useScheduleStore.handleSuggestTask(minutosLibres)
+       ↓  delega
+SuggestTaskUseCase.execute(freeMinutes)  ← Driving Port
+       ↓  obtiene actividades
+ActivityRepository.getAll()              ← Driven Port
+       ↓  filtra flexibles + mappea
+domainToTareaPendiente(actividadesFlexibles)  ← mapper
+       ↓  llama interfaz
+TaskSuggester.suggestTasks(request)      ← Driven Port
+       ↓  ejecuta adapter
+ApiTaskSuggester.suggestTasks()
+       ↓  HTTP POST → Backend
+Sugerencias ordenadas por prioridad
 ```
 
 ---
@@ -344,9 +534,10 @@ AsyncStorage  +  HTTP POST → Backend
 
 | Beneficio | Cómo lo logra |
 |-----------|---------------|
-| **Testeable** | Los casos de uso trabajan con interfaces. Puedes mockear `ActivityRepository` y probar la lógica de negocio sin tocar AsyncStorage ni la UI. |
+| **Testeable** | Los casos de uso trabajan con interfaces. Puedes mockear `ActivityRepository`, `ScheduleGenerator`, etc. y probar la lógica sin AsyncStorage, HTTP ni UI. |
 | **Desacoplado** | La UI (React Native) puede cambiar completamente sin tocar domain ni application. |
 | **Intercambiable** | Cambiar AsyncStorage por SQLite, o el backend por otro, es crear un nuevo adapter y cambiar 1 línea en `Dependencies.ts`. |
+| **DTOs aislados** | Los tipos de red (`dto/`) están separados de las entidades de dominio. Los mappers traducen entre ambos mundos. |
 | **Domain puro** | La lógica de negocio vive en TypeScript sin frameworks. No depende de React, Expo, ni de ninguna librería externa. |
 
 ---
@@ -358,7 +549,9 @@ AsyncStorage  +  HTTP POST → Backend
 | **Driving Port** (Puerto de entrada) | `application/ports/in/*.ts` — interfaces que los casos de uso implementan |
 | **Driven Port** (Puerto de salida) | `application/ports/out/*.ts` — interfaces que los adapters implementan |
 | **Driving Adapter** (Adapter primario) | La UI + Zustand Stores — conducen la aplicación |
-| **Driven Adapter** (Adapter secundario) | `AsyncStorageActivityRepository`, `ApiScheduleGenerator` — implementan los puertos de salida |
+| **Driven Adapter** (Adapter secundario) | `AsyncStorageActivityRepository`, `ApiScheduleGenerator`, `ApiRescheduleGenerator`, `ApiTaskSuggester` — implementan los puertos de salida |
 | **Composition Root** | `di/Dependencies.ts` — wirea todo |
 | **Use Case** (Caso de uso) | `application/use-cases/*.ts` — orquesta la lógica |
 | **Entity** (Entidad) | `domain/entities/*.ts` — core del negocio |
+| **DTO** (Data Transfer Object) | `infrastructure/api/dto/*.ts` — tipos planos que reflejan los schemas del backend |
+| **Mapper** | `infrastructure/api/mappers/*.ts` — convierte entre entidades de dominio y DTOs de red |

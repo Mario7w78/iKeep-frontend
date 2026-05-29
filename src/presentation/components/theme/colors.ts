@@ -25,7 +25,7 @@ export const Theme = {
     },
 
     comfyColors: {
-      green: '#a9de68',
+      green: '#b5f863',
       skyBlue: '#a5b2eb',
       orange: '#ffae71',
     },

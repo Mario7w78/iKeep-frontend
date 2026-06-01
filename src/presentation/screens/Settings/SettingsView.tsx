@@ -143,7 +143,7 @@ const SettingsView = () => {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: Theme.colors.background,
+    backgroundColor: Theme.colors.screenBackground,
   },
   scroll: {
     flex: 1,
@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   group: {
-    backgroundColor: Theme.colors.lightBackground,
+    backgroundColor: Theme.colors.cardBackground,
     borderRadius: 12,
     marginHorizontal: 16,
     overflow: "hidden",

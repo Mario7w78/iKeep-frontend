@@ -85,7 +85,7 @@ const PickerColumn: React.FC<PickerColumnProps> = ({ data, selectedIndex, onValu
               key={item}
               style={[styles.item, { transform: [{ perspective: 1000 }, { rotateX }, { scale }], opacity }]}
             >
-              <Text style={[styles.text, { color: currentIndex === index ? Theme.colors.surface : Theme.colors.veryLightPrimary }]}>
+              <Text style={[styles.text, { color: Theme.colors.surface }]}>
                 {item}
               </Text>
             </Animated.View>
@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
     top: ITEM_HEIGHT * 2,
     height: ITEM_HEIGHT,
     width: '100%',
-    backgroundColor: Theme.colors.lightPrimary,
+    backgroundColor: Theme.colors.cardBackground,
     borderRadius: 10,
   },
 });

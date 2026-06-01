@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 30,
     borderWidth: 1,
-    borderColor: "#8145b3",
+    borderColor: Theme.activity.flexible.borderColor,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
   dayBox: {
     justifyContent: 'center',
     borderRadius: 50,
-    backgroundColor: "#8145b3",
+    backgroundColor: Theme.activity.flexible.borderColor,
     width: 30,
     height: 30,
   },

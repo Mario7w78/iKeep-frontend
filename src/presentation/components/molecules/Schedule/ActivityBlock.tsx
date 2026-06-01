@@ -1,7 +1,13 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { ScheduledActivity } from '../../../../domain/entities/Schedule';
 import { hhmmToMinutes, minutesToTop, durationToHeight, formatDisplayTime, LABEL_WIDTH } from '../../../utils/scheduleUtils';
-import { LIGHT_COLORS, DARK_COLORS } from '../../theme/colors';
+
+const BLOCK_COLORS = [
+  { bg: '#221A3D', border: '#5D4BB3', text: '#DDD6FF' },
+  { bg: '#162A23', border: '#3C8D70', text: '#C8F2E2' },
+  { bg: '#33240F', border: '#A86A1F', text: '#FFE3B8' },
+  { bg: '#351D18', border: '#A65542', text: '#FFD5CB' },
+];
 
 interface Props {
   item: ScheduledActivity;
@@ -15,7 +21,7 @@ export function ActivityBlock({ item }: Props) {
   
   // Use a hash of the activity ID to ensure consistent color across different days
   const idNum = parseInt(item.activity.id.slice(-6), 10) || 0;
-  const color = DARK_COLORS[idNum % DARK_COLORS.length];
+  const color = BLOCK_COLORS[idNum % BLOCK_COLORS.length];
 
   return (
     <View style={[s.block, { top, height, backgroundColor: color.bg, borderLeftColor: color.border }]}>

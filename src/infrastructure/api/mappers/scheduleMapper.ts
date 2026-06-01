@@ -76,6 +76,7 @@ export const domainToScheduleRequest = (
             horario_inicio: startHour,
             horario_fin: endHour,
             bloques_sueno: options?.bloques_sueno ?? [],
+            historial_energia: options?.historial_energia,
         },
     };
 };

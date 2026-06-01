@@ -9,15 +9,15 @@ import {
 
 import { PrimaryButton } from "../../../components/atoms/Common/PrimaryButton";
 import { InputHeader } from "../../../components/molecules/Header/InputHeader";
-import { FrecuencySelector } from "../../../components/organisms/Time/FrecuencySelector";
+import { FrequencySelector } from "../../../components/organisms/Time/FrequencySelector";
 import { HourSection } from "../../../components/organisms/Time/HourSection";
 import { TimeSection } from "../../../components/organisms/Time/TimeSection";
 import { DayOfWeek } from "../../../../domain/entities/Activity";
-import { Theme, GROUP_COLORS } from "../../../components/theme/colors";
+import { Theme } from "../../../components/theme/colors";
 import PopUpAlert from "../../../components/atoms/Common/PopUpAlert";
 import SplitActivityButton from "../../../components/molecules/Time/SplitActivityButton";
 
-import useFrecuency from "../../../hooks/useFrecuency";
+import useFrequency from "../../../hooks/useFrequency";
 import useTimeForm from "../../../hooks/useTimeForm";
 import { DayConfig } from "../../../../domain/entities/activity.types";
 
@@ -45,10 +45,10 @@ export default function CreateActivityView({ navigation }: any) {
     groups,
     handleSelect,
     isDayConfigured,
-    handleUpdateFrecuency,
+    handleUpdateFrequency,
     handleEditGroup,
     handleDiscardGroup,
-  } = useFrecuency();
+  } = useFrequency();
   const {
     activityName,
     isFixed,
@@ -92,8 +92,8 @@ export default function CreateActivityView({ navigation }: any) {
           contentContainerStyle={styles.scrollContent}
           nestedScrollEnabled
         >
-          <View style={styles.frecuencySection}>
-            <FrecuencySelector
+          <View style={styles.frequencySection}>
+            <FrequencySelector
               days={options}
               selectedValue={
                 selectedDays.length === options.length
@@ -106,13 +106,13 @@ export default function CreateActivityView({ navigation }: any) {
                 (Object.entries(daysDict) as [DayOfWeek, DayConfig][]).map(
                   ([day, cfg]) => [
                     day,
-                    GROUP_COLORS[cfg.groupId % GROUP_COLORS.length].bg,
+                    Theme.groupColors[cfg.groupId % Theme.groupColors.length].bg,
                   ],
                 ),
               )}
               editingGroupId={editingGroupId!}
-              handleUpdateFrecuency={() => {
-                handleUpdateFrecuency({
+              handleUpdateFrequency={() => {
+                handleUpdateFrequency({
                   partitions: partitions,
                 });
                 resetPartitions();
@@ -123,7 +123,7 @@ export default function CreateActivityView({ navigation }: any) {
               <View style={styles.groupsContainer}>
                 {Object.entries(groups).map(([gidStr, { days, config }]) => {
                   const gid = Number(gidStr);
-                  const color = GROUP_COLORS[gid % GROUP_COLORS.length];
+                  const color = Theme.groupColors[gid % Theme.groupColors.length];
                   const isEditing = editingGroupId === gid;
                   return (
                     <TouchableOpacity
@@ -241,7 +241,7 @@ export default function CreateActivityView({ navigation }: any) {
                 setShouldPopUpAlert,
               )
             ) {
-              handleUpdateFrecuency({
+              handleUpdateFrequency({
                 partitions: partitions,
               });
               resetPartitions();
@@ -293,7 +293,7 @@ export default function CreateActivityView({ navigation }: any) {
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Theme.colors.background,
+    backgroundColor: Theme.colors.screenBackground,
   },
   formContainerBackground: {
     flex: 1,
@@ -316,13 +316,13 @@ export const styles = StyleSheet.create({
     color: Theme.colors.textSecondary,
     fontWeight: "700",
   },
-  frecuencySection: {
+  frequencySection: {
     flexDirection: "column",
-    backgroundColor: Theme.colors.lightBackground,
-    borderRadius: Theme.generalBorder,
+    backgroundColor: Theme.colors.cardBackground,
+    borderRadius: 20,
     padding: 20,
   },
-  frecuencyHeader: {
+  frequencyHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -330,7 +330,7 @@ export const styles = StyleSheet.create({
     marginBottom: 10,
   },
   saveButton: {
-    backgroundColor: Theme.colors.lightPrimary,
+    backgroundColor: Theme.colors.cardBackground,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 10,
@@ -341,15 +341,15 @@ export const styles = StyleSheet.create({
   },
   saveButtonDisabled: { opacity: 0.4 },
   saveButtonText: {
-    color: '#FFF', 
-    fontSize: 18, 
-    fontWeight: 'bold' 
+    color: Theme.colors.surface,
+    fontSize: 18,
+    fontWeight: 'bold'
   },
   groupsContainer: {
     marginTop: 12,
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: Theme.colors.border,
+    borderTopColor: Theme.colors.cardBorder,
     gap: 8,
   },
   groupTag: {
@@ -378,8 +378,8 @@ export const styles = StyleSheet.create({
   section: { width: "50%" },
   timeSection: {
     flexDirection: "column",
-    backgroundColor: Theme.colors.lightBackground,
-    borderRadius: Theme.generalBorder,
+    backgroundColor: Theme.colors.cardBackground,
+    borderRadius: 20,
     padding: 20,
   },
   timeInnerSection: { flexDirection: "row" },
@@ -391,7 +391,7 @@ export const styles = StyleSheet.create({
     marginBottom: 10,
   },
   iconContainer: {
-    backgroundColor: Theme.colors.border,
+    backgroundColor: Theme.colors.cardBorder,
     borderRadius: 7,
     width: 25,
     height: 25,
@@ -399,7 +399,7 @@ export const styles = StyleSheet.create({
     alignItems: "center",
   },
   icon2Container: {
-    backgroundColor: Theme.colors.primary,
+    backgroundColor: Theme.colors.cardBackground,
     borderRadius: 7,
     width: 35,
     height: 35,

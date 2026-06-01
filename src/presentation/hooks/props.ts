@@ -1,7 +1,7 @@
 import { DayOfWeek } from '../../domain/entities/Activity';
 import { PartitionConfig, DayConfig } from '../../domain/entities/activity.types';
 
-export type frecuencyProps = {
+export type frequencyProps = {
     partitions: PartitionConfig[];
 }
 

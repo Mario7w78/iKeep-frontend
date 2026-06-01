@@ -21,7 +21,7 @@ export const TimePickerSection = ({ onTimeChange, time, flashTrigger }: Props) =
 const styles = StyleSheet.create({
   timePickerSection: {
     alignItems: 'center',
-    borderRadius: Theme.generalBorder,
+    borderRadius: 20,
     zIndex: 10, 
     elevation: 5,
   },

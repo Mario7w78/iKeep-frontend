@@ -194,7 +194,7 @@ export default function OnBoardingView() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: Theme.colors.lightBackground },
+    container: { flex: 1, backgroundColor: Theme.colors.screenBackground },
     slide: {
         width,
         flex: 1,
@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 24,
         fontWeight: '700',
-        color: Theme.colors.primary,
+        color: Theme.colors.surface,
         textAlign: 'center',
         marginBottom: 12,
     },
@@ -243,7 +243,7 @@ const styles = StyleSheet.create({
     },
     dotActive: {
         width: 20,
-        backgroundColor: Theme.colors.primary,
+        backgroundColor: Theme.colors.cardBackground,
     },
     footer: {
         flexDirection: 'row',
@@ -257,11 +257,11 @@ const styles = StyleSheet.create({
     skipText: { fontSize: 16, color: Theme.colors.surface },
     nextButton: {
         flex: 1,
-        backgroundColor: Theme.colors.primary,
+        backgroundColor: Theme.colors.cardBackground,
         paddingVertical: 14,
         borderRadius: 12,
         alignItems: 'center',
     },
     nextButtonFull: { flex: 1 },
-    nextText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+    nextText: { color: Theme.colors.surface, fontSize: 16, fontWeight: '600' },
 });

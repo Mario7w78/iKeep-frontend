@@ -75,8 +75,8 @@ export const styles = StyleSheet.create({
   },
   timeSection: {
     flexDirection: "column",
-    backgroundColor: Theme.colors.lightBackground,
-    borderRadius: Theme.generalBorder,
+    backgroundColor: Theme.colors.cardBackground,
+    borderRadius: 20,
     padding: 20,
   },
   timeInnerSection: {
@@ -90,7 +90,7 @@ export const styles = StyleSheet.create({
     marginBottom: 10,
   },
   iconContainer: {
-    backgroundColor: Theme.colors.border,
+    backgroundColor: Theme.colors.cardBorder,
     borderRadius: 7,
     width: 25,
     height: 25,
@@ -98,7 +98,7 @@ export const styles = StyleSheet.create({
     alignItems: "center",
   },
   icon2Container: {
-    backgroundColor: Theme.colors.primary,
+    backgroundColor: Theme.colors.cardBackground,
     borderRadius: 7,
     width: 35,
     height: 35,
@@ -139,7 +139,7 @@ export const styles = StyleSheet.create({
     marginBottom: 15,
   },
   dayContainer: {
-    backgroundColor: Theme.colors.border,
+    backgroundColor: Theme.colors.cardBorder,
     justifyContent: "center",
     alignItems: "center",
     width: 35,

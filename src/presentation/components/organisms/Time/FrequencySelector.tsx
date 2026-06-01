@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { DayOfWeek } from "../../../../domain/entities/Activity";
 import { Theme } from "../../theme/colors";
-import { frecuencyProps } from "../../../hooks/props";
+import { frequencyProps } from "../../../hooks/props";
 import AntDesign from "@expo/vector-icons/AntDesign";
 interface props {
   onSelect: (val: DayOfWeek) => void;
@@ -10,17 +10,17 @@ interface props {
   configuredDays: DayOfWeek[];
   dayColors: Partial<Record<DayOfWeek, string>>;
   selectedDays: DayOfWeek[];
-  handleUpdateFrecuency: () => void;
+  handleUpdateFrequency: () => void;
   editingGroupId: number;
 }
 
-export const FrecuencySelector = ({
+export const FrequencySelector = ({
   onSelect,
   selectedValue,
   days,
   configuredDays,
   dayColors,
-  handleUpdateFrecuency,
+  handleUpdateFrequency,
   selectedDays,
   editingGroupId,
 }: props) => {
@@ -36,14 +36,14 @@ export const FrecuencySelector = ({
 
   return (
     <View style={styles.container}>
-      <View style={styles.frecuencyHeader}>
+      <View style={styles.frequencyHeader}>
         <Text style={styles.labelSmall}>Frecuencia</Text>
         <TouchableOpacity
           style={[
             styles.saveButton,
             selectedDays.length === 0 && styles.saveButtonDisabled,
           ]}
-          onPress={handleUpdateFrecuency}
+          onPress={handleUpdateFrequency}
           disabled={selectedDays.length === 0}
         >
           <Text style={styles.saveButtonText}>
@@ -118,7 +118,7 @@ export const styles = StyleSheet.create({
     justifyContent: "center",
     overflow: "hidden",
   },
-  frecuencyHeader: {
+  frequencyHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -131,7 +131,7 @@ export const styles = StyleSheet.create({
     fontWeight: "700",
   },
   saveButton: {
-    backgroundColor: Theme.colors.lightPrimary,
+    backgroundColor: Theme.colors.cardBackground,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 10,
@@ -155,7 +155,7 @@ export const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Theme.colors.background,
+    backgroundColor: Theme.colors.screenBackground,
     gap: 2,
   },
   dayButtonConfigured: {
@@ -163,7 +163,7 @@ export const styles = StyleSheet.create({
     backgroundColor: "#EEEDFE",
   },
   dayButtonSelected: {
-    backgroundColor: Theme.colors.primary,
+    backgroundColor: Theme.colors.cardBackground,
   },
 
   dayLetter: {
@@ -173,7 +173,7 @@ export const styles = StyleSheet.create({
     lineHeight: 18,
   },
   dayLetterConfigured: { color: "#3C3489" },
-  dayLetterSelected: { color: "#fff" },
+  dayLetterSelected: { color: Theme.colors.surface },
 
   dayAbbr: {
     fontSize: 11,

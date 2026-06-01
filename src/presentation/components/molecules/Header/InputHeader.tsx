@@ -33,7 +33,7 @@ export const InputHeader = ({ value, onChangeText, onClose }: Props) => (
         value={value}
         onChangeText={onChangeText}
         placeholder="¿Comó se llama la actividad?"
-        placeholderTextColor="#D1B3FF"
+        placeholderTextColor={Theme.colors.placeholder}
       />
     </View>
 
@@ -42,7 +42,7 @@ export const InputHeader = ({ value, onChangeText, onClose }: Props) => (
 
 export const styles = StyleSheet.create({
   header: { 
-    backgroundColor: Theme.colors.primary, 
+    backgroundColor: Theme.colors.cardBackground, 
     paddingHorizontal: 20, 
   },
   headerTopRow: { 
@@ -52,7 +52,7 @@ export const styles = StyleSheet.create({
     marginTop: 20
   },
   headerCloseButton: { 
-    backgroundColor: Theme.colors.lightPrimary, 
+    backgroundColor: Theme.colors.cardBackground, 
     borderRadius: 15, 
     padding: 4, 
   },
@@ -63,12 +63,12 @@ export const styles = StyleSheet.create({
   },
   headerContent: { 
     flexDirection: 'column', 
-    backgroundColor: Theme.colors.lightPrimary,
+    backgroundColor: Theme.colors.cardBackground,
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderWidth: 1,
     borderRadius: 15, 
-    borderColor: Theme.colors.veryLightPrimary,
+    borderColor: Theme.colors.cardBorder,
     marginTop: 10,
     
   },

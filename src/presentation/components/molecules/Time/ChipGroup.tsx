@@ -34,7 +34,7 @@ export const ChipGroup = ({ options, selectedValue, onSelect, uniqueValue }: Pro
 const styles = StyleSheet.create({
   chipContainer: { flexDirection: 'row' },
   chip: {
-    backgroundColor: Theme.colors.lightBackground,
+    backgroundColor: Theme.colors.cardBackground,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderWidth: 1,
@@ -42,7 +42,7 @@ const styles = StyleSheet.create({
     marginRight: 10,
     borderColor: Theme.colors.surface
   },
-  chipSelected: { backgroundColor: Theme.colors.primary },
+  chipSelected: { backgroundColor: Theme.colors.cardBackground },
   chipText: {
     color: Theme.colors.surface,
     fontWeight: 'bold'

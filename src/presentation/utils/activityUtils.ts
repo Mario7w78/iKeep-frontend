@@ -17,9 +17,9 @@ export const getActivityColor = (type: ActivityType): string => {
 
 export const getFontColor = (type: ActivityType): string => {
   const colors: Record<ActivityType, string> = {
-    CLASS: Theme.comfyFontColores.green,
-    WORK: Theme.comfyFontColores.orange,
-    EXTRA: Theme.comfyFontColores.skyBlue,
+    CLASS: Theme.comfyFontColors.green,
+    WORK: Theme.comfyFontColors.orange,
+    EXTRA: Theme.comfyFontColors.skyBlue,
   };
 
   return colors[type];

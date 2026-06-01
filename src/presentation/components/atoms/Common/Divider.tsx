@@ -11,7 +11,7 @@ interface Props {
 
 export const Divider = ({ 
   style, 
-  color = Theme.colors.primary || '#E0E0E0',
+  color = Theme.colors.cardBorder || '#E0E0E0',
   thickness = 1, 
   orientation = 'horizontal' 
 }: Props) => {

@@ -30,7 +30,7 @@ export default function PopUpAlert({ text, isVisible, onClose }: props) {
 const styles = StyleSheet.create({
   backgroundOpacity: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: Theme.colors.overlayBackground,
     justifyContent: 'center',
     alignItems: 'center'
   },

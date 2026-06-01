@@ -7,43 +7,39 @@ import { MenuOptionCheck } from '../../atoms/DropDownMenu/MenuOptionCheck';
 import { DayOfWeek } from '../../../../domain/entities/Activity';
 import { Theme } from '../../theme/colors';
 
-const DIAS_DE_LA_SEMANA: DayOfWeek[] = [
+const DAYS_OF_WEEK: DayOfWeek[] = [
     'Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo'
 ];
 
 interface Props {
-    onSelectionChange: (dias: DayOfWeek[]) => void;
-    seleccionados: DayOfWeek[];
+    onSelectionChange: (days: DayOfWeek[]) => void;
+    selected: DayOfWeek[];
 }
 
-export default function FrecuenceDropdown({ onSelectionChange, seleccionados }: Props) {
+export default function FrequencyDropdown({ onSelectionChange, selected }: Props) {
     const [visible, setVisible] = useState(false);
 
-    const toggleSelect = (dia: DayOfWeek) => {
-        let nuevosSeleccionados = [...seleccionados];
+    const toggleSelect = (day: DayOfWeek) => {
+        const newSelected = selected.includes(day)
+            ? selected.filter(item => item !== day)
+            : [...selected, day];
 
-        if (nuevosSeleccionados.includes(dia)) {
-            nuevosSeleccionados = nuevosSeleccionados.filter(item => item !== dia);
-        } else {
-            nuevosSeleccionados.push(dia);
-        }
-
-        onSelectionChange(nuevosSeleccionados);
+        onSelectionChange(newSelected);
     };
 
     const handleSelectAll = () => {
-        if (seleccionados.length === DIAS_DE_LA_SEMANA.length) {
+        if (selected.length === DAYS_OF_WEEK.length) {
             onSelectionChange([]);
         } else {
-            onSelectionChange([...DIAS_DE_LA_SEMANA]);
+            onSelectionChange([...DAYS_OF_WEEK]);
         }
     };
 
     const renderTriggerText = () => {
-        if (seleccionados.length === 0) return "Seleccionar días";
-        if (seleccionados.length === DIAS_DE_LA_SEMANA.length) return "Todos los días";
-            return DIAS_DE_LA_SEMANA
-            .filter(d => seleccionados.includes(d))
+        if (selected.length === 0) return "Seleccionar días";
+        if (selected.length === DAYS_OF_WEEK.length) return "Todos los días";
+            return DAYS_OF_WEEK
+            .filter(d => selected.includes(d))
             .map(d => d.substring(0, 3)) 
             .join(', ');
     };
@@ -65,7 +61,7 @@ export default function FrecuenceDropdown({ onSelectionChange, seleccionados }: 
                 }
             >
                 <MenuOptionCheck
-                    isSelected={seleccionados.length === DIAS_DE_LA_SEMANA.length}
+                    isSelected={selected.length === DAYS_OF_WEEK.length}
                     onSelect={handleSelectAll}
                 >
                     <Text style={[styles.optionText, { fontWeight: 'bold' }]}>Todos los días</Text>
@@ -73,13 +69,13 @@ export default function FrecuenceDropdown({ onSelectionChange, seleccionados }: 
 
                 <View style={styles.separator} />
 
-                {DIAS_DE_LA_SEMANA.map((dia) => (
+                {DAYS_OF_WEEK.map((day) => (
                     <MenuOptionCheck
-                        key={dia}
-                        isSelected={seleccionados.includes(dia)}
-                        onSelect={() => toggleSelect(dia)}
+                        key={day}
+                        isSelected={selected.includes(day)}
+                        onSelect={() => toggleSelect(day)}
                     >
-                        <Text style={styles.optionText}>{dia}</Text>
+                        <Text style={styles.optionText}>{day}</Text>
                     </MenuOptionCheck>
                 ))}
             </DropdownMenu>
@@ -101,13 +97,13 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         borderRadius: 12,
-        backgroundColor: Theme.colors.primary, 
+        backgroundColor: Theme.colors.cardBackground, 
         elevation: 3,
     },
     triggerText: {
         fontSize: 14,
         fontWeight: '600',
-        color: 'white',
+        color: Theme.colors.surface,
         flex: 1,
     },
     optionText: {

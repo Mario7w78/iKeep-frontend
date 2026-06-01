@@ -13,8 +13,8 @@ export const SwitchRow = ({ label, value, onValueChange }: Props) => (
     <Switch
       value={value}
       onValueChange={onValueChange}
-      trackColor={{ false: '#E0E0E0', true: Theme.colors.primary }}
-      thumbColor={'#FFFFFF'}
+      trackColor={{ false: '#E0E0E0', true: Theme.colors.cardBackground }}
+      thumbColor={Theme.colors.surface}
     />
   </View>
 );

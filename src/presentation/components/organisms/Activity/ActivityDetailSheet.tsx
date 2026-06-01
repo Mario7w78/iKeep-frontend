@@ -1,5 +1,6 @@
 import React, { forwardRef, useImperativeHandle, useState } from 'react';
 import { Modal, View, Text, StyleSheet, TouchableOpacity, Pressable } from 'react-native';
+import { Theme } from '../../theme/colors';
 
 export interface BottomSheetModal {
   present: () => void;
@@ -26,8 +27,8 @@ export const ActivityDetailSheet = forwardRef<BottomSheetModal>((_, ref) => {
 });
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' },
-  sheet: { backgroundColor: 'white', padding: 24, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
+  backdrop: { flex: 1, backgroundColor: Theme.colors.overlayBackground },
+  sheet: { backgroundColor: Theme.colors.surface, padding: 24, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
   title: { fontSize: 20, fontWeight: 'bold', marginBottom: 12 },
-  text: { fontSize: 16, color: '#666' },
+  text: { fontSize: 16, color: Theme.colors.textSecondary },
 });

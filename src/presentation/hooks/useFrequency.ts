@@ -2,9 +2,9 @@ import { useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { DayOfWeek } from '../../domain/entities/Activity';
 import { DayConfig } from '../../domain/entities/activity.types';
-import { frecuencyProps, editGroupProps } from './props';
+import { frequencyProps, editGroupProps } from './props';
 
-export default function useFrecuency() {
+export default function useFrequency() {
     const [selectedDays, setSelectedDays] = useState<DayOfWeek[]>([]);
     const [daysDict, setDaysDict] = useState<Partial<Record<DayOfWeek, DayConfig>>>({});
     const [editingGroupId, setEditingGroupId] = useState<number | null>(null);
@@ -22,7 +22,7 @@ export default function useFrecuency() {
         return groups;
     };
 
-    const handleUpdateFrecuency = ({ partitions }: frecuencyProps) => {
+    const handleUpdateFrequency = ({ partitions }: frequencyProps) => {
         if (selectedDays.length === 0) return;
         const groupId = editingGroupId !== null ? editingGroupId : nextGroupId;
 
@@ -92,7 +92,7 @@ export default function useFrecuency() {
         setDaysDict,
         setNextGroupId,
         setEditingGroupId,
-        handleUpdateFrecuency,
+        handleUpdateFrequency,
         handleEditGroup,
         handleDiscardGroup,
         handleSelect,

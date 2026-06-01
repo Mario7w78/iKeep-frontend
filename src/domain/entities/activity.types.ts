@@ -4,7 +4,7 @@ export enum timeType {
     both
 }
 
-export enum frecuency {
+export enum Frequency {
     Diario = 'Todos los días',
     Lunes = 'Lunes',
     Martes = 'Martes',

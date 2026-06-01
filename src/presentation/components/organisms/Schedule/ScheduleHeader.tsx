@@ -24,9 +24,9 @@ export function ScheduleHeader({ selectedDay, activityCount, onSelectDay }: Prop
   );
 }
 const s = StyleSheet.create({
-  header: { backgroundColor: Theme.colors.primary, paddingTop: 52, paddingBottom: 8 },
+  header: { backgroundColor: Theme.colors.cardBackground, paddingTop: 52, paddingBottom: 8 },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginBottom: 10 },
-  title: { fontSize: 22, fontWeight: '500', color: '#fff' },
+  title: { fontSize: 22, fontWeight: '500', color: Theme.colors.surface },
   badge: { backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 14, paddingHorizontal: 10, paddingVertical: 3 },
-  badgeText: { fontSize: 12, color: '#fff' },
+  badgeText: { fontSize: 12, color: Theme.colors.surface },
 });

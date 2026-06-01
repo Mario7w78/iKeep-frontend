@@ -2,13 +2,14 @@ import { create, StoreApi, UseBoundStore } from 'zustand';
 import { Schedule } from '../../domain/entities/Schedule';
 import { DayOfWeek } from '../../domain/entities/Activity';
 import { JS_DAY_TO_DAYOFWEEK } from '../../presentation/utils/scheduleUtils';
-import { GenerateSchedulePort } from '../../application/ports/in/GenerateSchedulePort';
+import { GenerateSchedulePort, GenerateScheduleOptions } from '../../application/ports/in/GenerateSchedulePort';
 import { ReschedulePort } from '../../application/ports/in/ReschedulePort';
 import { SuggestTaskPort } from '../../application/ports/in/SuggestTaskPort';
 import { SugerenciaTareaDto } from '../api/dto/SuggestTaskDto';
 import { RescheduleRequestDto } from '../api/dto/RescheduleRequestDto';
 import { ScheduleResponseDto, ScheduleEstado } from '../api/dto/ScheduleResponseDto';
 import { scheduleToBloqueTiempo } from '../api/mappers/rescheduleMapper';
+import { EnergyRecord, getEnergyHistory } from '../persistence/EnergyHistoryService';
 
 interface DayLimitPersistence {
   getStartHour: () => Promise<number>;
@@ -24,7 +25,7 @@ interface ScheduleStoreState {
   startHour: number;
   endHour: number;
   activitiesForDay: () => ReturnType<Schedule['getItemsByDay']>;
-  handleGenerateSchedule: () => Promise<void>;
+  handleGenerateSchedule: (energyData?: { nivel_energia: number; historial_energia: EnergyRecord[] }) => Promise<void>;
   loadDayLimits: () => Promise<void>;
   setSelectedDay: (day: DayOfWeek) => void;
   setStartHour: (hour: number) => void;
@@ -74,12 +75,17 @@ export function createScheduleStore(
       }
     },
 
-    handleGenerateSchedule: async () => {
+    handleGenerateSchedule: async (energyData) => {
       await get().loadDayLimits();
       const { startHour, endHour } = get();
       set({ isLoading: true });
       try {
-        const generated = await generateScheduleUseCase.execute(startHour, endHour);
+        const options: GenerateScheduleOptions = {};
+        if (energyData) {
+          options.nivel_energia = energyData.nivel_energia;
+          options.historial_energia = energyData.historial_energia;
+        }
+        const generated = await generateScheduleUseCase.execute(startHour, endHour, options);
         set({ schedule: generated });
       } catch (e) {
         console.error('Error generando horario:', e);
@@ -112,6 +118,10 @@ export function createScheduleStore(
       const { schedule, startHour, endHour } = get();
       if (!schedule || !rescheduleUseCase) return;
 
+      // Get latest energy data for context
+      const historial = await getEnergyHistory(14);
+      const lastRecord = historial.length > 0 ? historial[0] : null;
+
       const bloques = scheduleToBloqueTiempo(schedule);
       const horarioActual: ScheduleResponseDto = {
         estado: (schedule.estado as ScheduleEstado) || 'DESCONOCIDO',
@@ -124,10 +134,11 @@ export function createScheduleStore(
         actividad_afectada_id: affectedActivityId,
         tiempo_perdido_minutos: lostMinutes,
         contexto_usuario: {
-          nivel_energia: 5,
+          nivel_energia: lastRecord?.nivel ?? 2,
           horario_inicio: startHour,
           horario_fin: endHour,
           bloques_sueno: [],
+          historial_energia: historial.length > 0 ? historial : undefined,
         },
       };
 

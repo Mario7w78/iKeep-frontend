@@ -35,7 +35,7 @@ const row = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: Theme.colors.lightBackground,
+    backgroundColor: Theme.colors.cardBackground,
     paddingVertical: 12,
     paddingHorizontal: 16,
     minHeight: 44,
@@ -61,12 +61,12 @@ const row = StyleSheet.create({
   },
   value: {
     fontSize: 17,
-    color: Theme.colors.lightPrimary,
+    color: Theme.colors.surface,
     fontWeight: "500",
   },
   chevron: {
     fontSize: 22,
-    color: Theme.colors.lightPrimary,
+    color: Theme.colors.surface,
     marginLeft: 2,
     lineHeight: 24,
   },

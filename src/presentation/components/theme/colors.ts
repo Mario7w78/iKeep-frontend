@@ -1,82 +1,55 @@
 export const Theme = {
-  //Posiblemente en desuso
-    colors: {
-        primary: '#000000',
-        lightPrimary: '#000000',
-        veryLightPrimary: '#ffffff',
-        lowOpacityPrimary: '#5e3aed74',
-        background: '#180b23',
-        lightBackground: '#2b1e29',
-        surface: '#ffffff',
-        text: '#1A1A1A',
-        textSecondary: '#d4d4d4', 
-        border: '#F97316',
-        error: '#ff4d4d',
-        headerCard: '#322248',
-        fixedActivityCard: "#39105dd7",
-        flexibleActivityCard: "#8b36d176",
-        font: '#e0e0e0',
-    },
+  colors: {
+    screenBackground: '#2b2d3b',
+    cardBackground: '#34364d',
+    cardBorder: '#525576',
+    surface: '#ffffff',
+    textSecondary: '#c4c4ca',
+    textTertiary: '#b7b7c4',
+    iconPrimary: '#aebeff',
+    iconSecondary: '#a4a4a4',
+    error: '#ff4d4d',
+    overlayBackground: 'rgba(0,0,0,0.5)',
+    tabBarBackground: '#565a76',
+    tabActive: '#ffffff',
+    tabInactive: '#b9bac7',
+    placeholder: '#D1B3FF',
+  },
 
-    componentColors: {
-      background: '#2b2d3b',
-      lightBackground: '#494c65',
-      buttonBg: '#676386',
-    },
+  comfyColors: {
+    green: '#8dff68',
+    skyBlue: '#a5b2eb',
+    orange: '#ffae71',
+    yellow: '#e9c84a',
+  },
 
-    comfyColors: {
-      green: '#b5f863',
-      skyBlue: '#a5b2eb',
-      orange: '#ffae71',
-    },
+  comfyFontColors: {
+    green: '#315026',
+    skyBlue: '#343950',
+    orange: '#523e2f',
+    yellow: '#8A5614',
+  },
 
-    comfyFontColores: {
-      green: '#394b23',
-      skyBlue: '#343950',
-      orange: '#523e2f',
+  activity: {
+    fixed: {
+      gradient: ['#39105dd7', '#4b1d7de6'] as const,
+      borderColor: '#5a2591',
+      dayBoxColor: '#5a2591',
     },
+    flexible: {
+      gradient: ['#8b36d176', '#aa60e696'] as const,
+      borderColor: '#8145b3',
+      dayBoxColor: '#8145b3',
+    },
+  },
 
-    activity: {
-        fixed: {
-            gradient: ['#39105dd7', '#4b1d7de6'] as const,
-            borderColor: '#5a2591',
-            titleColor: '#a46eff',
-            dayBoxColor: '#5a2591',
-        },
-        flexible: {
-            gradient: ['#8b36d176', '#aa60e696'] as const,
-            borderColor: '#8145b3',
-            titleColor: '#ebc7ff',
-            dayBoxColor: '#8145b3',
-        },
-    },
-    generalBorder: 20
+  groupColors: [
+    { bg: '#E9E4FF', text: '#4A359C' },
+    { bg: '#E3F6EE', text: '#1F6B55' },
+    { bg: '#FFF3E3', text: '#8A5614' },
+    { bg: '#F8E5FF', text: '#7A2FA0' },
+    { bg: '#FDEAEA', text: '#8A3C2A' },
+    { bg: '#E3F2FF', text: '#1E5B8A' },
+    { bg: '#FFF0E5', text: '#9A4E1A' },
+  ],
 };
-
-export const LIGHT_COLORS = [
-  { bg: '#EEEAFE', border: '#B6A7F5', text: '#4A359C' },
-  { bg: '#E8F7F1', border: '#78D3B0', text: '#1F6B55' },
-  { bg: '#FFF3E3', border: '#F2B45A', text: '#8A5614' },
-  { bg: '#FDEDEA', border: '#F1A18E', text: '#8A3C2A' },
-];
-
-export const DARK_COLORS = [
-  { bg: '#221A3D', border: '#5D4BB3', text: '#DDD6FF' },
-  { bg: '#162A23', border: '#3C8D70', text: '#C8F2E2' },
-  { bg: '#33240F', border: '#A86A1F', text: '#FFE3B8' },
-  { bg: '#351D18', border: '#A65542', text: '#FFD5CB' },
-];
-
-export const GROUP_COLORS = [
-  { bg: '#E9E4FF', text: '#4A359C' },
-  { bg: '#E3F6EE', text: '#1F6B55' },
-  { bg: '#FFF3E3', text: '#8A5614' },
-  { bg: '#F8E5FF', text: '#7A2FA0' },
-  { bg: '#FDEAEA', text: '#8A3C2A' },
-  { bg: '#E3F2FF', text: '#1E5B8A' },
-  { bg: '#FFF0E5', text: '#9A4E1A' },
-];
-export const Screen = {
-  margin: 40
-}
-

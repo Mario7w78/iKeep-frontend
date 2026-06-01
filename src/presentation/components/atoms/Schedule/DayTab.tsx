@@ -18,7 +18,7 @@ export function DayTab({ day, isSelected, onPress }: Props) {
 }
 const s = StyleSheet.create({
   tab: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, borderWidth: 0.5, borderColor: 'rgba(0,0,0,0.1)' },
-  tabActive: { backgroundColor: Theme.colors.primary, borderColor: Theme.colors.primary },
-  text: { fontSize: 13, color: '#888' },
-  textActive: { color: '#fff', fontWeight: '500' },
+  tabActive: { backgroundColor: Theme.colors.cardBackground, borderColor: Theme.colors.cardBackground },
+  text: { fontSize: 13, color: Theme.colors.textTertiary },
+  textActive: { color: Theme.colors.surface, fontWeight: '500' },
 });

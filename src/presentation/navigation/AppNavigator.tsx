@@ -1,20 +1,19 @@
 import React from "react";
-import { TouchableOpacity, View, StyleSheet, Platform } from "react-native";
+import { StyleSheet } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { useNavigation, NavigationProp } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import OnBoardingView from "../components/organisms/Onboarding/OnboardingVIew";
-import ActivityListScreen from "../screens/Activity/activityList/ActivityListView";
-import ScheduleScreen from "../screens/Schedule/ScheduleView";
+import HomeScreen from "../screens/Home/HomeView";
+import ScheduleScreen from "../screens/schedule/ScheduleView";
+import StatsView from "../screens/Stats/StatsView";
 import CreateActivityScreen from "../screens/Activity/activityCreation/CreateActivityView";
 import SettingsView from "../screens/Settings/SettingsView";
-import { Theme } from "../components/theme/colors";
 import { useAppStore } from "../../infrastructure/store/useAppStore";
 import { useScheduleStore } from "../../di/Dependencies";
-
+import { Theme } from "../components/theme/colors";
 
 export type RootStackParamList = {
   MainTabs: undefined;
@@ -23,109 +22,78 @@ export type RootStackParamList = {
 };
 
 export type MainTabParamList = {
-  ActivityList: undefined;
+  Home: undefined;
   Schedule: undefined;
+  Stats: undefined;
   Setting: undefined;
 };
-
-// ─── Navigators ──────────────────────────────────────────────
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
-// 🐸 Lista de items en la tabview
-
-const TAB_ICONS: Record<string, [string, string]> = {
-  ActivityList: ["list", "list-outline"],
+const TAB_ICONS: Record<keyof MainTabParamList, [string, string]> = {
+  Home: ["home", "home-outline"],
   Schedule: ["calendar", "calendar-outline"],
-  Setting: ["settings", "settings-outline"],
+  Stats: ["bar-chart", "bar-chart-outline"],
+  Setting: ["options", "options-outline"],
 };
-
-const FAB_COLOR = Theme.componentColors.buttonBg;
-
-// 🐸 Boton de creación de actividad 
-
-function CreateActivityButton() {
-  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-  const insets = useSafeAreaInsets();
-
-  return (
-    <View
-      style={[
-        styles.fabContainer,
-        { bottom: insets.bottom + (Platform.OS === "android" ? 70 : 65) },
-      ]}
-    >
-      <TouchableOpacity
-        style={styles.fab}
-        activeOpacity={0.85}
-        onPress={() => navigation.navigate("CreateActivityModal")}
-      >
-        <Ionicons name="add" size={28} color="#ffffff" />
-      </TouchableOpacity>
-    </View>
-  );
-}
-
-// ─── Tab Navigator ───────────────────────────────────────────
 
 function TabNavigator() {
   const insets = useSafeAreaInsets();
 
-  const tabBarDynamicStyle = {
-    height: Platform.OS === "ios" ? 80 : 50 + insets.bottom,
-    paddingBottom: Platform.OS === "ios" ? 20 : insets.bottom,
-    paddingTop: Platform.OS === "ios" ? 6 : insets.top,
-  };
-
   return (
-    <>
-      <Tab.Navigator
-        screenOptions={({ route }) => ({
-          headerShown: false,
-          tabBarActiveTintColor: "white",
-          tabBarInactiveTintColor: Theme.colors.font,
-          tabBarShowLabel: true,
-          tabBarIcon: ({ focused, color, size }) => {
-            const [active, inactive] = TAB_ICONS[route.name] ?? [
-              "ellipse",
-              "ellipse-outline",
-            ];
-            const iconName = focused ? active : inactive;
-            return (
-              <Ionicons
-                name={iconName as keyof typeof Ionicons.glyphMap}
-                size={size}
-                color={color}
-              />
-            );
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarActiveTintColor: Theme.colors.tabActive,
+        tabBarInactiveTintColor: Theme.colors.tabInactive,
+        tabBarShowLabel: true,
+        tabBarIcon: ({ focused, color }) => {
+          const [active, inactive] = TAB_ICONS[route.name];
+          const iconName = focused ? active : inactive;
+
+          return (
+            <Ionicons
+              name={iconName as keyof typeof Ionicons.glyphMap}
+              size={24}
+              color={color}
+            />
+          );
+        },
+        tabBarStyle: [
+          styles.tabBar,
+          {
+            height: 50 + insets.bottom,
+            paddingBottom: Math.max(insets.bottom, 10),
           },
-          tabBarStyle: [styles.tabBar, tabBarDynamicStyle],
-          tabBarLabelStyle: styles.tabLabel,
-        })}
-      >
-        <Tab.Screen
-          name="ActivityList"
-          options={{ title: "Actividades" }}
-          component={ActivityListScreen}
-        />
-        <Tab.Screen
-          name="Schedule"
-          options={{ title: "Horario" }}
-          component={ScheduleScreen}
-        />
-        <Tab.Screen
-          name="Setting"
-          options={{ title: "Configuración" }}
-          component={SettingsView}
-        />
-      </Tab.Navigator>
-      <CreateActivityButton />
-    </>
+        ],
+        tabBarLabelStyle: styles.tabLabel,
+        tabBarItemStyle: styles.tabItem,
+      })}
+    >
+      <Tab.Screen
+        name="Home"
+        options={{ title: "Home" }}
+        component={HomeScreen}
+      />
+      <Tab.Screen
+        name="Schedule"
+        options={{ title: "Calendario" }}
+        component={ScheduleScreen}
+      />
+      <Tab.Screen
+        name="Stats"
+        options={{ title: "Estadisticas" }}
+        component={StatsView}
+      />
+      <Tab.Screen
+        name="Setting"
+        options={{ title: "Configuracion" }}
+        component={SettingsView}
+      />
+    </Tab.Navigator>
   );
 }
-
-// ─── Root Navigator ──────────────────────────────────────────
 
 export default function AppNavigator() {
   const hasSeenOnboarding = useAppStore((s) => s.hasSeenOnboarding);
@@ -133,7 +101,7 @@ export default function AppNavigator() {
 
   React.useEffect(() => {
     loadDayLimits();
-  }, []);
+  }, [loadDayLimits]);
 
   return (
     <Stack.Navigator
@@ -151,29 +119,19 @@ export default function AppNavigator() {
   );
 }
 
-
 const styles = StyleSheet.create({
   tabBar: {
-    backgroundColor: Theme.componentColors.lightBackground,
+    backgroundColor: Theme.colors.tabBarBackground,
     borderTopWidth: 0,
+    elevation: 0,
+    paddingTop: 8,
+    shadowOpacity: 0,
   },
   tabLabel: {
-    fontSize: 12,
+    fontSize: 11,
+    fontWeight: "800",
   },
-  fabContainer: {
-    position: "absolute",
-    right: 15,
-  },
-  fab: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: FAB_COLOR,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
+  tabItem: {
+    gap: 2,
   },
 });

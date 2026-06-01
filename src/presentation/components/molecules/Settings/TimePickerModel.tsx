@@ -60,7 +60,7 @@ const modal = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.4)",
   },
   sheet: {
-    backgroundColor: Theme.colors.lightBackground,
+    backgroundColor: Theme.colors.cardBackground,
     borderTopLeftRadius: 14,
     borderTopRightRadius: 14,
     paddingBottom: 34,
@@ -91,13 +91,13 @@ const modal = StyleSheet.create({
   },
   cancelBtn: {
     fontSize: 17,
-    color: Theme.colors.primary,
+    color: Theme.colors.surface,
     minWidth: 70,
   },
   doneBtn: {
     fontSize: 17,
     fontWeight: "600",
-    color: Theme.colors.primary,
+    color: Theme.colors.surface,
     minWidth: 70,
     textAlign: "right",
   },

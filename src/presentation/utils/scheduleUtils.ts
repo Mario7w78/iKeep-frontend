@@ -15,9 +15,9 @@ export const DAYS_ORDER: DayOfWeek[] = [
   'Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo'
 ];
 
-export const DAYS_SHORT: Record<DayOfWeek, string> = {
+export const DAYS_SHORT: Record<DayOfWeek | 'Diario', string> = {
   'Diario': 'Di', 'Lunes': 'Lu', 'Martes': 'Ma', 'Miercoles': 'Mi',
-  'Jueves': 'Ju', 'Viernes': 'Vi', 'Sabado': 'SÃ¡', 'Domingo': 'Do',
+  'Jueves': 'Ju', 'Viernes': 'Vi', 'Sabado': 'Sá', 'Domingo': 'Do',
 };
 
 export function minutesToTop(minutes: number): number {

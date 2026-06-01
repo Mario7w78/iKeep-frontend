@@ -7,14 +7,14 @@ interface FadeProps {
 }
 
 export const Fade = ({ children }: FadeProps) => {
-  const bgColor = Theme.componentColors.background;
+  const bgColor = Theme.colors.screenBackground;
   const transparentColor = `${bgColor}00`;
 
   return (
     <View style={styles.container}>
       {children}
       <LinearGradient
-        colors={[Theme.componentColors.background, transparentColor]}
+        colors={[Theme.colors.screenBackground, transparentColor]}
         style={styles.topGradient}
         pointerEvents="none"
       />

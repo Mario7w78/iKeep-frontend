@@ -100,11 +100,11 @@ export const styles = StyleSheet.create({
   mainText: {
     fontWeight: "bold",
     fontSize: 32,
-    color: Theme.colors.primary,
+    color: Theme.colors.surface,
     textAlign: "center",
   },
   iconButton: {
-    backgroundColor: Theme.colors.primary,
+    backgroundColor: Theme.colors.cardBackground,
     padding: 10,
     borderRadius: 10,
   },
@@ -124,7 +124,7 @@ export const styles = StyleSheet.create({
   timeText: {
     fontSize: 20,
     fontWeight: "bold",
-    color: Theme.colors.primary,
+    color: Theme.colors.surface,
     alignSelf: "center",
   },
   doubleDots: {
@@ -134,7 +134,7 @@ export const styles = StyleSheet.create({
     alignSelf: "center",
   },
   activeTimeButton: {
-    backgroundColor: Theme.colors.primary,
+    backgroundColor: Theme.colors.cardBackground,
   },
   activeTimeText: {
     color: Theme.colors.surface,

@@ -35,13 +35,13 @@ export default function SplitActivityButton({
             style={{
               backgroundColor:
                 activeIndex === index
-                  ? Theme.colors.lightPrimary
-                  : Theme.colors.lightBackground,
+                  ? Theme.colors.cardBackground
+                  : Theme.colors.cardBackground,
               paddingHorizontal: 15,
               paddingVertical: 5,
               borderRadius: 10,
               borderWidth: 1,
-              borderColor: Theme.colors.veryLightPrimary,
+              borderColor: Theme.colors.cardBorder,
             }}
           >
             <Text
@@ -57,14 +57,14 @@ export default function SplitActivityButton({
         <TouchableOpacity
           onPress={onAdd}
           style={{
-            backgroundColor: Theme.colors.lightBackground,
+            backgroundColor: Theme.colors.cardBackground,
             width: 30,
             height: 30,
             borderRadius: 50,
             justifyContent: "center",
             alignItems: "center",
             borderWidth: 1,
-            borderColor: Theme.colors.veryLightPrimary,
+            borderColor: Theme.colors.cardBorder,
           }}
         >
           <AntDesign name="plus" size={12} color={Theme.colors.surface} />
@@ -83,7 +83,7 @@ export default function SplitActivityButton({
               alignItems: "center",
             }}
           >
-            <AntDesign name="delete" size={14} color="#FFF" />
+            <AntDesign name="delete" size={14} color={Theme.colors.surface} />
           </TouchableOpacity>
         )}
       </View>

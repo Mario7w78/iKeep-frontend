@@ -21,7 +21,7 @@ export const HeaderTitle = ({ title, appName }: Props) => {
       <Text style={styles.headerTitle}>{title}</Text>
       <Text
         style={{
-          color: Theme.colors.lightPrimary,
+          color: Theme.colors.surface,
           fontWeight: "bold",
         }}
       >
@@ -42,7 +42,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 0,
     paddingBottom: 20,
-    backgroundColor: Theme.colors.headerCard,
+    backgroundColor: Theme.colors.cardBackground,
   },
   headerTitle: {
     fontSize: 32,
@@ -54,6 +54,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     padding: 10,
     marginRight: 5,
-    color: Theme.colors.primary,
+    color: Theme.colors.surface,
   },
 });

@@ -22,14 +22,14 @@ export const PrimaryButton = ({ title, onPress, style, textStyle }: Props) => (
 
 const styles = StyleSheet.create({
   primaryButton: { 
-    backgroundColor: Theme.colors.primary, 
+    backgroundColor: Theme.colors.cardBackground, 
     paddingVertical: 16, 
     borderRadius: 15, 
     width: '55%',
     alignItems: 'center' 
   },
   primaryButtonText: { 
-    color: '#FFF', 
+    color: Theme.colors.surface, 
     fontSize: 18, 
     fontWeight: 'bold' 
   },

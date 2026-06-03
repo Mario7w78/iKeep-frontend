@@ -1,4 +1,4 @@
-export type BackendActivityType = 'clase' | 'trabajo' | 'tarea' | 'examen' | 'reunion' | 'descanso' | 'viaje';
+export type BackendActivityType = 'clase' | 'trabajo' | 'tarea' | 'viaje';
 export type BackendDifficulty = 'baja' | 'media' | 'alta';
 
 export interface ActividadFijaDto {
@@ -8,9 +8,10 @@ export interface ActividadFijaDto {
   dia: number;
   hora_inicio: number;
   hora_fin: number;
-  ubicacion_id: string;
+  ubicacion_id: string | null;
   prioridad: number;
   duracion_estimada: number;
+  fecha_limite: string | null;
   dificultad: BackendDifficulty;
 }
 
@@ -21,8 +22,9 @@ export interface TareaPendienteDto {
   dia: number;
   hora_inicio: number;
   hora_fin: number;
-  ubicacion_id: string;
+  ubicacion_id: string | null;
   prioridad: number;
   duracion_estimada: number;
+  fecha_limite: string | null;
   dificultad: BackendDifficulty;
 }

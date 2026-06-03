@@ -124,7 +124,7 @@ export function createScheduleStore(
 
       const bloques = scheduleToBloqueTiempo(schedule);
       const horarioActual: ScheduleResponseDto = {
-        estado: (schedule.estado as ScheduleEstado) || 'DESCONOCIDO',
+        estado: (schedule.estado as ScheduleEstado) || 'FACTIBLE',
         bloques,
         mensaje: schedule.mensaje || '',
       };

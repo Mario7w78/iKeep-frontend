@@ -11,6 +11,10 @@ export interface ActivityProps {
     id: string;
     title: string;
     type: ActivityType;
+    identity: "clase" | "trabajo" | "tarea";
+    priority: number;
+    difficulty: "baja" | "media" | "alta";
+    deadline: string | null;
     daysConfig: Partial<Record<DayOfWeek, DayConfig>>;
     daysEnabled: DayOfWeek[];
 }
@@ -19,6 +23,10 @@ export class Activity {
     readonly id: string;
     readonly title: string;
     readonly type: ActivityType;
+    readonly identity: "clase" | "trabajo" | "tarea";
+    readonly priority: number;
+    readonly difficulty: "baja" | "media" | "alta";
+    readonly deadline: string | null;
     readonly daysEnabled: DayOfWeek[];
     readonly daysConfig: Partial<Record<DayOfWeek, DayConfig>>;
 
@@ -26,6 +34,10 @@ export class Activity {
         this.id = props.id;
         this.title = props.title;
         this.type = props.type;
+        this.identity = props.identity;
+        this.priority = props.priority;
+        this.difficulty = props.difficulty;
+        this.deadline = props.deadline;
         this.daysEnabled = props.daysEnabled;
         this.daysConfig = props.daysConfig
     }

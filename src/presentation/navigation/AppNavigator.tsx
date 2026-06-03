@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import OnBoardingView from "../components/organisms/Onboarding/OnboardingVIew";
 import HomeScreen from "../screens/Home/HomeView";
-import ScheduleScreen from "../screens/schedule/ScheduleView";
+import ScheduleScreen from "../screens/Schedule/ScheduleView";
 import StatsView from "../screens/Stats/StatsView";
 import CreateActivityScreen from "../screens/Activity/activityCreation/CreateActivityView";
 import SettingsView from "../screens/Settings/SettingsView";
@@ -113,7 +113,11 @@ export default function AppNavigator() {
       <Stack.Screen
         name="CreateActivityModal"
         component={CreateActivityScreen}
-        options={{ animation: "slide_from_bottom" }}
+        options={{
+          presentation: "transparentModal",
+          animation: "fade",
+          contentStyle: { backgroundColor: "transparent" },
+        }}
       />
     </Stack.Navigator>
   );

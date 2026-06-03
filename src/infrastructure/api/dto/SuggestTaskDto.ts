@@ -2,7 +2,7 @@ import { TareaPendienteDto, BackendActivityType, BackendDifficulty } from './Act
 
 export interface SugerirTareaRequestDto {
   tiempo_libre_minutos: number;
-  tareas_pendientes: TareaPendienteDto[];
+  actividades_optimizables: TareaPendienteDto[];
   dia_preferido?: number;
 }
 

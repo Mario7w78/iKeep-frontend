@@ -8,11 +8,15 @@ export class CreateActivityUseCase implements CreateActivityPort {
     private activityRepository: ActivityRepository
   ) { }
 
-  async execute({ activityName, isFixed, daysConfig, days }: CreateActivityCommand): Promise<void> {
+  async execute({ activityName, isFixed, identity, priority, difficulty, deadline, daysConfig, days }: CreateActivityCommand): Promise<void> {
     const props: ActivityProps = {
       id: Date.now().toString(),
       title: activityName || 'Actividad sin nombre',
       type: isFixed ? ActivityType.FIXED : ActivityType.FLEXIBLE,
+      identity,
+      priority,
+      difficulty,
+      deadline,
       daysConfig: daysConfig,
       daysEnabled: days,
     };

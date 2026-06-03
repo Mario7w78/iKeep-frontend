@@ -33,7 +33,7 @@ export const domainToScheduleRequest = (
     options?: GenerateScheduleOptions
 ): ScheduleRequestDto => {
     const actividades_fijas: ActividadFijaDto[] = [];
-    const tareas_pendientes: TareaPendienteDto[] = [];
+    const actividades_optimizables: TareaPendienteDto[] = [];
 
     activities.forEach(act => {
         act.daysEnabled.forEach(day => {
@@ -47,20 +47,21 @@ export const domainToScheduleRequest = (
                 const baseDto = {
                     id: `${act.id}-${config.groupId}-${pIdx}`,
                     nombre: act.title || 'Actividad sin nombre',
-                    tipo: 'tarea' as BackendActivityType,
+                    tipo: act.identity || ('tarea' as BackendActivityType),
                     dia: DAY_TO_INT[day],
                     hora_inicio: inicio,
                     hora_fin: fin,
-                    ubicacion_id: 'default',
-                    prioridad: 5,
+                    ubicacion_id: null,
+                    prioridad: act.priority ?? 5,
                     duracion_estimada: partition.durationTime,
-                    dificultad: 'media' as BackendDifficulty,
+                    fecha_limite: act.deadline || null,
+                    dificultad: act.difficulty || ('media' as BackendDifficulty),
                 };
 
                 if (act.type === ActivityType.FIXED) {
                     actividades_fijas.push(baseDto);
                 } else {
-                    tareas_pendientes.push(baseDto);
+                    actividades_optimizables.push(baseDto);
                 }
             });
         });
@@ -68,11 +69,11 @@ export const domainToScheduleRequest = (
 
     return {
         actividades_fijas,
-        tareas_pendientes,
+        actividades_optimizables,
         ubicaciones: options?.ubicaciones ?? [],
         tiempos_traslado: options?.tiempos_traslado ?? [],
         contexto_usuario: {
-            nivel_energia: options?.nivel_energia ?? 5,
+            nivel_energia: options?.nivel_energia ?? 2,
             horario_inicio: startHour,
             horario_fin: endHour,
             bloques_sueno: options?.bloques_sueno ?? [],

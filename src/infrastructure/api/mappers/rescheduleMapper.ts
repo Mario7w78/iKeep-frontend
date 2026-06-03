@@ -10,6 +10,6 @@ export function scheduleToBloqueTiempo(schedule: Schedule): BloqueTiempoDto[] {
         dia: ['Lunes','Martes','Miercoles','Jueves','Viernes','Sabado','Domingo'].indexOf(item.day),
         hora_inicio: parseInt(item.assignedStartTime.split(':')[0]) * 60 + parseInt(item.assignedStartTime.split(':')[1]),
         hora_fin: parseInt(item.assignedEndTime.split(':')[0]) * 60 + parseInt(item.assignedEndTime.split(':')[1]),
-        ubicacion_id: 'default',
+        ubicacion_id: null,
     }));
 }

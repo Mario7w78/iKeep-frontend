@@ -36,6 +36,10 @@ export class AsyncStorageActivityRepository implements ActivityRepository {
                 id: raw.id, 
                 title: raw.title,
                 type: raw.type,
+                identity: raw.identity || "tarea",
+                priority: raw.priority ?? 3,
+                difficulty: raw.difficulty || "media",
+                deadline: raw.deadline || null,
                 daysEnabled: raw.daysEnabled,
                 daysConfig: restoredDaysConfig,
             });

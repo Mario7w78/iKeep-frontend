@@ -10,6 +10,10 @@ import { saveActivityProps } from "./props";
 export default function useTimeForm() {
   const [activityName, setActivityName] = useState("");
   const [isFixed, setIsFixed] = useState(true);
+  const [identity, setIdentity] = useState<"clase" | "trabajo" | "tarea">("clase");
+  const [priority, setPriority] = useState<"baja" | "media" | "alta">("media");
+  const [difficulty, setDifficulty] = useState<"baja" | "media" | "alta">("media");
+  const [deadline, setDeadline] = useState<Date | null>(null);
 
   const [selectedTimeTypeDuration, setSelectedTypeDuration] =
     useState<timeType>(timeType.both);
@@ -19,8 +23,8 @@ export default function useTimeForm() {
   const [partitions, setPartitions] = useState<PartitionConfig[]>([
     {
       startHour: new Date(),
-      endHour: calculateEndTime(new Date(), 10),
-      durationTime: 0,
+      endHour: calculateEndTime(new Date(), 60),
+      durationTime: 60,
       travelTime: 0,
     },
   ]);
@@ -132,48 +136,57 @@ export default function useTimeForm() {
     for (const day of targetDays) {
       for (let i = 0; i < targetPartitions.length; i++) {
         const p = targetPartitions[i];
-        const sMin = dateToMinutes(new Date(p.startHour));
-        const eMin = dateToMinutes(new Date(p.endHour));
 
-        // Validar límites
-        if (sMin < dayStartMin || eMin > dayEndMin) {
-          setAlertText(
-            `La actividad en ${day} excede los límites del día (${formatTime(new Date(p.startHour))} - ${formatTime(new Date(p.endHour))})`,
-          );
+        if (p.durationTime <= 0) {
+          setAlertText("La duración de la actividad debe ser mayor a 0 minutos.");
           setShouldPopUpAlert(true);
           return false;
         }
 
-        for (let j = i + 1; j < targetPartitions.length; j++) {
-          const p2 = targetPartitions[j];
-          if (
-            areOverlapping(
-              sMin,
-              eMin,
-              dateToMinutes(new Date(p2.startHour)),
-              dateToMinutes(new Date(p2.endHour)),
-            )
-          ) {
-            setAlertText(`Hay un solapamiento entre tus propias particiones en ${day}`);
+        const sMin = dateToMinutes(new Date(p.startHour));
+        const eMin = dateToMinutes(new Date(p.endHour));
+
+        if (isFixed) {
+          // Validar límites
+          if (sMin < dayStartMin || eMin > dayEndMin) {
+            setAlertText(
+              `La actividad en ${day} excede los límites del día (${formatTime(new Date(p.startHour))} - ${formatTime(new Date(p.endHour))})`,
+            );
             setShouldPopUpAlert(true);
             return false;
           }
-        }
 
-        // Validar solapamientos externos
-        for (const otherAct of activities) {
-          const otherConfig = otherAct.daysConfig[day];
-          if (otherConfig) {
-            for (const otherP of otherConfig.partitions) {
-              const osMin = dateToMinutes(new Date(otherP.startHour));
-              const oeMin = dateToMinutes(new Date(otherP.endHour));
+          for (let j = i + 1; j < targetPartitions.length; j++) {
+            const p2 = targetPartitions[j];
+            if (
+              areOverlapping(
+                sMin,
+                eMin,
+                dateToMinutes(new Date(p2.startHour)),
+                dateToMinutes(new Date(p2.endHour)),
+              )
+            ) {
+              setAlertText(`Hay un solapamiento entre tus propias particiones en ${day}`);
+              setShouldPopUpAlert(true);
+              return false;
+            }
+          }
 
-              if (areOverlapping(sMin, eMin, osMin, oeMin)) {
-                setAlertText(
-                  `Conflicto en ${day}: coincide con "${otherAct.title}" (${formatTime(new Date(otherP.startHour))})`,
-                );
-                setShouldPopUpAlert(true);
-                return false;
+          // Validar solapamientos externos
+          for (const otherAct of activities) {
+            const otherConfig = otherAct.daysConfig[day];
+            if (otherConfig) {
+              for (const otherP of otherConfig.partitions) {
+                const osMin = dateToMinutes(new Date(otherP.startHour));
+                const oeMin = dateToMinutes(new Date(otherP.endHour));
+
+                if (areOverlapping(sMin, eMin, osMin, oeMin)) {
+                  setAlertText(
+                    `Conflicto en ${day}: coincide con "${otherAct.title}" (${formatTime(new Date(otherP.startHour))})`,
+                  );
+                  setShouldPopUpAlert(true);
+                  return false;
+                }
               }
             }
           }
@@ -224,9 +237,19 @@ export default function useTimeForm() {
       }
     }
 
+    const priorityMap: Record<"baja" | "media" | "alta", number> = {
+      baja: 1,
+      media: 3,
+      alta: 5,
+    };
+
     await handleCreateActivity({
       activityName,
       isFixed,
+      identity,
+      priority: priorityMap[priority],
+      difficulty,
+      deadline: deadline ? deadline.toISOString() : null,
       daysConfig: daysDict,
       days: configuredDays,
     });
@@ -235,8 +258,8 @@ export default function useTimeForm() {
     setPartitions([
       {
         startHour: new Date(),
-        endHour: calculateEndTime(new Date(), 10),
-        durationTime: 0,
+        endHour: calculateEndTime(new Date(), 60),
+        durationTime: 60,
         travelTime: 0,
       },
     ]);
@@ -246,6 +269,10 @@ export default function useTimeForm() {
   return {
     activityName,
     isFixed,
+    identity,
+    priority,
+    difficulty,
+    deadline,
     selectedTimeTypeDuration,
     selectedTimeTypeTravel,
     durationTimeValue,
@@ -256,6 +283,10 @@ export default function useTimeForm() {
     activePartitionIndex,
     setActivityName,
     setIsFixed,
+    setIdentity,
+    setPriority,
+    setDifficulty,
+    setDeadline,
     setSelectedTypeDuration,
     setSelectedTimeTypeTravel,
     setDurationTime,

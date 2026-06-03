@@ -17,7 +17,7 @@ export class SuggestTaskUseCase implements SuggestTaskPort {
 
         const request: SugerirTareaRequestDto = {
             tiempo_libre_minutos: freeMinutes,
-            tareas_pendientes: domainToTareaPendiente(pendingActivities),
+            actividades_optimizables: domainToTareaPendiente(pendingActivities),
             ...(preferredDay !== undefined && { dia_preferido: preferredDay }),
         };
 

@@ -10,9 +10,10 @@ export function domainToTareaPendiente(activities: Activity[]): TareaPendienteDt
         dia: 0,
         hora_inicio: 0,
         hora_fin: 0,
-        ubicacion_id: 'default',
+        ubicacion_id: null,
         prioridad: 5,
         duracion_estimada: act.getTotalTimeRequired(),
+        fecha_limite: null,
         dificultad: 'media',
     }));
 }

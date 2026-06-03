@@ -5,7 +5,7 @@ import { ContextoUsuarioDto } from './UserContextDto';
 
 export interface ScheduleRequestDto {
   actividades_fijas: ActividadFijaDto[];
-  tareas_pendientes: TareaPendienteDto[];
+  actividades_optimizables: TareaPendienteDto[];
   ubicaciones: UbicacionDto[];
   tiempos_traslado: TiempoTrasladoDto[];
   contexto_usuario: ContextoUsuarioDto;

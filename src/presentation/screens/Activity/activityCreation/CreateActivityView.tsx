@@ -146,6 +146,13 @@ export default function CreateActivityView({ navigation }: any) {
     setPreferredEndTime,
   } = useTimeForm();
 
+  const displayTotal = isFixed ? 4 : 5;
+  const displayStep = useMemo(() => {
+    if (!isFixed) return step;
+    if (step === 1) return 1;
+    return step - 1; // skips step 2 (Priority & Deadline) when fixed
+  }, [step, isFixed]);
+
   const configuredDays = useMemo(
     () => (Object.keys(daysDict) as DayOfWeek[]).sort(
       (a, b) => WEEKDAY_ORDER.indexOf(a) - WEEKDAY_ORDER.indexOf(b)
@@ -176,7 +183,7 @@ export default function CreateActivityView({ navigation }: any) {
         showAlert("Ingresa un nombre para la actividad");
         return;
       }
-      setStep(2);
+      setStep(isFixed ? 3 : 2);
       return;
     }
 
@@ -229,6 +236,8 @@ export default function CreateActivityView({ navigation }: any) {
       setSelectedDays([]);
       resetPartitions();
       setStep(3);
+    } else if (step === 3 && isFixed) {
+      setStep(1);
     } else {
       setStep((s) => Math.max(s - 1, 1));
     }
@@ -431,7 +440,7 @@ export default function CreateActivityView({ navigation }: any) {
           <View>
             <Text style={styles.title}>Nueva Actividad</Text>
             <Text style={styles.stepText}>
-              Paso {step} de {TOTAL_STEPS}
+              Paso {displayStep} de {displayTotal}
             </Text>
           </View>
           <TouchableOpacity style={styles.closeButton} onPress={closeSheet}>
@@ -443,7 +452,7 @@ export default function CreateActivityView({ navigation }: any) {
           </TouchableOpacity>
         </View>
 
-        <ProgressIndicator totalSteps={TOTAL_STEPS} currentStep={step} />
+        <ProgressIndicator totalSteps={displayTotal} currentStep={displayStep} />
 
         {renderStep()}
 

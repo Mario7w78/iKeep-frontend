@@ -7,6 +7,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Alert,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
@@ -18,11 +19,17 @@ import { ScheduledActivity } from "../../../domain/entities/Schedule";
 import { JS_DAY_TO_DAYOFWEEK } from "../../utils/scheduleUtils";
 import { Theme } from "../../components/theme/colors";
 import { SAPO_BASE64 } from "../../components/sapoBase64";
+import { ActivityDetailModal } from "../../components/organisms/Schedule/ActivityDetailModal";
+import {
+  saveEnergyRecord,
+  makeEnergyRecord,
+  getEnergyHistory,
+} from "../../../infrastructure/persistence/EnergyHistoryService";
 
 const ENERGY_LEVELS = [
-  { label: "Baja energia", color: Theme.comfyColors.yellow },
-  { label: "Energia estable", color: Theme.comfyColors.green },
-  { label: "Alta energia", color: Theme.comfyColors.skyBlue },
+  { label: "Baja energia", color: Theme.comfyColors.yellow, icon: "battery-dead", iconColor: Theme.comfyColors.yellow },
+  { label: "Energia estable", color: Theme.comfyColors.green, icon: "battery-half", iconColor: Theme.comfyColors.green },
+  { label: "Alta energia", color: Theme.comfyColors.skyBlue, icon: "flash", iconColor: Theme.comfyColors.skyBlue },
 ];
 
 const dayFormatter = new Intl.DateTimeFormat("es-PE", {
@@ -41,16 +48,45 @@ function toMinutes(time: string) {
 export default function HomeView() {
   const navigation = useNavigation<any>();
   const schedule = useScheduleStore((s) => s.schedule);
+  const isLoadedFromStorage = useScheduleStore((s) => s.isLoadedFromStorage);
+  const handleGenerateSchedule = useScheduleStore((s) => s.handleGenerateSchedule);
   const activities = useActivityStore((s) => s.activities);
   const loadActivities = useActivityStore((s) => s.loadActivities);
   const [energyIndex, setEnergyIndex] = useState(0);
+  const [selectedActivity, setSelectedActivity] = useState<ScheduledActivity | null>(null);
 
+  // Initialize energy level from local storage history on mount
+  useEffect(() => {
+    const initEnergy = async () => {
+      try {
+        const history = await getEnergyHistory(1);
+        if (history.length > 0) {
+          const latest = history[history.length - 1];
+          const idx = latest.nivel - 1;
+          if (idx >= 0 && idx < ENERGY_LEVELS.length) {
+            setEnergyIndex(idx);
+          }
+        } else {
+          setEnergyIndex(1); // Default to stable (index 1)
+        }
+      } catch (e) {
+        console.error("Error loading energy history:", e);
+      }
+    };
+    initEnergy();
+  }, []);
 
   useFocusEffect(
     React.useCallback(() => {
       loadActivities();
     }, [loadActivities]),
   );
+
+  useEffect(() => {
+    if (isLoadedFromStorage && activities.length > 0 && schedule === null) {
+      handleGenerateSchedule();
+    }
+  }, [isLoadedFromStorage, activities, schedule, handleGenerateSchedule]);
 
   const todayItems = useMemo(() => {
     const today = JS_DAY_TO_DAYOFWEEK[new Date().getDay()];
@@ -95,12 +131,38 @@ export default function HomeView() {
   const selectedEnergy = ENERGY_LEVELS[energyIndex];
 
   const moveEnergy = (direction: -1 | 1) => {
-    setEnergyIndex((current) => {
-      const next = current + direction;
-      if (next < 0) return ENERGY_LEVELS.length - 1;
-      if (next >= ENERGY_LEVELS.length) return 0;
-      return next;
-    });
+    let nextIndex = energyIndex + direction;
+    if (nextIndex < 0) nextIndex = ENERGY_LEVELS.length - 1;
+    if (nextIndex >= ENERGY_LEVELS.length) nextIndex = 0;
+
+    Alert.alert(
+      "Actualizar horario",
+      `¿Estás seguro de que querés actualizar tu horario para adaptarlo a un nivel de "${ENERGY_LEVELS[nextIndex].label.toLowerCase()}"?`,
+      [
+        {
+          text: "Cancelar",
+          style: "cancel",
+        },
+        {
+          text: "Sí, actualizar",
+          style: "default",
+          onPress: async () => {
+            setEnergyIndex(nextIndex);
+            try {
+              const nivel = nextIndex + 1;
+              await saveEnergyRecord(makeEnergyRecord(nivel));
+              const historial = await getEnergyHistory(14);
+              await handleGenerateSchedule({
+                nivel_energia: nivel,
+                historial_energia: historial,
+              });
+            } catch (e) {
+              console.error("Error updating schedule with energy:", e);
+            }
+          },
+        },
+      ]
+    );
   };
 
 
@@ -202,12 +264,13 @@ export default function HomeView() {
             <Pressable onPress={() => moveEnergy(-1)} hitSlop={12}>
               <Ionicons name="chevron-back" size={34} color={Theme.colors.surface} />
             </Pressable>
-            <View
-              style={[
-                styles.energyOrb,
-                { backgroundColor: selectedEnergy.color },
-              ]}
-            />
+            <View style={styles.energyOrb}>
+              <Ionicons 
+                name={selectedEnergy.icon as any} 
+                size={40} 
+                color={selectedEnergy.iconColor} 
+              />
+            </View>
             <Pressable onPress={() => moveEnergy(1)} hitSlop={12}>
               <Ionicons name="chevron-forward" size={34} color={Theme.colors.surface} />
             </Pressable>
@@ -215,7 +278,12 @@ export default function HomeView() {
           <Text style={styles.energyLabel}>{selectedEnergy.label}</Text>
         </LinearGradient>
 
-        <View style={styles.card}>
+        <TouchableOpacity 
+          style={styles.card}
+          activeOpacity={0.75}
+          onPress={() => (currentActivity || firstNext) && setSelectedActivity(currentActivity || firstNext)}
+          disabled={!currentActivity && !firstNext}
+        >
           <View style={styles.statusRow}>
             <View style={[styles.statusPill, { backgroundColor: cardStatus.pillColor }]}>
               <Text style={[styles.statusText, { color: cardStatus.pillText }]}>
@@ -251,7 +319,7 @@ export default function HomeView() {
               <Text style={styles.timerLabel}>¡Día completado!</Text>
             </View>
           )}
-        </View>
+        </TouchableOpacity>
 
         <View style={styles.card}>
           <Text style={styles.changeTitle}>¿Algo cambió hoy?</Text>
@@ -281,15 +349,20 @@ export default function HomeView() {
           <View style={styles.timeline}>
             {nextActivities.length > 0 ? (
               nextActivities.slice(0, 3).map((item, index) => (
-                <View key={`${item.activity.id}-${index}`} style={styles.nextCard}>
+                <TouchableOpacity 
+                  key={`${item.activity.id}-${index}`} 
+                  style={styles.nextCard}
+                  activeOpacity={0.75}
+                  onPress={() => setSelectedActivity(item)}
+                >
                   <View>
                     <Text style={styles.nextTime}>
                       {item.assignedStartTime} - {item.assignedEndTime}
                     </Text>
                     <Text style={styles.nextTitle}>{item.activity.title}</Text>
                   </View>
-                  <Ionicons name="lock-closed" size={22} color={Theme.colors.iconSecondary} />
-                </View>
+                  <Ionicons name="chevron-forward" size={20} color={Theme.colors.iconSecondary} />
+                </TouchableOpacity>
               ))
             ) : (
               <View style={styles.nextCard}>
@@ -310,7 +383,21 @@ export default function HomeView() {
             )}
           </View>
         </View>
+        <ActivityDetailModal
+          visible={selectedActivity !== null}
+          activityItem={selectedActivity}
+          onClose={() => setSelectedActivity(null)}
+        />
       </ScrollView>
+
+      {/* FAB to create activity */}
+      <TouchableOpacity
+        style={styles.fabCreateBtn}
+        activeOpacity={0.8}
+        onPress={() => navigation.navigate("CreateActivityModal")}
+      >
+        <Ionicons name="add" size={32} color={Theme.comfyFontColors.green} />
+      </TouchableOpacity>
     </SafeAreaView>
   );
 }
@@ -323,7 +410,7 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 20,
     paddingTop: 28,
-    paddingBottom: 112,
+    paddingBottom: 64,
   },
   header: {
     flexDirection: "row",
@@ -378,6 +465,11 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
     shadowColor: "#000",
     shadowOpacity: 0.25,
     shadowRadius: 12,
@@ -387,6 +479,22 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "800",
     textAlign: "center",
+  },
+  fabCreateBtn: {
+    position: 'absolute',
+    bottom: 16,
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: Theme.comfyColors.green,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 6,
   },
   emptyContainer: {
     flex: 1,

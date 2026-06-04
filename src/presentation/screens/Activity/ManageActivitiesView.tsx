@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -11,10 +11,13 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useActivityStore, useScheduleStore } from "../../../di/Dependencies";
 import { Theme } from "../../components/theme/colors";
+import { Activity } from "../../../domain/entities/Activity";
+import { ActivityConfigDetailModal } from "../../components/organisms/Activity/ActivityConfigDetailModal";
 
 export default function ManageActivitiesView({ navigation }: any) {
   const { activities, loadActivities, handleDeleteActivity } = useActivityStore();
   const { handleGenerateSchedule } = useScheduleStore();
+  const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
 
   useEffect(() => {
     loadActivities();
@@ -67,7 +70,11 @@ export default function ManageActivitiesView({ navigation }: any) {
         contentContainerStyle={styles.listContent}
         renderItem={({ item }) => (
           <View style={styles.activityCard}>
-            <View style={styles.cardInfo}>
+            <TouchableOpacity 
+              style={styles.cardInfo}
+              activeOpacity={0.7}
+              onPress={() => setSelectedActivity(item)}
+            >
               <Text style={styles.activityTitle}>{item.title}</Text>
               <View style={styles.badgeRow}>
                 <View style={styles.badge}>
@@ -77,7 +84,7 @@ export default function ManageActivitiesView({ navigation }: any) {
                   <Text style={styles.badgeText}>Dificultad: {item.difficulty}</Text>
                 </View>
               </View>
-            </View>
+            </TouchableOpacity>
             <TouchableOpacity style={styles.deleteButton} onPress={() => onDelete(item.id, item.title)}>
               <Ionicons name="trash-outline" size={22} color={Theme.colors.error} />
             </TouchableOpacity>
@@ -89,6 +96,12 @@ export default function ManageActivitiesView({ navigation }: any) {
             <Text style={styles.emptyText}>No tienes actividades creadas</Text>
           </View>
         }
+      />
+
+      <ActivityConfigDetailModal
+        visible={selectedActivity !== null}
+        activity={selectedActivity}
+        onClose={() => setSelectedActivity(null)}
       />
     </SafeAreaView>
   );

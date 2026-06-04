@@ -41,7 +41,7 @@ const SettingsView = () => {
     setLocalEndTime(minutesToDate(endHour));
   }, [startHour, endHour]);
 
-  const handleSave = async () => {
+  const handleSave = () => {
     const startMin = dateToMinutes(localStartTime);
     const endMin = dateToMinutes(localEndTime);
 
@@ -52,14 +52,31 @@ const SettingsView = () => {
       );
       return;
     }
-    await setStartHour(startMin);
-    await setEndHour(endMin);
-    Alert.alert("Éxito", "Configuración guardada correctamente.");
-    try {
-      await handleGenerateSchedule();
-    } catch (e) {
-      console.error("Error generating schedule after settings save:", e);
-    }
+
+    Alert.alert(
+      "Guardar configuración",
+      "¿Estás seguro de que querés actualizar tu horario? Esto recalculará todas tus actividades planificadas.",
+      [
+        {
+          text: "Cancelar",
+          style: "cancel",
+        },
+        {
+          text: "Sí, guardar",
+          style: "default",
+          onPress: async () => {
+            await setStartHour(startMin);
+            await setEndHour(endMin);
+            try {
+              await handleGenerateSchedule();
+              Alert.alert("Éxito", "Configuración guardada correctamente.");
+            } catch (e) {
+              console.error("Error generating schedule after settings save:", e);
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (

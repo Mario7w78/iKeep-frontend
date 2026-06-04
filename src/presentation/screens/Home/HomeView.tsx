@@ -247,7 +247,7 @@ export default function HomeView() {
       <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
         <View style={styles.emptyContainer}>
           <View style={styles.emptyIcon}>
-            <Ionicons name="calendar-outline" size={44} color={Theme.colors.iconPrimary} />
+            <Ionicons name="calendar-outline" size={54} color={Theme.comfyColors.skyBlue} />
           </View>
           <Text style={styles.emptyTitle}>No hay actividades</Text>
           <Text style={styles.emptyDescription}>
@@ -552,14 +552,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   emptyIcon: {
-    width: 84,
-    height: 84,
-    borderRadius: 42,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Theme.colors.cardBackground,
-    borderColor: Theme.colors.cardBorder,
-    borderWidth: 1,
+    backgroundColor: "rgba(165, 178, 235, 0.15)",
+    borderColor: Theme.comfyColors.skyBlue,
+    borderWidth: 2,
+    borderStyle: "dashed",
     marginBottom: 22,
   },
   emptyTitle: {
@@ -576,14 +577,14 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   emptyButton: {
-    minHeight: 48,
-    borderRadius: 24,
+    minHeight: 52,
+    borderRadius: 18,
     backgroundColor: Theme.comfyColors.green,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    paddingHorizontal: 22,
+    paddingHorizontal: 28,
   },
   emptyButtonText: {
     color: Theme.comfyFontColors.green,

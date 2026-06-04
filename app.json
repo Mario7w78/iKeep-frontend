@@ -12,7 +12,12 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSSpeechRecognitionUsageDescription": "Permitir que iKeep use reconocimiento de voz para crear actividades",
+        "NSMicrophoneUsageDescription": "Permitir que iKeep use el micrófono para reconocer tu voz"
+      },
+      "bundleIdentifier": "com.mario7w78.ikeepapp"
     },
     "android": {
       "adaptiveIcon": {
@@ -22,13 +27,23 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.mario7w78.ikeepapp"
+      "package": "com.mario7w78.ikeepapp",
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Permitir que iKeep use el micrófono para reconocer tu voz",
+          "speechRecognitionPermission": "Permitir que iKeep use reconocimiento de voz para crear actividades"
+        }
+      ]
     ],
     "extra": {
       "eas": {

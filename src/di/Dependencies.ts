@@ -11,6 +11,7 @@ import { UserRepository } from '../application/ports/out/UserRepository';
 import { ScheduleGenerator } from '../application/ports/out/ScheduleGenerator';
 import { RescheduleGenerator } from '../application/ports/out/RescheduleGenerator';
 import { TaskSuggester } from '../application/ports/out/TaskSuggester';
+import { VoiceActivityParser } from '../application/ports/out/VoiceActivityParser';
 
 import { AsyncStorageActivityRepository } from '../infrastructure/repositories/AsyncStorageActivityRepository';
 import { AsyncStorageUserRepository } from '../infrastructure/repositories/AsyncStorageUserRepository';
@@ -26,6 +27,9 @@ import { GetUserUseCaseImpl } from '../application/use-cases/GetUserUseCaseImpl'
 import { UpdateUserUseCaseImpl } from '../application/use-cases/UpdateUserUseCaseImpl';
 import { RescheduleUseCase } from '../application/use-cases/RescheduleUseCase';
 import { SuggestTaskUseCase } from '../application/use-cases/SuggestTaskUseCase';
+import { ParseVoiceActivityUseCase } from '../application/use-cases/ParseVoiceActivityUseCase';
+
+import { RegexVoiceActivityParser } from '../infrastructure/voice/RegexVoiceActivityParser';
 
 import { createActivityStore, ActivityStore } from '../infrastructure/store/useActivityStore';
 import { createScheduleStore, ScheduleStore } from '../infrastructure/store/useScheduleStore';
@@ -52,6 +56,13 @@ export const rescheduleUseCase: ReschedulePort = new RescheduleUseCase(
 export const suggestTaskUseCase: SuggestTaskPort = new SuggestTaskUseCase(
   taskSuggester,
   activityRepository
+);
+
+const voiceActivityParser: VoiceActivityParser = new RegexVoiceActivityParser();
+
+export const parseVoiceActivityUseCase = new ParseVoiceActivityUseCase(
+  voiceActivityParser,
+  createActivityUseCase,
 );
 
 export const getUserUseCase: GetUserUseCase = new GetUserUseCaseImpl(userRepository);

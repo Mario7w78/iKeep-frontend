@@ -255,14 +255,62 @@ export default function HomeView() {
           <Text style={styles.emptyDescription}>
             Crea tu primera actividad para que iKeep pueda armar tu horario.
           </Text>
-          <TouchableOpacity
-            style={styles.emptyButton}
-            activeOpacity={0.8}
-            onPress={() => navigation.navigate("CreateActivityModal")}
-          >
-            <Ionicons name="add" size={22} color={Theme.comfyFontColors.green} />
-            <Text style={styles.emptyButtonText}>Crear actividad</Text>
-          </TouchableOpacity>
+          <View style={styles.emptyActions}>
+            <TouchableOpacity
+              style={styles.emptyButton}
+              activeOpacity={0.8}
+              onPress={() => navigation.navigate("CreateActivityModal")}
+            >
+              <Ionicons name="add" size={22} color={Theme.comfyFontColors.green} />
+              <Text style={styles.emptyButtonText}>Crear actividad</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.emptyVoiceButton}
+              activeOpacity={0.8}
+              onPress={async () => {
+                try {
+                  const { ExpoSpeechRecognitionModule } =
+                    require("expo-speech-recognition");
+                  const perm = await ExpoSpeechRecognitionModule.getPermissionsAsync();
+                  if (perm.granted) {
+                    navigation.navigate("QuickAddVoiceModal");
+                    return;
+                  }
+                  if ((perm as any).restricted) {
+                    Alert.alert(
+                      "Permiso restringido",
+                      "El permiso del micrófono está restringido en este dispositivo. Revisá la configuración de restricciones en Ajustes.",
+                    );
+                    return;
+                  }
+                  const result =
+                    await ExpoSpeechRecognitionModule.requestPermissionsAsync();
+                  if (result.granted) {
+                    navigation.navigate("QuickAddVoiceModal");
+                  } else if ((result as any).restricted) {
+                    Alert.alert(
+                      "Permiso restringido",
+                      "El permiso del micrófono está restringido en este dispositivo. Revisá la configuración de restricciones en Ajustes.",
+                    );
+                  } else if (!result.canAskAgain) {
+                    Alert.alert(
+                      "Permiso denegado",
+                      "Activá el permiso del micrófono desde Ajustes > iKeep > Micrófono.",
+                    );
+                  }
+                } catch {
+                  Alert.alert(
+                    "No disponible",
+                    "El reconocimiento de voz requiere un development build. Ejecutá 'npx expo prebuild && npx expo run:ios'.",
+                  );
+                }
+              }}
+            >
+              <Ionicons name="mic" size={22} color={Theme.comfyColors.green} />
+              <Text style={styles.emptyVoiceButtonText}>Agregar por voz</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </SafeAreaView>
     );
@@ -449,6 +497,69 @@ export default function HomeView() {
       >
         <Ionicons name="add" size={32} color={Theme.comfyFontColors.green} />
       </TouchableOpacity>
+
+      {/* Voice FAB — checks mic permission before opening the modal */}
+      <TouchableOpacity
+        style={styles.fabVoiceBtn}
+        activeOpacity={0.8}
+        onPress={async () => {
+          try {
+            // Dynamic require to avoid loading the native module at import time.
+            // ExpoSpeechRecognition native module may not be available in all
+            // environments (Expo Go, prebuild state), so we only touch it when
+            // the user actually taps the mic button.
+            const { ExpoSpeechRecognitionModule } =
+              require("expo-speech-recognition");
+
+            const perm =
+              await ExpoSpeechRecognitionModule.getPermissionsAsync();
+
+            if (perm.granted) {
+              navigation.navigate("QuickAddVoiceModal");
+              return;
+            }
+
+            // Restricted on iOS = user cannot grant (parental controls, device policy)
+            if ((perm as any).restricted) {
+              Alert.alert(
+                "Permiso restringido",
+                "El permiso del micrófono está restringido en este dispositivo. " +
+                  "Revisá la configuración de restricciones en Ajustes.",
+              );
+              return;
+            }
+
+            // Denied or undetermined — ask the user
+            const result =
+              await ExpoSpeechRecognitionModule.requestPermissionsAsync();
+            if (result.granted) {
+              navigation.navigate("QuickAddVoiceModal");
+            } else if ((result as any).restricted) {
+              Alert.alert(
+                "Permiso restringido",
+                "El permiso del micrófono está restringido en este dispositivo. " +
+                  "Revisá la configuración de restricciones en Ajustes.",
+              );
+            } else if (!result.canAskAgain) {
+              // Previously denied with "never ask again"
+              Alert.alert(
+                "Permiso denegado",
+                "Activá el permiso del micrófono desde Ajustes > iKeep > Micrófono.",
+              );
+            }
+            // If canAskAgain and denied — user tapped "deny", silently stay on Home.
+          } catch {
+            // Native module not available (Expo Go / no prebuild)
+            Alert.alert(
+              "No disponible",
+              "El reconocimiento de voz requiere un development build. " +
+                "Ejecutá 'npx expo prebuild && npx expo run:ios'.",
+            );
+          }
+        }}
+      >
+        <Ionicons name="mic" size={28} color={Theme.comfyFontColors.green} />
+      </TouchableOpacity>
     </SafeAreaView>
   );
 }
@@ -547,6 +658,23 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     elevation: 6,
   },
+  fabVoiceBtn: {
+    position: 'absolute',
+    bottom: 84,
+    right: 24,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: Theme.comfyColors.green,
+    justifyContent: 'center',
+    alignItems: 'center',
+    opacity: 0.9,
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 6,
+  },
   emptyContainer: {
     flex: 1,
     alignItems: "center",
@@ -578,6 +706,12 @@ const styles = StyleSheet.create({
     marginBottom: 26,
     textAlign: "center",
   },
+  emptyActions: {
+    flexDirection: "row",
+    gap: 12,
+    flexWrap: "wrap",
+    justifyContent: "center",
+  },
   emptyButton: {
     minHeight: 52,
     borderRadius: 18,
@@ -588,8 +722,25 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 28,
   },
+  emptyVoiceButton: {
+    minHeight: 52,
+    borderRadius: 18,
+    backgroundColor: Theme.colors.cardBackground,
+    borderWidth: 1,
+    borderColor: Theme.comfyColors.green,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingHorizontal: 28,
+  },
   emptyButtonText: {
     color: Theme.comfyFontColors.green,
+    fontSize: 16,
+    fontWeight: "900",
+  },
+  emptyVoiceButtonText: {
+    color: Theme.comfyColors.green,
     fontSize: 16,
     fontWeight: "900",
   },

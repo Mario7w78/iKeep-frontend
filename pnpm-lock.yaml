@@ -38,6 +38,9 @@ importers:
       expo-linear-gradient:
         specifier: ~55.0.13
         version: 55.0.14(expo@55.0.26)(react-native@0.83.4(@babel/core@7.29.7)(@types/react@19.2.15)(react@19.2.0))(react@19.2.0)
+      expo-speech-recognition:
+        specifier: ^56.0.0
+        version: 56.0.0(expo@55.0.26)(react-native@0.83.4(@babel/core@7.29.7)(@types/react@19.2.15)(react@19.2.0))(react@19.2.0)
       expo-status-bar:
         specifier: ~55.0.5
         version: 55.0.6(react-native@0.83.4(@babel/core@7.29.7)(@types/react@19.2.15)(react@19.2.0))(react@19.2.0)
@@ -1610,6 +1613,13 @@ packages:
   expo-server@55.0.11:
     resolution: {integrity: sha512-AxRdHqcv0H1g4s923vu+5n1Nrhne23bjXbP+Vl7+Lwfpe7MG9PuU1IS95IJK6a+7BVV1mRN6QlZvs8Yv7EEXNQ==}
     engines: {node: '>=20.16.0'}
+
+  expo-speech-recognition@56.0.0:
+    resolution: {integrity: sha512-spA6HqnA/rgwMNS5YmFktmzly7f46kGOv3tXZ2f0Xfh7x9pAsmXyG3YtPtB9sHGbW7RmUSjbMGEzsvCak2Q4sA==}
+    peerDependencies:
+      expo: '*'
+      react: '*'
+      react-native: '*'
 
   expo-status-bar@55.0.6:
     resolution: {integrity: sha512-ijOUptfdiqYt7rObZ6jrPQ8sE5YN/8MxKCIJx0b7TY4nGkSJxhPIxeoW4GXcXCA8mTQ9PiOHH/ThLZgRVZvUlQ==}
@@ -4824,6 +4834,12 @@ snapshots:
       react-native: 0.83.4(@babel/core@7.29.7)(@types/react@19.2.15)(react@19.2.0)
 
   expo-server@55.0.11: {}
+
+  expo-speech-recognition@56.0.0(expo@55.0.26)(react-native@0.83.4(@babel/core@7.29.7)(@types/react@19.2.15)(react@19.2.0))(react@19.2.0):
+    dependencies:
+      expo: 55.0.26(@babel/core@7.29.7)(@expo/dom-webview@55.0.6)(react-native@0.83.4(@babel/core@7.29.7)(@types/react@19.2.15)(react@19.2.0))(react@19.2.0)(typescript@5.9.3)
+      react: 19.2.0
+      react-native: 0.83.4(@babel/core@7.29.7)(@types/react@19.2.15)(react@19.2.0)
 
   expo-status-bar@55.0.6(react-native@0.83.4(@babel/core@7.29.7)(@types/react@19.2.15)(react@19.2.0))(react@19.2.0):
     dependencies:

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Suspense } from "react";
 import { StyleSheet } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -16,9 +16,16 @@ import { useAppStore } from "../../infrastructure/store/useAppStore";
 import { useScheduleStore } from "../../di/Dependencies";
 import { Theme } from "../components/theme/colors";
 
+// Lazy-load the voice screen so its native module (expo-speech-recognition)
+// is only evaluated when the user opens the modal — not at app startup.
+const QuickAddVoiceModal = React.lazy(
+  () => import("../screens/Activity/voiceCreation/QuickAddVoiceView"),
+);
+
 export type RootStackParamList = {
   MainTabs: undefined;
   CreateActivityModal: undefined;
+  QuickAddVoiceModal: undefined;
   OnBoardingView: undefined;
   ManageActivities: undefined;
 };
@@ -128,6 +135,20 @@ export default function AppNavigator() {
           contentStyle: { backgroundColor: "transparent" },
         }}
       />
+      <Stack.Screen
+        name="QuickAddVoiceModal"
+        options={{
+          presentation: "transparentModal",
+          animation: "none",
+          contentStyle: { backgroundColor: "transparent" },
+        }}
+      >
+        {() => (
+          <Suspense fallback={null}>
+            <QuickAddVoiceModal />
+          </Suspense>
+        )}
+      </Stack.Screen>
     </Stack.Navigator>
   );
 }

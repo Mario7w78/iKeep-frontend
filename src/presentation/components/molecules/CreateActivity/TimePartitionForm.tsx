@@ -25,6 +25,7 @@ type TimePartitionFormProps = {
   partitions: PartitionConfig[];
   activePartitionIndex: number;
   startTime: Date;
+  endTime: Date;
   durationTimeValue: number;
   travelTimeValue: number;
   isFixed: boolean;
@@ -34,6 +35,7 @@ type TimePartitionFormProps = {
   onAddPartition: () => void;
   onDiscardPartition: () => void;
   onSetStartTime: (date: Date) => void;
+  onSetEndTime: (date: Date) => void;
   onSetDurationTime: (value: number) => void;
   onSetTravelTime: (value: number) => void;
   onSetPreferredStartTime: (val: number | null) => void;
@@ -44,6 +46,7 @@ export default function TimePartitionForm({
   partitions,
   activePartitionIndex,
   startTime,
+  endTime,
   durationTimeValue,
   travelTimeValue,
   isFixed,
@@ -53,12 +56,14 @@ export default function TimePartitionForm({
   onAddPartition,
   onDiscardPartition,
   onSetStartTime,
+  onSetEndTime,
   onSetDurationTime,
   onSetTravelTime,
   onSetPreferredStartTime,
   onSetPreferredEndTime,
 }: TimePartitionFormProps) {
   const [showStartPicker, setShowStartPicker] = useState(false);
+  const [showEndPicker, setShowEndPicker] = useState(false);
   const [showPrefStartPicker, setShowPrefStartPicker] = useState(false);
   const [showPrefEndPicker, setShowPrefEndPicker] = useState(false);
   const [showHelper, setShowHelper] = useState(true);
@@ -235,52 +240,71 @@ export default function TimePartitionForm({
               />
             </View>
           )}
+
+          <Text style={styles.fieldLabel}>Hora de fin</Text>
+          <TouchableOpacity
+            style={styles.timeInputCard}
+            onPress={() => setShowEndPicker((v) => !v)}
+          >
+            <Ionicons name="time-outline" size={26} color={Theme.colors.surface} />
+            <Text style={styles.timeInputText}>{formatTime(endTime)}</Text>
+          </TouchableOpacity>
+
+          {(showEndPicker || Platform.OS === "ios") && (
+            <View style={styles.iosPickerCard}>
+              <DateTimePicker
+                value={endTime}
+                mode="time"
+                display="spinner"
+                themeVariant="dark"
+                minuteInterval={5}
+                textColor={Theme.colors.surface}
+                onChange={(_, selectedDate) => {
+                  if (selectedDate) onSetEndTime(selectedDate);
+                  if (Platform.OS !== "ios") setShowEndPicker(false);
+                }}
+                style={styles.iosPicker}
+              />
+            </View>
+          )}
         </>
       ) : (
-        <View style={styles.optimizableMessageCard}>
-          <Ionicons name="sparkles-outline" size={22} color="#8dccff" />
-          <Text style={styles.optimizableMessageText}>
-            Esta actividad es optimizable. El algoritmo inteligente elegirá el mejor horario por vos.
-          </Text>
-        </View>
+        <>
+          <View style={styles.optimizableMessageCard}>
+            <Ionicons name="sparkles-outline" size={22} color="#8dccff" />
+            <Text style={styles.optimizableMessageText}>
+              Esta actividad es optimizable. El algoritmo inteligente elegirá el mejor horario por vos.
+            </Text>
+          </View>
+
+          <Text style={styles.fieldLabel}>Duración</Text>
+          <View style={styles.timeInputRow}>
+            <View style={styles.timeInputColumn}>
+              <TextInput
+                value={durationHoursText}
+                onChangeText={handleDurationHoursChange}
+                keyboardType="number-pad"
+                placeholder="0"
+                placeholderTextColor="#a8a9bb"
+                style={styles.timeInputBox}
+              />
+              <Text style={styles.timeInputLabel}>Horas</Text>
+            </View>
+
+            <View style={styles.timeInputColumn}>
+              <TextInput
+                value={durationMinutesText}
+                onChangeText={handleDurationMinutesChange}
+                keyboardType="number-pad"
+                placeholder="0"
+                placeholderTextColor="#a8a9bb"
+                style={styles.timeInputBox}
+              />
+              <Text style={styles.timeInputLabel}>Minutos</Text>
+            </View>
+          </View>
+        </>
       )}
-
-      <Text style={styles.fieldLabel}>Duración</Text>
-      <View style={styles.chipRow}>
-        {[30, 60, 90, 120].map((minutes) => (
-          <TimeChip
-            key={minutes}
-            label={String(minutes)}
-            selected={durationTimeValue === minutes}
-            onPress={() => onSetDurationTime(minutes)}
-          />
-        ))}
-      </View>
-      <View style={styles.timeInputRow}>
-        <View style={styles.timeInputColumn}>
-          <TextInput
-            value={durationHoursText}
-            onChangeText={handleDurationHoursChange}
-            keyboardType="number-pad"
-            placeholder="0"
-            placeholderTextColor="#a8a9bb"
-            style={styles.timeInputBox}
-          />
-          <Text style={styles.timeInputLabel}>Horas</Text>
-        </View>
-
-        <View style={styles.timeInputColumn}>
-          <TextInput
-            value={durationMinutesText}
-            onChangeText={handleDurationMinutesChange}
-            keyboardType="number-pad"
-            placeholder="0"
-            placeholderTextColor="#a8a9bb"
-            style={styles.timeInputBox}
-          />
-          <Text style={styles.timeInputLabel}>Minutos</Text>
-        </View>
-      </View>
 
       <Text style={styles.fieldLabel}>Traslado</Text>
       <View style={styles.chipRow}>

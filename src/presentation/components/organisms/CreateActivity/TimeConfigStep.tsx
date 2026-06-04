@@ -11,6 +11,7 @@ type TimeConfigStepProps = {
   partitions: PartitionConfig[];
   activePartitionIndex: number;
   startTime: Date;
+  endTime: Date;
   durationTimeValue: number;
   travelTimeValue: number;
   isFixed: boolean;
@@ -20,6 +21,7 @@ type TimeConfigStepProps = {
   onAddPartition: () => void;
   onDiscardPartition: () => void;
   onSetStartTime: (date: Date) => void;
+  onSetEndTime: (date: Date) => void;
   onSetDurationTime: (value: number) => void;
   onSetTravelTime: (value: number) => void;
   onSetPreferredStartTime: (val: number | null) => void;
@@ -32,6 +34,7 @@ export default function TimeConfigStep({
   partitions,
   activePartitionIndex,
   startTime,
+  endTime,
   durationTimeValue,
   travelTimeValue,
   isFixed,
@@ -41,13 +44,13 @@ export default function TimeConfigStep({
   onAddPartition,
   onDiscardPartition,
   onSetStartTime,
+  onSetEndTime,
   onSetDurationTime,
   onSetTravelTime,
   onSetPreferredStartTime,
   onSetPreferredEndTime,
 }: TimeConfigStepProps) {
   const displayDays = selectedDays.length > 0 ? selectedDays : configuredDays;
-  const firstDay = (displayDays[0] || "Día") as string;
 
   const totalGroupMinutes = partitions.reduce(
     (sum, p) => sum + p.durationTime + p.travelTime,
@@ -65,9 +68,6 @@ export default function TimeConfigStep({
       <Text style={styles.stepSubtitle}>Ajusta los parámetros de horario</Text>
 
       <View style={styles.dayConfigHeader}>
-        <View style={styles.dayBadge}>
-          <Text style={styles.dayBadgeText}>{firstDay.charAt(0)}</Text>
-        </View>
         <View style={styles.dayConfigTextBlock}>
           <Text style={styles.dayConfigTitle}>
             {selectedDays.length > 0
@@ -84,6 +84,7 @@ export default function TimeConfigStep({
         partitions={partitions}
         activePartitionIndex={activePartitionIndex}
         startTime={startTime}
+        endTime={endTime}
         durationTimeValue={durationTimeValue}
         travelTimeValue={travelTimeValue}
         isFixed={isFixed}
@@ -93,6 +94,7 @@ export default function TimeConfigStep({
         onAddPartition={onAddPartition}
         onDiscardPartition={onDiscardPartition}
         onSetStartTime={onSetStartTime}
+        onSetEndTime={onSetEndTime}
         onSetDurationTime={onSetDurationTime}
         onSetTravelTime={onSetTravelTime}
         onSetPreferredStartTime={onSetPreferredStartTime}
@@ -132,19 +134,7 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 16,
   },
-  dayBadge: {
-    width: 50,
-    height: 50,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#b246ff",
-  },
-  dayBadgeText: {
-    color: Theme.colors.surface,
-    fontSize: 20,
-    fontWeight: "900",
-  },
+
   dayConfigTextBlock: {
     flex: 1,
   },

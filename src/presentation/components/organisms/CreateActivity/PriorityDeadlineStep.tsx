@@ -6,6 +6,7 @@ import { Theme } from "../../theme/colors";
 type PriorityDeadlineStepProps = {
   priority: "baja" | "media" | "alta";
   deadline: Date | null;
+  isFixed: boolean;
   onSetPriority: (priority: "baja" | "media" | "alta") => void;
   onSetDeadline: (deadline: Date | null) => void;
 };
@@ -158,6 +159,7 @@ function CustomCalendar({ value, onChange }: { value: Date; onChange: (date: Dat
 export default function PriorityDeadlineStep({
   priority,
   deadline,
+  isFixed,
   onSetPriority,
   onSetDeadline,
 }: PriorityDeadlineStepProps) {
@@ -182,7 +184,12 @@ export default function PriorityDeadlineStep({
       <Text style={styles.subtitle}>Indica la importancia para priorizar en el calendario</Text>
       <View style={styles.threeColumnGrid}>
         <TouchableOpacity
-          style={[styles.card, priority === "baja" && styles.cardSelected]}
+          style={[
+            styles.card,
+            priority === "baja" && styles.cardSelected,
+            isFixed && priority !== "baja" && styles.cardDisabled,
+          ]}
+          disabled={isFixed}
           onPress={() => onSetPriority("baja")}
         >
           <Ionicons
@@ -194,7 +201,12 @@ export default function PriorityDeadlineStep({
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.card, priority === "media" && styles.cardSelected]}
+          style={[
+            styles.card,
+            priority === "media" && styles.cardSelected,
+            isFixed && priority !== "media" && styles.cardDisabled,
+          ]}
+          disabled={isFixed}
           onPress={() => onSetPriority("media")}
         >
           <Ionicons
@@ -206,7 +218,12 @@ export default function PriorityDeadlineStep({
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.card, priority === "alta" && styles.cardSelected]}
+          style={[
+            styles.card,
+            priority === "alta" && styles.cardSelected,
+            isFixed && priority !== "alta" && styles.cardDisabled,
+          ]}
+          disabled={isFixed}
           onPress={() => onSetPriority("alta")}
         >
           <Ionicons
@@ -289,6 +306,9 @@ const styles = StyleSheet.create({
   cardSelected: {
     backgroundColor: "#5665dc",
     borderColor: "#8dccff",
+  },
+  cardDisabled: {
+    opacity: 0.35,
   },
   cardTitle: {
     color: Theme.colors.iconPrimary,

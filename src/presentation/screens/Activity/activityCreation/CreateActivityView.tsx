@@ -8,6 +8,7 @@ import {
   Dimensions,
   PanResponder,
   Pressable,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -19,13 +20,14 @@ import useFrequency from "../../../hooks/useFrequency";
 import useTimeForm from "../../../hooks/useTimeForm";
 
 import ProgressIndicator from "../../../components/atoms/CreateActivity/ProgressIndicator";
-import NameTypeStep from "../../../components/organisms/CreateActivity/NameTypeStep";
+import NameIdentityStep from "../../../components/organisms/CreateActivity/NameIdentityStep";
+import TypeDifficultyStep from "../../../components/organisms/CreateActivity/TypeDifficultyStep";
 import PriorityDeadlineStep from "../../../components/organisms/CreateActivity/PriorityDeadlineStep";
 import DaySelectionStep from "../../../components/organisms/CreateActivity/DaySelectionStep";
 import TimeConfigStep from "../../../components/organisms/CreateActivity/TimeConfigStep";
 import SummaryStep from "../../../components/organisms/CreateActivity/SummaryStep";
 
-const TOTAL_STEPS = 5;
+const TOTAL_STEPS = 6;
 const SHEET_HEIGHT = Dimensions.get("window").height * 0.88;
 const DISMISS_DISTANCE = 130;
 
@@ -43,6 +45,7 @@ export default function CreateActivityView({ navigation }: any) {
   const [shouldPopUpAlert, setShouldPopUpAlert] = useState(false);
   const [alertText, setAlertText] = useState("");
   const [step, setStep] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
   const translateY = useRef(new Animated.Value(SHEET_HEIGHT)).current;
   const backdropOpacity = translateY.interpolate({
     inputRange: [0, SHEET_HEIGHT],
@@ -118,6 +121,7 @@ export default function CreateActivityView({ navigation }: any) {
     durationTimeValue,
     travelTimeValue,
     startTime,
+    endTime,
     partitions,
     activePartitionIndex,
     preferredStartTime,
@@ -135,6 +139,7 @@ export default function CreateActivityView({ navigation }: any) {
     setPartitions,
     setActivePartitionIndex,
     setStartTime,
+    setEndTime,
     handleAddPartition,
     handleDiscardPartition,
     resetPartitions,
@@ -182,17 +187,22 @@ export default function CreateActivityView({ navigation }: any) {
     }
 
     if (step === 3) {
-      if (selectedDays.length > 0) {
-        setStep(4);
-      } else if (configuredDays.length > 0) {
-        setStep(5);
-      } else {
-        showAlert("Seleccioná al menos un día para la actividad");
-      }
+      setStep(4);
       return;
     }
 
     if (step === 4) {
+      if (selectedDays.length > 0) {
+        setStep(5);
+      } else if (configuredDays.length > 0) {
+        setStep(6);
+      } else {
+        showAlert("Selecciona al menos un día para la actividad");
+      }
+      return;
+    }
+
+    if (step === 5) {
       if (
         !validatePartitions(
           partitions,
@@ -205,24 +215,26 @@ export default function CreateActivityView({ navigation }: any) {
       }
       handleUpdateFrequency({ partitions });
       resetPartitions();
-      setStep(3); // Go back to Day Selection
+      setSelectedDays([]);
+      setEditingGroupId(null);
+      setStep(6);
       return;
     }
 
-    if (step === 5) {
+    if (step === 6) {
       handleCreate();
       return;
     }
   };
 
   const handleBackPress = () => {
-    if (step === 5) {
-      setStep(3);
-    } else if (step === 4) {
+    if (step === 6) {
+      setStep(4);
+    } else if (step === 5) {
       setEditingGroupId(null);
       setSelectedDays([]);
       resetPartitions();
-      setStep(3);
+      setStep(4);
     } else {
       setStep((s) => Math.max(s - 1, 1));
     }
@@ -236,18 +248,59 @@ export default function CreateActivityView({ navigation }: any) {
     }
 
     if (configuredDays.length === 0) {
-      showAlert("Configurá al menos un día antes de crear la actividad");
-      setStep(3);
+      showAlert("Configura al menos un día antes de crear la actividad");
+      setStep(4);
       return;
     }
 
-    await handleSaveActivity({
-      daysDict,
-      selectedDays,
-      setAlertText,
-      setShouldPopUpAlert,
-    });
-    navigation.navigate("MainTabs", { screen: "Schedule" });
+    if (selectedDays.length > 0) {
+      showAlert(`Guarda la configuración de: ${selectedDays.join(", ")}`);
+      setStep(5);
+      return;
+    }
+
+    // Validate partitions
+    for (const day of configuredDays) {
+      const config = daysDict[day]!;
+      if (
+        !validatePartitions(
+          config.partitions,
+          [day],
+          setAlertText,
+          setShouldPopUpAlert,
+        )
+      ) {
+        setStep(5);
+        return;
+      }
+    }
+
+    // Validate preferred window
+    if (preferredStartTime !== null && preferredEndTime !== null) {
+      if (preferredEndTime - preferredStartTime < durationTimeValue) {
+        showAlert(
+          "La ventana seleccionada es más corta que la duración estimada de la actividad."
+        );
+        setStep(5);
+        return;
+      }
+    }
+
+    setIsLoading(true);
+    try {
+      await handleSaveActivity({
+        daysDict,
+        selectedDays,
+        setAlertText,
+        setShouldPopUpAlert,
+      });
+      navigation.navigate("MainTabs", { screen: "Schedule" });
+    } catch (e) {
+      console.error("Error saving activity:", e);
+      showAlert("Hubo un error al guardar la actividad. Por favor intenta de nuevo.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleEditGroupWrapper = (group: {
@@ -260,34 +313,42 @@ export default function CreateActivityView({ navigation }: any) {
       setPartitions,
       setActivePartitionIndex,
     });
-    setStep(4);
+    setStep(5);
   };
 
   const renderStep = () => {
     switch (step) {
       case 1:
         return (
-          <NameTypeStep
+          <NameIdentityStep
             activityName={activityName}
-            isFixed={isFixed}
             identity={identity}
-            difficulty={difficulty}
             onSetActivityName={setActivityName}
-            onSetIsFixed={setIsFixed}
             onSetIdentity={setIdentity}
-            onSetDifficulty={setDifficulty}
+            onSetIsFixed={setIsFixed}
           />
         );
       case 2:
         return (
+          <TypeDifficultyStep
+            isFixed={isFixed}
+            identity={identity}
+            difficulty={difficulty}
+            onSetIsFixed={setIsFixed}
+            onSetDifficulty={setDifficulty}
+          />
+        );
+      case 3:
+        return (
           <PriorityDeadlineStep
             priority={priority}
             deadline={deadline}
+            isFixed={isFixed}
             onSetPriority={setPriority}
             onSetDeadline={setDeadline}
           />
         );
-      case 3:
+      case 4:
         return (
           <DaySelectionStep
             selectedDays={selectedDays}
@@ -305,7 +366,7 @@ export default function CreateActivityView({ navigation }: any) {
             }}
           />
         );
-      case 4:
+      case 5:
         return (
           <TimeConfigStep
             selectedDays={selectedDays}
@@ -313,6 +374,7 @@ export default function CreateActivityView({ navigation }: any) {
             partitions={partitions}
             activePartitionIndex={activePartitionIndex}
             startTime={startTime}
+            endTime={endTime}
             durationTimeValue={durationTimeValue}
             travelTimeValue={travelTimeValue}
             isFixed={isFixed}
@@ -322,6 +384,7 @@ export default function CreateActivityView({ navigation }: any) {
             onAddPartition={handleAddPartition}
             onDiscardPartition={handleDiscardPartition}
             onSetStartTime={setStartTime}
+            onSetEndTime={setEndTime}
             onSetDurationTime={setDurationTime}
             onSetTravelTime={setTravelTime}
             onSetPreferredStartTime={setPreferredStartTime}
@@ -355,12 +418,13 @@ export default function CreateActivityView({ navigation }: any) {
     switch (step) {
       case 1:
       case 2:
-        return "Continuar";
       case 3:
-        return selectedDays.length > 0 ? "Configurar horario" : "Ver resumen";
+        return "Continuar";
       case 4:
-        return "Guardar horario";
+        return selectedDays.length > 0 ? "Configurar horario" : "Ver resumen";
       case 5:
+        return "Guardar horario";
+      case 6:
         return "Crear actividad";
       default:
         return "Continuar";
@@ -381,7 +445,7 @@ export default function CreateActivityView({ navigation }: any) {
           <View>
             <Text style={styles.title}>Nueva Actividad</Text>
             <Text style={styles.stepText}>
-              Paso {step === 4 ? 3 : step === 5 ? 4 : step} de 4
+              Paso {step} de 6
             </Text>
           </View>
           <TouchableOpacity style={styles.closeButton} onPress={closeSheet}>
@@ -393,7 +457,7 @@ export default function CreateActivityView({ navigation }: any) {
           </TouchableOpacity>
         </View>
 
-        <ProgressIndicator totalSteps={4} currentStep={step === 4 ? 3 : step === 5 ? 4 : step} />
+        <ProgressIndicator totalSteps={TOTAL_STEPS} currentStep={step} />
 
         {renderStep()}
 
@@ -423,6 +487,13 @@ export default function CreateActivityView({ navigation }: any) {
         isVisible={shouldPopUpAlert}
         onClose={() => setShouldPopUpAlert(false)}
       />
+
+      {isLoading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="#5665dc" />
+          <Text style={styles.loadingText}>Guardando actividad...</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -516,5 +587,18 @@ const styles = StyleSheet.create({
     color: Theme.colors.surface,
     fontSize: 16,
     fontWeight: "900",
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(10, 11, 18, 0.8)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 9999,
+  },
+  loadingText: {
+    color: Theme.colors.surface,
+    fontSize: 16,
+    fontWeight: "800",
+    marginTop: 12,
   },
 });

@@ -10,6 +10,8 @@ interface Props {
   activityCount: number;
   onSelectDay: (day: DayOfWeek) => void;
   onRefresh?: () => void;
+  viewMode: 'grid' | 'list';
+  onToggleViewMode: () => void;
 }
 
 const getFormattedDateForDay = (day: DayOfWeek) => {
@@ -29,7 +31,7 @@ const getFormattedDateForDay = (day: DayOfWeek) => {
   });
 };
 
-export function ScheduleHeader({ selectedDay, activityCount, onSelectDay, onRefresh }: Props) {
+export function ScheduleHeader({ selectedDay, activityCount, onSelectDay, onRefresh, viewMode, onToggleViewMode }: Props) {
   const dateText = getFormattedDateForDay(selectedDay);
 
   return (
@@ -46,11 +48,16 @@ export function ScheduleHeader({ selectedDay, activityCount, onSelectDay, onRefr
             </Text>
           </View>
         </View>
-        {onRefresh && (
-          <TouchableOpacity style={s.refreshBtn} onPress={onRefresh} hitSlop={12}>
-            <Ionicons name="refresh" size={24} color={Theme.comfyColors.green} />
+        <View style={s.actionButtons}>
+          <TouchableOpacity style={s.toggleBtn} onPress={onToggleViewMode} hitSlop={12}>
+            <Ionicons name={viewMode === 'grid' ? 'list-outline' : 'calendar-outline'} size={24} color={Theme.comfyColors.green} />
           </TouchableOpacity>
-        )}
+          {onRefresh && (
+            <TouchableOpacity style={s.refreshBtn} onPress={onRefresh} hitSlop={12}>
+              <Ionicons name="refresh" size={24} color={Theme.comfyColors.green} />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
       <DaySelector selectedDay={selectedDay} onSelectDay={onSelectDay} />
     </View>
@@ -99,6 +106,21 @@ const s = StyleSheet.create({
     fontWeight: '800',
   },
   refreshBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: Theme.colors.cardBackground,
+    borderWidth: 1,
+    borderColor: Theme.colors.cardBorder,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  toggleBtn: {
     width: 40,
     height: 40,
     borderRadius: 12,

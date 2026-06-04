@@ -1,87 +1,29 @@
 import React from "react";
-import { View, Text, TextInput, ScrollView, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Theme } from "../../theme/colors";
 
-type NameTypeStepProps = {
-  activityName: string;
+type TypeDifficultyStepProps = {
   isFixed: boolean;
   identity: "clase" | "trabajo" | "tarea";
   difficulty: "baja" | "media" | "alta";
-  onSetActivityName: (name: string) => void;
   onSetIsFixed: (fixed: boolean) => void;
-  onSetIdentity: (identity: "clase" | "trabajo" | "tarea") => void;
   onSetDifficulty: (difficulty: "baja" | "media" | "alta") => void;
 };
 
-export default function NameTypeStep({
-  activityName,
+export default function TypeDifficultyStep({
   isFixed,
   identity,
   difficulty,
-  onSetActivityName,
   onSetIsFixed,
-  onSetIdentity,
   onSetDifficulty,
-}: NameTypeStepProps) {
+}: TypeDifficultyStepProps) {
   return (
     <ScrollView
       style={styles.scroll}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      <Text style={styles.sectionTitle}>Nombre de la actividad</Text>
-      <TextInput
-        value={activityName}
-        onChangeText={onSetActivityName}
-        placeholder="Ej. Seminario de investigación o Trabajo"
-        placeholderTextColor={Theme.colors.iconPrimary}
-        style={styles.nameInput}
-        returnKeyType="next"
-      />
-
-      <Text style={styles.sectionTitle}>Identidad de la actividad</Text>
-      <View style={styles.threeColumnGrid}>
-        <TouchableOpacity
-          style={[styles.card, identity === "clase" && styles.cardSelected]}
-          onPress={() => {
-            onSetIdentity("clase");
-            onSetIsFixed(true); // Classes are inherently fixed
-          }}
-        >
-          <Ionicons
-            name="school-outline"
-            size={24}
-            color={identity === "clase" ? Theme.colors.surface : Theme.colors.iconPrimary}
-          />
-          <Text style={[styles.cardTitle, identity === "clase" && styles.cardTitleSelected]}>Clase</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.card, identity === "trabajo" && styles.cardSelected]}
-          onPress={() => onSetIdentity("trabajo")}
-        >
-          <Ionicons
-            name="briefcase-outline"
-            size={24}
-            color={identity === "trabajo" ? Theme.colors.surface : Theme.colors.iconPrimary}
-          />
-          <Text style={[styles.cardTitle, identity === "trabajo" && styles.cardTitleSelected]}>Trabajo</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.card, identity === "tarea" && styles.cardSelected]}
-          onPress={() => onSetIdentity("tarea")}
-        >
-          <Ionicons
-            name="checkmark-done-circle-outline"
-            size={24}
-            color={identity === "tarea" ? Theme.colors.surface : Theme.colors.iconPrimary}
-          />
-          <Text style={[styles.cardTitle, identity === "tarea" && styles.cardTitleSelected]}>Tarea</Text>
-        </TouchableOpacity>
-      </View>
-
       <Text style={styles.sectionTitle}>Tipo de actividad</Text>
       <View style={styles.twoColumnGrid}>
         <TouchableOpacity
@@ -90,7 +32,7 @@ export default function NameTypeStep({
             isFixed && styles.cardSelected,
             identity === "clase" && styles.cardDisabled,
           ]}
-          disabled={identity === "clase"} // Classes cannot be optimizable
+          disabled={identity === "clase"} // Classes cannot be optimizable, hence locked to fixed
           onPress={() => onSetIsFixed(true)}
         >
           <Ionicons
@@ -121,7 +63,7 @@ export default function NameTypeStep({
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.sectionTitle}>Dificultad</Text>
+      <Text style={styles.sectionTitle}>Dificultad de la actividad</Text>
       <View style={styles.threeColumnGrid}>
         <TouchableOpacity
           style={[styles.card, difficulty === "baja" && styles.cardSelected]}
@@ -179,17 +121,6 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     marginTop: 8,
     marginBottom: 4,
-  },
-  nameInput: {
-    borderWidth: 2,
-    borderColor: Theme.colors.cardBorder,
-    borderRadius: 20,
-    color: Theme.colors.surface,
-    fontSize: 16,
-    fontWeight: "800",
-    paddingHorizontal: 22,
-    paddingVertical: 14,
-    backgroundColor: Theme.colors.cardBackground,
   },
   twoColumnGrid: {
     flexDirection: "row",

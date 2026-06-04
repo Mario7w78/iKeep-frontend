@@ -43,16 +43,52 @@ export default function useTimeForm() {
   const { handleCreateActivity, activities } = useActivityStore();
   const { startHour: dayStartMin, endHour: dayEndMin, handleGenerateSchedule } = useScheduleStore();
 
+  const handleSetIsFixed = (fixed: boolean) => {
+    setIsFixed(fixed);
+    if (fixed) {
+      setPriority("alta");
+      setPartitions((prev) =>
+        prev.map((p) => {
+          const diffMs = p.endHour.getTime() - p.startHour.getTime();
+          const diffMin = Math.max(0, Math.round(diffMs / 60000));
+          return { ...p, durationTime: diffMin };
+        })
+      );
+    } else {
+      setPartitions((prev) =>
+        prev.map((p) => ({
+          ...p,
+          endHour: calculateEndTime(p.startHour, p.durationTime),
+        }))
+      );
+    }
+  };
+
+  const handleSetIdentity = (newIdentity: "clase" | "trabajo" | "tarea") => {
+    setIdentity(newIdentity);
+    if (newIdentity === "tarea") {
+      handleSetIsFixed(false);
+    } else if (newIdentity === "clase") {
+      handleSetIsFixed(true);
+    }
+  };
+
   const updateActivePartition = (updates: Partial<PartitionConfig>) => {
     setPartitions((prev) =>
       prev.map((p, i) => {
         if (i === activePartitionIndex) {
           const updated = { ...p, ...updates };
-          if (updates.startHour || updates.durationTime !== undefined) {
-            updated.endHour = calculateEndTime(
-              updated.startHour,
-              updated.durationTime,
-            );
+          if (isFixed) {
+            const diffMs = updated.endHour.getTime() - updated.startHour.getTime();
+            const diffMin = Math.round(diffMs / 60000);
+            updated.durationTime = Math.max(0, diffMin);
+          } else {
+            if (updates.startHour || updates.durationTime !== undefined) {
+              updated.endHour = calculateEndTime(
+                updated.startHour,
+                updated.durationTime,
+              );
+            }
           }
           return updated;
         }
@@ -74,6 +110,11 @@ export default function useTimeForm() {
   const setStartTime = (val: Date | ((prev: Date) => Date)) => {
     const newValue = typeof val === "function" ? val(startTime) : val;
     updateActivePartition({ startHour: newValue });
+  };
+
+  const setEndTime = (val: Date | ((prev: Date) => Date)) => {
+    const newValue = typeof val === "function" ? val(endTime) : val;
+    updateActivePartition({ endHour: newValue });
   };
 
   const handleAddPartition = () => {
@@ -170,13 +211,13 @@ export default function useTimeForm() {
     }
 
     if (configuredDays.length === 0) {
-      setAlertText("Guardá la configuración de al menos un día");
+      setAlertText("Guarda la configuración de al menos un día");
       setShouldPopUpAlert(true);
       return;
     }
 
     if (selectedDays.length > 0) {
-      setAlertText(`Guardá la configuración de: ${selectedDays.join(", ")}`);
+      setAlertText(`Guarda la configuración de: ${selectedDays.join(", ")}`);
       setShouldPopUpAlert(true);
       return;
     }
@@ -261,8 +302,8 @@ export default function useTimeForm() {
     preferredStartTime,
     preferredEndTime,
     setActivityName,
-    setIsFixed,
-    setIdentity,
+    setIsFixed: handleSetIsFixed,
+    setIdentity: handleSetIdentity,
     setPriority,
     setDifficulty,
     setDeadline,
@@ -271,6 +312,7 @@ export default function useTimeForm() {
     setDurationTime,
     setTravelTime,
     setStartTime,
+    setEndTime,
     handleAddGeneric,
     handleSubGeneric,
     updateTime,

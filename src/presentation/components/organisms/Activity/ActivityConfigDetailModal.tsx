@@ -186,8 +186,9 @@ export function ActivityConfigDetailModal({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <Pressable style={styles.overlay} onPress={onClose}>
-        <Pressable style={styles.sheet} pointerEvents="auto">
+      <View style={styles.overlayContainer}>
+        <Pressable style={styles.backdrop} onPress={onClose} />
+        <View style={styles.sheet}>
           <View style={styles.indicator} />
 
           <View style={styles.header}>
@@ -485,17 +486,20 @@ export function ActivityConfigDetailModal({
           >
             <Text style={styles.actionButtonText}>Entendido</Text>
           </TouchableOpacity>
-        </Pressable>
-      </Pressable>
+        </View>
+      </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
+  overlayContainer: {
     flex: 1,
-    backgroundColor: "rgba(10, 11, 18, 0.75)",
     justifyContent: "flex-end",
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(10, 11, 18, 0.75)",
   },
   sheet: {
     backgroundColor: Theme.colors.screenBackground,
@@ -507,7 +511,7 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingHorizontal: 24,
     paddingBottom: 40,
-    height: SCREEN_HEIGHT * 0.75,
+    height: SCREEN_HEIGHT * 0.85,
     gap: 16,
   },
   indicator: {

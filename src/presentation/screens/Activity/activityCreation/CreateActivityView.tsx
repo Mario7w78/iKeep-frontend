@@ -21,13 +21,12 @@ import useTimeForm from "../../../hooks/useTimeForm";
 
 import ProgressIndicator from "../../../components/atoms/CreateActivity/ProgressIndicator";
 import NameIdentityStep from "../../../components/organisms/CreateActivity/NameIdentityStep";
-import TypeDifficultyStep from "../../../components/organisms/CreateActivity/TypeDifficultyStep";
 import PriorityDeadlineStep from "../../../components/organisms/CreateActivity/PriorityDeadlineStep";
 import DaySelectionStep from "../../../components/organisms/CreateActivity/DaySelectionStep";
 import TimeConfigStep from "../../../components/organisms/CreateActivity/TimeConfigStep";
 import SummaryStep from "../../../components/organisms/CreateActivity/SummaryStep";
 
-const TOTAL_STEPS = 6;
+const TOTAL_STEPS = 5;
 const SHEET_HEIGHT = Dimensions.get("window").height * 0.88;
 const DISMISS_DISTANCE = 130;
 
@@ -187,22 +186,17 @@ export default function CreateActivityView({ navigation }: any) {
     }
 
     if (step === 3) {
-      setStep(4);
-      return;
-    }
-
-    if (step === 4) {
       if (selectedDays.length > 0) {
-        setStep(5);
+        setStep(4);
       } else if (configuredDays.length > 0) {
-        setStep(6);
+        setStep(5);
       } else {
         showAlert("Selecciona al menos un día para la actividad");
       }
       return;
     }
 
-    if (step === 5) {
+    if (step === 4) {
       if (
         !validatePartitions(
           partitions,
@@ -217,24 +211,24 @@ export default function CreateActivityView({ navigation }: any) {
       resetPartitions();
       setSelectedDays([]);
       setEditingGroupId(null);
-      setStep(6);
+      setStep(5);
       return;
     }
 
-    if (step === 6) {
+    if (step === 5) {
       handleCreate();
       return;
     }
   };
 
   const handleBackPress = () => {
-    if (step === 6) {
-      setStep(4);
-    } else if (step === 5) {
+    if (step === 5) {
+      setStep(3);
+    } else if (step === 4) {
       setEditingGroupId(null);
       setSelectedDays([]);
       resetPartitions();
-      setStep(4);
+      setStep(3);
     } else {
       setStep((s) => Math.max(s - 1, 1));
     }
@@ -249,13 +243,13 @@ export default function CreateActivityView({ navigation }: any) {
 
     if (configuredDays.length === 0) {
       showAlert("Configura al menos un día antes de crear la actividad");
-      setStep(4);
+      setStep(3);
       return;
     }
 
     if (selectedDays.length > 0) {
       showAlert(`Guarda la configuración de: ${selectedDays.join(", ")}`);
-      setStep(5);
+      setStep(4);
       return;
     }
 
@@ -270,7 +264,7 @@ export default function CreateActivityView({ navigation }: any) {
           setShouldPopUpAlert,
         )
       ) {
-        setStep(5);
+        setStep(4);
         return;
       }
     }
@@ -281,7 +275,7 @@ export default function CreateActivityView({ navigation }: any) {
         showAlert(
           "La ventana seleccionada es más corta que la duración estimada de la actividad."
         );
-        setStep(5);
+        setStep(4);
         return;
       }
     }
@@ -313,7 +307,7 @@ export default function CreateActivityView({ navigation }: any) {
       setPartitions,
       setActivePartitionIndex,
     });
-    setStep(5);
+    setStep(4);
   };
 
   const renderStep = () => {
@@ -323,22 +317,15 @@ export default function CreateActivityView({ navigation }: any) {
           <NameIdentityStep
             activityName={activityName}
             identity={identity}
+            isFixed={isFixed}
+            difficulty={difficulty}
             onSetActivityName={setActivityName}
             onSetIdentity={setIdentity}
-            onSetIsFixed={setIsFixed}
-          />
-        );
-      case 2:
-        return (
-          <TypeDifficultyStep
-            isFixed={isFixed}
-            identity={identity}
-            difficulty={difficulty}
             onSetIsFixed={setIsFixed}
             onSetDifficulty={setDifficulty}
           />
         );
-      case 3:
+      case 2:
         return (
           <PriorityDeadlineStep
             priority={priority}
@@ -348,7 +335,7 @@ export default function CreateActivityView({ navigation }: any) {
             onSetDeadline={setDeadline}
           />
         );
-      case 4:
+      case 3:
         return (
           <DaySelectionStep
             selectedDays={selectedDays}
@@ -366,7 +353,7 @@ export default function CreateActivityView({ navigation }: any) {
             }}
           />
         );
-      case 5:
+      case 4:
         return (
           <TimeConfigStep
             selectedDays={selectedDays}
@@ -418,13 +405,12 @@ export default function CreateActivityView({ navigation }: any) {
     switch (step) {
       case 1:
       case 2:
-      case 3:
         return "Continuar";
-      case 4:
+      case 3:
         return selectedDays.length > 0 ? "Configurar horario" : "Ver resumen";
-      case 5:
+      case 4:
         return "Guardar horario";
-      case 6:
+      case 5:
         return "Crear actividad";
       default:
         return "Continuar";
@@ -445,7 +431,7 @@ export default function CreateActivityView({ navigation }: any) {
           <View>
             <Text style={styles.title}>Nueva Actividad</Text>
             <Text style={styles.stepText}>
-              Paso {step} de 6
+              Paso {step} de {TOTAL_STEPS}
             </Text>
           </View>
           <TouchableOpacity style={styles.closeButton} onPress={closeSheet}>

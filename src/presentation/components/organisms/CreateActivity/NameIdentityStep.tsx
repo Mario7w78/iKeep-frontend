@@ -6,17 +6,23 @@ import { Theme } from "../../theme/colors";
 type NameIdentityStepProps = {
   activityName: string;
   identity: "clase" | "trabajo" | "tarea";
+  isFixed: boolean;
+  difficulty: "baja" | "media" | "alta";
   onSetActivityName: (name: string) => void;
   onSetIdentity: (identity: "clase" | "trabajo" | "tarea") => void;
   onSetIsFixed: (fixed: boolean) => void;
+  onSetDifficulty: (difficulty: "baja" | "media" | "alta") => void;
 };
 
 export default function NameIdentityStep({
   activityName,
   identity,
+  isFixed,
+  difficulty,
   onSetActivityName,
   onSetIdentity,
   onSetIsFixed,
+  onSetDifficulty,
 }: NameIdentityStepProps) {
   // Determine dynamic icon based on keyword detection
   const getDynamicIconName = (name: string) => {
@@ -63,6 +69,7 @@ export default function NameIdentityStep({
           onPress={() => {
             onSetIdentity("clase");
             onSetIsFixed(true); // Classes are inherently fixed
+            onSetDifficulty("media"); // Default difficulty when locked
           }}
         >
           <Ionicons
@@ -91,7 +98,7 @@ export default function NameIdentityStep({
           style={[styles.card, identity === "tarea" && styles.cardSelected]}
           onPress={() => {
             onSetIdentity("tarea");
-            onSetIsFixed(false); // If identity is tarea, default to Optimizable (isFixed = false)
+            onSetIsFixed(false); // Default to optimizable
           }}
         >
           <Ionicons
@@ -100,6 +107,102 @@ export default function NameIdentityStep({
             color={identity === "tarea" ? Theme.colors.surface : Theme.colors.iconPrimary}
           />
           <Text style={[styles.cardTitle, identity === "tarea" && styles.cardTitleSelected]}>Tarea</Text>
+        </TouchableOpacity>
+      </View>
+
+      <Text style={styles.sectionTitle}>Tipo de actividad</Text>
+      <View style={styles.twoColumnGrid}>
+        <TouchableOpacity
+          style={[
+            styles.card,
+            isFixed && styles.cardSelected,
+            identity === "clase" && styles.cardDisabled,
+          ]}
+          disabled={identity === "clase"} // Classes cannot be optimizable, hence locked to fixed
+          onPress={() => {
+            onSetIsFixed(true);
+            onSetDifficulty("media"); // Auto set to media if fixed
+          }}
+        >
+          <Ionicons
+            name="time-outline"
+            size={26}
+            color={isFixed ? Theme.colors.surface : Theme.colors.iconPrimary}
+          />
+          <Text style={[styles.cardTitle, isFixed && styles.cardTitleSelected]}>Fijo</Text>
+          <Text style={styles.cardDesc}>Anclado a una hora</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.card,
+            !isFixed && styles.cardSelected,
+            identity === "clase" && styles.cardDisabled,
+          ]}
+          disabled={identity === "clase"}
+          onPress={() => onSetIsFixed(false)}
+        >
+          <Ionicons
+            name="sparkles-outline"
+            size={26}
+            color={!isFixed ? Theme.colors.surface : Theme.colors.iconPrimary}
+          />
+          <Text style={[styles.cardTitle, !isFixed && styles.cardTitleSelected]}>Optimizable</Text>
+          <Text style={styles.cardDesc}>Mejor ubicación</Text>
+        </TouchableOpacity>
+      </View>
+
+      <Text style={styles.sectionTitle}>Dificultad de la actividad</Text>
+      <View style={styles.threeColumnGrid}>
+        <TouchableOpacity
+          style={[
+            styles.card,
+            difficulty === "baja" && styles.cardSelected,
+            isFixed && difficulty !== "baja" && styles.cardDisabled,
+          ]}
+          disabled={isFixed} // Difficulty is locked/disabled for fixed activities
+          onPress={() => onSetDifficulty("baja")}
+        >
+          <Ionicons
+            name="leaf-outline"
+            size={24}
+            color={difficulty === "baja" ? Theme.colors.surface : Theme.colors.iconPrimary}
+          />
+          <Text style={[styles.cardTitle, difficulty === "baja" && styles.cardTitleSelected]}>Baja</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.card,
+            difficulty === "media" && styles.cardSelected,
+            isFixed && difficulty !== "media" && styles.cardDisabled,
+          ]}
+          disabled={isFixed}
+          onPress={() => onSetDifficulty("media")}
+        >
+          <Ionicons
+            name="speedometer-outline"
+            size={24}
+            color={difficulty === "media" ? Theme.colors.surface : Theme.colors.iconPrimary}
+          />
+          <Text style={[styles.cardTitle, difficulty === "media" && styles.cardTitleSelected]}>Normal</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.card,
+            difficulty === "alta" && styles.cardSelected,
+            isFixed && difficulty !== "alta" && styles.cardDisabled,
+          ]}
+          disabled={isFixed}
+          onPress={() => onSetDifficulty("alta")}
+        >
+          <Ionicons
+            name="flame-outline"
+            size={24}
+            color={difficulty === "alta" ? Theme.colors.surface : Theme.colors.iconPrimary}
+          />
+          <Text style={[styles.cardTitle, difficulty === "alta" && styles.cardTitleSelected]}>Alta</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>
@@ -142,6 +245,10 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     paddingVertical: 14,
   },
+  twoColumnGrid: {
+    flexDirection: "row",
+    gap: 14,
+  },
   threeColumnGrid: {
     flexDirection: "row",
     gap: 10,
@@ -162,6 +269,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#5665dc",
     borderColor: "#8dccff",
   },
+  cardDisabled: {
+    opacity: 0.35,
+  },
   cardTitle: {
     color: Theme.colors.iconPrimary,
     fontSize: 14,
@@ -170,5 +280,12 @@ const styles = StyleSheet.create({
   },
   cardTitleSelected: {
     color: Theme.colors.surface,
+  },
+  cardDesc: {
+    color: Theme.colors.iconPrimary,
+    fontSize: 10,
+    fontWeight: "700",
+    textAlign: "center",
+    opacity: 0.8,
   },
 });

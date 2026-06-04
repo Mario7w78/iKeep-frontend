@@ -47,6 +47,7 @@ export default function useTimeForm() {
     setIsFixed(fixed);
     if (fixed) {
       setPriority("alta");
+      setDifficulty("media");
       setPartitions((prev) =>
         prev.map((p) => {
           const diffMs = p.endHour.getTime() - p.startHour.getTime();
@@ -253,12 +254,15 @@ export default function useTimeForm() {
       }
     }
 
+    const finalPriority = isFixed ? 5 : priorityMap[priority];
+    const finalDifficulty = isFixed ? "media" : difficulty;
+
     await handleCreateActivity({
       activityName,
       isFixed,
       identity,
-      priority: priorityMap[priority],
-      difficulty,
+      priority: finalPriority,
+      difficulty: finalDifficulty,
       deadline: deadline ? deadline.toISOString() : null,
       daysConfig: daysDict,
       days: configuredDays,

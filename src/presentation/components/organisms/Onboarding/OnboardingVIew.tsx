@@ -10,6 +10,7 @@ import {
   ViewToken,
   Alert,
   Platform,
+  TextInput,
 } from "react-native";
 import { NavigationProp, useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
@@ -25,18 +26,27 @@ const { width } = Dimensions.get("window");
 
 const SLIDES = [
   {
+    id: "username",
+    title: "¿Cómo te llamas?",
+    description: "Por favor, ingresa tu nombre para personalizar tu experiencia.",
+    showTimePicker: false,
+    showUsernameInput: true,
+  },
+  {
     id: "1",
     title: "Organiza tus actividades",
     description:
-      "Creá y gestioná todas tus actividades fijas u optimizables en un solo lugar.",
+      "Crea y gestiona todas tus actividades fijas u optimizables en un solo lugar.",
     showTimePicker: false,
+    showUsernameInput: false,
   },
   {
     id: "2",
     title: "Planifica tu horario",
     description:
-      "Visualizá tu semana de un vistazo y dejá que el optimizador inteligente arme tu agenda.",
+      "Visualiza tu semana de un vistazo y deja que el optimizador inteligente arme tu agenda.",
     showTimePicker: false,
+    showUsernameInput: false,
   },
   {
     id: "3",
@@ -44,12 +54,14 @@ const SLIDES = [
     description:
       "Establezcamos tus límites diarios para acomodar tus actividades.",
     showTimePicker: false,
+    showUsernameInput: false,
   },
   {
     id: "4",
     title: "¿A qué hora empieza tu día?",
     description: "A partir de esta hora planificaremos tu rutina diaria.",
     showTimePicker: true,
+    showUsernameInput: false,
   },
   {
     id: "5",
@@ -57,22 +69,21 @@ const SLIDES = [
     description:
       "Intentaremos que todas tus actividades finalicen antes de esta hora.",
     showTimePicker: true,
+    showUsernameInput: false,
   },
 ];
 
 export default function OnBoardingView() {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const setHasSeenOnboarding = useAppStore((s) => s.setHasSeenOnboarding);
+  const username = useAppStore((s) => s.username);
+  const setUsername = useAppStore((s) => s.setUsername);
   const [activeIndex, setActiveIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
 
   const { setStartHour, setEndHour } = useScheduleStore();
-  const [startTime, setStartTime] = useState(
-    new Date(new Date().setHours(4, 0, 0, 0))
-  );
-  const [endTime, setEndTime] = useState(
-    new Date(new Date().setHours(22, 0, 0, 0))
-  );
+  const [startTime, setStartTime] = useState<Date | null>(null);
+  const [endTime, setEndTime] = useState<Date | null>(null);
 
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
@@ -86,6 +97,12 @@ export default function OnBoardingView() {
   ).current;
 
   const handleNext = (skip: boolean) => {
+    if (SLIDES[activeIndex].id === "username") {
+      if (!username || username.trim() === "") {
+        Alert.alert("Nombre requerido", "Por favor, ingresa tu nombre para continuar.");
+        return;
+      }
+    }
     if (activeIndex < SLIDES.length - 1) {
       if (skip) {
         flatListRef.current?.scrollToIndex({ index: SLIDES.length - 2 });
@@ -98,13 +115,20 @@ export default function OnBoardingView() {
   };
 
   const handleFinish = async () => {
+    if (!startTime || !endTime) {
+      Alert.alert(
+        "Horario incompleto",
+        "Por favor, selecciona la hora de inicio y de fin de tu día."
+      );
+      return;
+    }
     const startMin = dateToMinutes(startTime);
     const endMin = dateToMinutes(endTime);
 
-    if (startMin >= endMin) {
+    if (startMin === endMin) {
       Alert.alert(
         "Horario inválido",
-        "La hora de inicio debe ser anterior a la hora de fin. ¡Por favor, revisá tus selecciones!"
+        "La hora de inicio y de fin no pueden ser iguales"
       );
       return;
     }
@@ -123,6 +147,12 @@ export default function OnBoardingView() {
 
   const getSlideIcon = (id: string) => {
     switch (id) {
+      case "username":
+        return {
+          name: "person-outline",
+          color: Theme.comfyColors.green,
+          bg: "rgba(141, 255, 104, 0.15)",
+        };
       case "1":
         return {
           name: "calendar-outline",
@@ -175,6 +205,7 @@ export default function OnBoardingView() {
         showsHorizontalScrollIndicator={false}
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={{ viewAreaCoveragePercentThreshold: 50 }}
+        scrollEnabled={activeIndex !== 0 || (username !== undefined && username.trim() !== "")}
         renderItem={({ item }) => {
           const iconConfig = getSlideIcon(item.id);
 
@@ -198,6 +229,20 @@ export default function OnBoardingView() {
               <Text style={styles.title}>{item.title}</Text>
               <Text style={styles.description}>{item.description}</Text>
 
+              {item.showUsernameInput && (
+                <View style={styles.pickerContainer}>
+                  <TextInput
+                    style={styles.usernameInput}
+                    placeholder="Tu nombre"
+                    placeholderTextColor="rgba(255, 255, 255, 0.4)"
+                    value={username}
+                    onChangeText={setUsername}
+                    autoCapitalize="words"
+                    autoCorrect={false}
+                  />
+                </View>
+              )}
+
               {item.showTimePicker && item.id === "4" && (
                 <View style={styles.pickerContainer}>
                   <TouchableOpacity
@@ -211,14 +256,14 @@ export default function OnBoardingView() {
                       color={Theme.colors.surface}
                     />
                     <Text style={styles.timeInputText}>
-                      {formatTime(startTime)}
+                      {startTime ? formatTime(startTime) : "Seleccionar la hora"}
                     </Text>
                   </TouchableOpacity>
 
                   {(showStartPicker || Platform.OS === "ios") && (
                     <View style={styles.iosPickerCard}>
                       <DateTimePicker
-                        value={startTime}
+                        value={startTime || new Date(new Date().setHours(4, 0, 0, 0))}
                         mode="time"
                         display="spinner"
                         themeVariant="dark"
@@ -247,14 +292,14 @@ export default function OnBoardingView() {
                       color={Theme.colors.surface}
                     />
                     <Text style={styles.timeInputText}>
-                      {formatTime(endTime)}
+                      {endTime ? formatTime(endTime) : "Seleccionar la hora"}
                     </Text>
                   </TouchableOpacity>
 
                   {(showEndPicker || Platform.OS === "ios") && (
                     <View style={styles.iosPickerCard}>
                       <DateTimePicker
-                        value={endTime}
+                        value={endTime || new Date(new Date().setHours(22, 0, 0, 0))}
                         mode="time"
                         display="spinner"
                         themeVariant="dark"
@@ -284,7 +329,7 @@ export default function OnBoardingView() {
       </View>
 
       <View style={styles.footer}>
-        {!isLast && (
+        {!isLast && activeIndex !== 0 && (
           <TouchableOpacity
             onPress={() => handleNext(true)}
             style={styles.skipButton}
@@ -294,7 +339,7 @@ export default function OnBoardingView() {
         )}
         <TouchableOpacity
           onPress={() => handleNext(false)}
-          style={[styles.nextButton, isLast && styles.nextButtonFull]}
+          style={[styles.nextButton, (isLast || activeIndex === 0) && styles.nextButtonFull]}
         >
           <Text style={styles.nextText}>{isLast ? "Empezar" : "Siguiente"}</Text>
         </TouchableOpacity>
@@ -339,6 +384,19 @@ const styles = StyleSheet.create({
     width: "100%",
     marginTop: 24,
     gap: 12,
+  },
+  usernameInput: {
+    width: "100%",
+    minHeight: 54,
+    borderRadius: 18,
+    backgroundColor: "#4d506c",
+    borderWidth: 1,
+    borderColor: Theme.colors.cardBorder,
+    color: Theme.colors.surface,
+    fontSize: 18,
+    fontWeight: "600",
+    textAlign: "center",
+    paddingHorizontal: 20,
   },
   timeInputCard: {
     flexDirection: "row",

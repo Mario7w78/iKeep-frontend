@@ -99,7 +99,7 @@ export function createScheduleStore(
         let sH = start !== null ? start : 240;
         let eH = end !== null ? end : 1320;
 
-        if (sH >= eH) {
+        if (sH === eH) {
           sH = 240;
           eH = 1320;
         }

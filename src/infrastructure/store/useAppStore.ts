@@ -4,7 +4,9 @@ import { create } from 'zustand';
 
 interface OnboardingState {
   hasSeenOnboarding: boolean;
+  username: string;
   setHasSeenOnboarding: (value: boolean) => void;
+  setUsername: (name: string) => void;
 }
 
 
@@ -12,7 +14,9 @@ export const useAppStore = create<OnboardingState>()(
   persist(
     (set) => ({
       hasSeenOnboarding: false,
+      username: '',
       setHasSeenOnboarding: (value) => set({ hasSeenOnboarding: value }),
+      setUsername: (name) => set({ username: name }),
     }),
     {
       name: 'onboarding-storage',

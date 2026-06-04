@@ -15,6 +15,7 @@ import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useActivityStore, useScheduleStore } from "../../../di/Dependencies";
+import { useAppStore } from "../../../infrastructure/store/useAppStore";
 import { ScheduledActivity } from "../../../domain/entities/Schedule";
 import { JS_DAY_TO_DAYOFWEEK } from "../../utils/scheduleUtils";
 import { Theme } from "../../components/theme/colors";
@@ -65,6 +66,7 @@ function toMinutes(time: string) {
 
 export default function HomeView() {
   const navigation = useNavigation<any>();
+  const username = useAppStore((s) => s.username);
   const schedule = useScheduleStore((s) => s.schedule);
   const isLoadedFromStorage = useScheduleStore((s) => s.isLoadedFromStorage);
   const handleGenerateSchedule = useScheduleStore((s) => s.handleGenerateSchedule);
@@ -163,7 +165,7 @@ export default function HomeView() {
   const handleSaveEnergy = () => {
     Alert.alert(
       "Actualizar horario",
-      `¿Estás seguro de que querés actualizar tu horario para adaptarlo a un nivel de "${selectedEnergy.label.toLowerCase()}"?`,
+      `¿Estás seguro de que quieres actualizar tu horario para adaptarlo a un nivel de "${selectedEnergy.label.toLowerCase()}"?`,
       [
         {
           text: "Cancelar",
@@ -280,7 +282,7 @@ export default function HomeView() {
             />
           </View>
           <View>
-            <Text style={styles.title}>Hola, Mario. Tu día está listo.</Text>
+            <Text style={styles.title}>Hola, {username || "Usuario"}. Tu día está listo.</Text>
             <Text style={styles.date}>{dayFormatter.format(new Date())}</Text>
           </View>
         </View>

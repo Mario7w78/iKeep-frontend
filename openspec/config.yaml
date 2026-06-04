@@ -1,0 +1,60 @@
+schema: spec-driven
+
+context: |
+  Tech stack: React Native (Expo v55), TypeScript, Zustand, React Navigation v7
+  Architecture: Clean Architecture / Hexagonal Architecture (domain, application, infrastructure, presentation, di)
+  Testing: None
+  Style: TypeScript, ESM, PNPM
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+  specs:
+    - Use Given/When/Then for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Include sequence diagrams for complex flows
+    - Document architecture decisions with rationale
+  tasks:
+    - Group by phase, use hierarchical numbering
+    - Keep tasks completable in one session
+  apply:
+    - Follow existing code patterns
+    tdd: false
+    test_command: ""
+  verify:
+    test_command: ""
+    build_command: "pnpm tsc --noEmit"
+    coverage_threshold: 0
+  archive:
+    - Warn before merging destructive deltas
+
+testing:
+  strict_tdd: false
+  capabilities:
+    test_runner:
+      framework: null
+      command: null
+    test_layers:
+      unit:
+        available: false
+        tool: null
+      integration:
+        available: false
+        tool: null
+      e2e:
+        available: false
+        tool: null
+    coverage:
+      available: false
+      command: null
+    quality_tools:
+      linter:
+        available: false
+        command: null
+      type_checker:
+        available: true
+        command: "pnpm tsc --noEmit"
+      formatter:
+        available: false
+        command: null

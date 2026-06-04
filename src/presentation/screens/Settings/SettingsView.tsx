@@ -28,6 +28,7 @@ const SettingsView = () => {
     handleGenerateSchedule,
   } = useScheduleStore();
 
+  const [isEditing, setIsEditing] = useState(false);
   const [localStartTime, setLocalStartTime] = useState(
     minutesToDate(startHour)
   );
@@ -45,17 +46,17 @@ const SettingsView = () => {
     const startMin = dateToMinutes(localStartTime);
     const endMin = dateToMinutes(localEndTime);
 
-    if (startMin >= endMin) {
+    if (startMin === endMin) {
       Alert.alert(
         "Horario inválido",
-        "La hora de inicio debe ser anterior a la hora de fin."
+        "La hora de inicio y de fin no pueden ser iguales"
       );
       return;
     }
 
     Alert.alert(
       "Guardar configuración",
-      "¿Estás seguro de que querés actualizar tu horario? Esto recalculará todas tus actividades planificadas.",
+      "¿Estás seguro de que quieres actualizar tu horario? Esto recalculará todas tus actividades planificadas.",
       [
         {
           text: "Cancelar",
@@ -69,6 +70,7 @@ const SettingsView = () => {
             await setEndHour(endMin);
             try {
               await handleGenerateSchedule();
+              setIsEditing(false);
               Alert.alert("Éxito", "Configuración guardada correctamente.");
             } catch (e) {
               console.error("Error generating schedule after settings save:", e);
@@ -77,6 +79,14 @@ const SettingsView = () => {
         },
       ]
     );
+  };
+
+  const handleCancel = () => {
+    setLocalStartTime(minutesToDate(startHour));
+    setLocalEndTime(minutesToDate(endHour));
+    setShowStartPicker(false);
+    setShowEndPicker(false);
+    setIsEditing(false);
   };
 
   return (
@@ -91,9 +101,10 @@ const SettingsView = () => {
         <View style={styles.settingsSection}>
           <Text style={styles.fieldLabel}>Inicio del día</Text>
           <TouchableOpacity
-            style={styles.timeInputCard}
+            style={[styles.timeInputCard, !isEditing && { opacity: 0.6 }]}
             activeOpacity={0.7}
             onPress={() => setShowStartPicker((v) => !v)}
+            disabled={!isEditing}
           >
             <Ionicons name="time-outline" size={24} color={Theme.colors.surface} />
             <Text style={styles.timeInputText}>
@@ -101,7 +112,7 @@ const SettingsView = () => {
             </Text>
           </TouchableOpacity>
 
-          {(showStartPicker || Platform.OS === "ios") && (
+          {isEditing && (showStartPicker || Platform.OS === "ios") && (
             <View style={styles.iosPickerCard}>
               <DateTimePicker
                 value={localStartTime}
@@ -122,15 +133,16 @@ const SettingsView = () => {
         <View style={styles.settingsSection}>
           <Text style={styles.fieldLabel}>Fin del día</Text>
           <TouchableOpacity
-            style={styles.timeInputCard}
+            style={[styles.timeInputCard, !isEditing && { opacity: 0.6 }]}
             activeOpacity={0.7}
             onPress={() => setShowEndPicker((v) => !v)}
+            disabled={!isEditing}
           >
             <Ionicons name="time-outline" size={24} color={Theme.colors.surface} />
             <Text style={styles.timeInputText}>{formatTime(localEndTime)}</Text>
           </TouchableOpacity>
 
-          {(showEndPicker || Platform.OS === "ios") && (
+          {isEditing && (showEndPicker || Platform.OS === "ios") && (
             <View style={styles.iosPickerCard}>
               <DateTimePicker
                 value={localEndTime}
@@ -149,19 +161,40 @@ const SettingsView = () => {
         </View>
 
         <Text style={styles.sectionFooter}>
-          Definí el rango de horas en el que se generarán tus bloques de actividad.
+          Define el rango de horas en el que se generarán tus bloques de actividad.
         </Text>
 
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={styles.saveButton}
-            activeOpacity={0.8}
-            onPress={handleSave}
-          >
-            <Ionicons name="save-outline" size={20} color={Theme.comfyFontColors.green} />
-            <Text style={styles.saveButtonText}>Guardar Configuración</Text>
-          </TouchableOpacity>
-        </View>
+        {!isEditing ? (
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity
+              style={styles.editButton}
+              activeOpacity={0.8}
+              onPress={() => setIsEditing(true)}
+            >
+              <Ionicons name="create-outline" size={20} color={Theme.colors.surface} />
+              <Text style={styles.editButtonText}>Editar</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={styles.buttonContainerEditing}>
+            <TouchableOpacity
+              style={styles.saveButton}
+              activeOpacity={0.8}
+              onPress={handleSave}
+            >
+              <Ionicons name="save-outline" size={20} color={Theme.comfyFontColors.green} />
+              <Text style={styles.saveButtonText}>Guardar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.cancelButton}
+              activeOpacity={0.8}
+              onPress={handleCancel}
+            >
+              <Ionicons name="close-circle-outline" size={20} color={Theme.colors.surface} />
+              <Text style={styles.cancelButtonText}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -238,6 +271,27 @@ const styles = StyleSheet.create({
     width: "100%",
     marginTop: 8,
   },
+  buttonContainerEditing: {
+    width: "100%",
+    marginTop: 8,
+    gap: 12,
+  },
+  editButton: {
+    backgroundColor: "#4d506c",
+    borderColor: Theme.colors.cardBorder,
+    borderWidth: 1,
+    borderRadius: 18,
+    height: 52,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  editButtonText: {
+    color: Theme.colors.surface,
+    fontSize: 16,
+    fontWeight: "900",
+  },
   saveButton: {
     backgroundColor: Theme.comfyColors.green,
     borderRadius: 18,
@@ -249,6 +303,22 @@ const styles = StyleSheet.create({
   },
   saveButtonText: {
     color: Theme.comfyFontColors.green,
+    fontSize: 16,
+    fontWeight: "900",
+  },
+  cancelButton: {
+    backgroundColor: "transparent",
+    borderColor: Theme.colors.cardBorder,
+    borderWidth: 1,
+    borderRadius: 18,
+    height: 52,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  cancelButtonText: {
+    color: Theme.colors.surface,
     fontSize: 16,
     fontWeight: "900",
   },

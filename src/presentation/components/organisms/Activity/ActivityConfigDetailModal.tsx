@@ -511,7 +511,7 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingHorizontal: 24,
     paddingBottom: 40,
-    height: SCREEN_HEIGHT * 0.85,
+    maxHeight: SCREEN_HEIGHT * 0.85,
     gap: 16,
   },
   indicator: {

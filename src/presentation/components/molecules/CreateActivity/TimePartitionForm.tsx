@@ -307,16 +307,6 @@ export default function TimePartitionForm({
       )}
 
       <Text style={styles.fieldLabel}>Traslado</Text>
-      <View style={styles.chipRow}>
-        {[0, 10, 15, 20].map((minutes) => (
-          <TimeChip
-            key={minutes}
-            label={minutes === 0 ? "Sin" : String(minutes)}
-            selected={travelTimeValue === minutes}
-            onPress={() => onSetTravelTime(minutes)}
-          />
-        ))}
-      </View>
       <View style={styles.timeInputRow}>
         <View style={styles.timeInputColumn}>
           <TextInput

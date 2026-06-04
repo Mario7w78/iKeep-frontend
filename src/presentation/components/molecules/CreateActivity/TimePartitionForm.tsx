@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -49,6 +49,66 @@ export default function TimePartitionForm({
   onSetTravelTime,
 }: TimePartitionFormProps) {
   const [showStartPicker, setShowStartPicker] = useState(false);
+  const [durationHoursText, setDurationHoursText] = useState("");
+  const [durationMinutesText, setDurationMinutesText] = useState("");
+  const [travelHoursText, setTravelHoursText] = useState("");
+  const [travelMinutesText, setTravelMinutesText] = useState("");
+
+  useEffect(() => {
+    const h = Math.floor(durationTimeValue / 60);
+    const m = durationTimeValue % 60;
+
+    if (Number(durationHoursText) !== h) {
+      setDurationHoursText(h ? String(h) : "");
+    }
+    if (Number(durationMinutesText) !== m) {
+      setDurationMinutesText(m ? String(m) : "");
+    }
+  }, [durationTimeValue]);
+
+  useEffect(() => {
+    const h = Math.floor(travelTimeValue / 60);
+    const m = travelTimeValue % 60;
+
+    if (Number(travelHoursText) !== h) {
+      setTravelHoursText(h ? String(h) : "");
+    }
+    if (Number(travelMinutesText) !== m) {
+      setTravelMinutesText(m ? String(m) : "");
+    }
+  }, [travelTimeValue]);
+
+  const handleDurationHoursChange = (text: string) => {
+    const cleanText = text.replace(/[^0-9]/g, "");
+    setDurationHoursText(cleanText);
+    const h = Number(cleanText) || 0;
+    const currentM = Number(durationMinutesText) || 0;
+    onSetDurationTime(h * 60 + currentM);
+  };
+
+  const handleDurationMinutesChange = (text: string) => {
+    const cleanText = text.replace(/[^0-9]/g, "");
+    setDurationMinutesText(cleanText);
+    const m = Number(cleanText) || 0;
+    const currentH = Number(durationHoursText) || 0;
+    onSetDurationTime(currentH * 60 + m);
+  };
+
+  const handleTravelHoursChange = (text: string) => {
+    const cleanText = text.replace(/[^0-9]/g, "");
+    setTravelHoursText(cleanText);
+    const h = Number(cleanText) || 0;
+    const currentM = Number(travelMinutesText) || 0;
+    onSetTravelTime(h * 60 + currentM);
+  };
+
+  const handleTravelMinutesChange = (text: string) => {
+    const cleanText = text.replace(/[^0-9]/g, "");
+    setTravelMinutesText(cleanText);
+    const m = Number(cleanText) || 0;
+    const currentH = Number(travelHoursText) || 0;
+    onSetTravelTime(currentH * 60 + m);
+  };
 
   return (
     <View style={styles.card}>
@@ -124,9 +184,7 @@ export default function TimePartitionForm({
         </View>
       )}
 
-      <Text style={styles.fieldLabel}>
-        Duración <Text style={styles.fieldUnit}>(minutos)</Text>
-      </Text>
+      <Text style={styles.fieldLabel}>Duración</Text>
       <View style={styles.chipRow}>
         {[30, 60, 90, 120].map((minutes) => (
           <TimeChip
@@ -137,18 +195,33 @@ export default function TimePartitionForm({
           />
         ))}
       </View>
-      <TextInput
-        value={String(durationTimeValue || "")}
-        onChangeText={(value) => onSetDurationTime(Number(value) || 0)}
-        keyboardType="number-pad"
-        placeholder="60"
-        placeholderTextColor="#a8a9bb"
-        style={styles.minutesInput}
-      />
+      <View style={styles.timeInputRow}>
+        <View style={styles.timeInputColumn}>
+          <TextInput
+            value={durationHoursText}
+            onChangeText={handleDurationHoursChange}
+            keyboardType="number-pad"
+            placeholder="0"
+            placeholderTextColor="#a8a9bb"
+            style={styles.timeInputBox}
+          />
+          <Text style={styles.timeInputLabel}>Horas</Text>
+        </View>
 
-      <Text style={styles.fieldLabel}>
-        Traslado <Text style={styles.fieldUnit}>(minutos)</Text>
-      </Text>
+        <View style={styles.timeInputColumn}>
+          <TextInput
+            value={durationMinutesText}
+            onChangeText={handleDurationMinutesChange}
+            keyboardType="number-pad"
+            placeholder="0"
+            placeholderTextColor="#a8a9bb"
+            style={styles.timeInputBox}
+          />
+          <Text style={styles.timeInputLabel}>Minutos</Text>
+        </View>
+      </View>
+
+      <Text style={styles.fieldLabel}>Traslado</Text>
       <View style={styles.chipRow}>
         {[0, 10, 15, 20].map((minutes) => (
           <TimeChip
@@ -159,14 +232,31 @@ export default function TimePartitionForm({
           />
         ))}
       </View>
-      <TextInput
-        value={travelTimeValue === 0 ? "" : String(travelTimeValue)}
-        onChangeText={(value) => onSetTravelTime(Number(value) || 0)}
-        keyboardType="number-pad"
-        placeholder="Sin traslado"
-        placeholderTextColor="#a8a9bb"
-        style={styles.minutesInput}
-      />
+      <View style={styles.timeInputRow}>
+        <View style={styles.timeInputColumn}>
+          <TextInput
+            value={travelHoursText}
+            onChangeText={handleTravelHoursChange}
+            keyboardType="number-pad"
+            placeholder="0"
+            placeholderTextColor="#a8a9bb"
+            style={styles.timeInputBox}
+          />
+          <Text style={styles.timeInputLabel}>Horas</Text>
+        </View>
+
+        <View style={styles.timeInputColumn}>
+          <TextInput
+            value={travelMinutesText}
+            onChangeText={handleTravelMinutesChange}
+            keyboardType="number-pad"
+            placeholder="0"
+            placeholderTextColor="#a8a9bb"
+            style={styles.timeInputBox}
+          />
+          <Text style={styles.timeInputLabel}>Minutos</Text>
+        </View>
+      </View>
     </View>
   );
 }
@@ -268,9 +358,12 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     overflow: "hidden",
     backgroundColor: "#454866",
+    alignItems: "center",
+    justifyContent: "center",
   },
   iosPicker: {
     height: 128,
+    width: "100%",
   },
   chipRow: {
     flexDirection: "row",
@@ -301,5 +394,31 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "700",
     lineHeight: 18,
+  },
+  timeInputRow: {
+    flexDirection: "row",
+    gap: 16,
+  },
+  timeInputColumn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#51546e",
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    minHeight: 50,
+  },
+  timeInputBox: {
+    flex: 1,
+    color: Theme.colors.surface,
+    fontSize: 16,
+    fontWeight: "800",
+    paddingVertical: 8,
+  },
+  timeInputLabel: {
+    color: "#a8a9bb",
+    fontSize: 14,
+    fontWeight: "800",
+    marginLeft: 8,
   },
 });

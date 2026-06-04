@@ -54,6 +54,17 @@ export default function DaySelectionStep({
       <Text style={styles.heroTitle}>Selección de días</Text>
       <Text style={styles.heroSubtitle}>¿Qué días tenés esta actividad?</Text>
 
+      <View style={styles.infoCard}>
+        <Ionicons
+          name="information-circle-outline"
+          size={22}
+          color={Theme.comfyColors.skyBlue}
+        />
+        <Text style={styles.infoText}>
+          ¿Horarios distintos? Configura un grupo a la vez. Al guardar, regresarás aquí para configurar los días restantes.
+        </Text>
+      </View>
+
       {hasGroups && (
         <View style={styles.sectionHeader}>
           <Ionicons name="albums-outline" size={18} color={Theme.colors.iconPrimary} />
@@ -161,6 +172,25 @@ const styles = StyleSheet.create({
   tipText: {
     flex: 1,
     color: Theme.colors.iconPrimary,
+    fontSize: 13,
+    fontWeight: "700",
+    lineHeight: 18,
+  },
+  infoCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: "rgba(165,178,235,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(165,178,235,0.22)",
+    borderRadius: 18,
+    padding: 14,
+    marginTop: 4,
+    marginBottom: 4,
+  },
+  infoText: {
+    flex: 1,
+    color: Theme.colors.textSecondary,
     fontSize: 13,
     fontWeight: "700",
     lineHeight: 18,

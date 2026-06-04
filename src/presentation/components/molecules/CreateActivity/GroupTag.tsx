@@ -11,6 +11,15 @@ const formatTime = (date: Date) =>
     minute: "2-digit",
   });
 
+const formatMinutes = (minutes: number) => {
+  if (minutes < 60) {
+    return `${minutes} min`;
+  }
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return m === 0 ? `${h} h` : `${h}h ${m}min`;
+};
+
 type GroupTagProps = {
   groupId: number;
   days: DayOfWeek[];
@@ -42,34 +51,62 @@ export default function GroupTag({
       ]}
     >
       <View style={styles.tagHeader}>
-        <Text style={[styles.tagDays, { color: color.text }]}>
-          {days.map((day) => day.substring(0, 3)).join(" · ")}
-        </Text>
-        <TouchableOpacity onPress={onDiscard}>
+        <View style={styles.daysContainer}>
+          {days.map((day) => (
+            <View key={day} style={[styles.dayBadge, { backgroundColor: color.text + "15" }]}>
+              <Text style={[styles.dayBadgeText, { color: color.text }]}>
+                {day.substring(0, 3)}
+              </Text>
+            </View>
+          ))}
+        </View>
+        <TouchableOpacity style={styles.discardButton} onPress={onDiscard}>
           <Ionicons name="trash-outline" size={18} color={color.text} />
         </TouchableOpacity>
       </View>
 
-      {config.partitions.map((partition, index) => (
-        <Text key={index} style={[styles.tagInfo, { color: color.text }]}>
-          {isFixed ? `${formatTime(partition.startHour)} · ` : "Horario optimizable · "}
-          {partition.durationTime} min
-          {partition.travelTime > 0
-            ? ` · +${partition.travelTime} traslado`
-            : ""}
-        </Text>
-      ))}
+      <View style={[styles.divider, { backgroundColor: color.text + "20" }]} />
+
+      <View style={styles.partitionsList}>
+        {config.partitions.map((partition, index) => {
+          const timeRangeOrStatus = isFixed
+            ? `${formatTime(partition.startHour)} - ${formatTime(partition.endHour)}`
+            : `Horario optimizable`;
+
+          const durationStr = formatMinutes(partition.durationTime);
+
+          return (
+            <View key={index} style={styles.partitionItem}>
+              <View style={styles.partitionTimeRow}>
+                <Ionicons name="layers-outline" size={14} color={color.text} style={styles.icon} />
+                <Text style={[styles.tagInfo, { color: color.text }]}>
+                  {timeRangeOrStatus} {!isFixed && `(${durationStr})`}
+                </Text>
+              </View>
+              {partition.travelTime > 0 && (
+                <View style={styles.partitionTravelRow}>
+                  <Ionicons name="walk-outline" size={14} color={color.text} style={styles.icon} />
+                  <Text style={[styles.tagSubInfo, { color: color.text }]}>
+                    +{formatMinutes(partition.travelTime)} de traslado
+                  </Text>
+                </View>
+              )}
+            </View>
+          );
+        })}
+      </View>
     </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
   tag: {
-    borderRadius: 18,
+    borderRadius: 20,
     borderWidth: 1,
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
     paddingVertical: 14,
-    gap: 4,
+    gap: 12,
+    marginBottom: 8,
   },
   tagEditing: {
     borderWidth: 3,
@@ -80,14 +117,59 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: 8,
   },
-  tagDays: {
+  daysContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
     flex: 1,
-    fontSize: 14,
+  },
+  dayBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dayBadgeText: {
+    fontSize: 12,
     fontWeight: "900",
+    textTransform: "uppercase",
+  },
+  discardButton: {
+    padding: 6,
+    borderRadius: 8,
+  },
+  divider: {
+    height: 1,
+    width: "100%",
+  },
+  partitionsList: {
+    gap: 8,
+  },
+  partitionItem: {
+    gap: 2,
+  },
+  partitionTimeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  partitionTravelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingLeft: 20,
+  },
+  icon: {
+    opacity: 0.8,
   },
   tagInfo: {
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  tagSubInfo: {
     fontSize: 12,
     fontWeight: "700",
-    opacity: 0.85,
+    opacity: 0.8,
   },
 });

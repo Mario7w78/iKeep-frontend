@@ -1,7 +1,16 @@
-import { TouchableOpacity, Text, StyleSheet } from 'react-native';
+import React from 'react';
+import { TouchableOpacity, Text, View, StyleSheet } from 'react-native';
 import { DayOfWeek } from '../../../../domain/entities/Activity';
-import { DAYS_SHORT } from '../../../utils/scheduleUtils';
-import { Theme } from '../../theme/colors';
+
+const DAY_SINGLE_LETTER: Record<DayOfWeek, string> = {
+  Lunes: 'L',
+  Martes: 'M',
+  Miercoles: 'X',
+  Jueves: 'J',
+  Viernes: 'V',
+  Sabado: 'S',
+  Domingo: 'D',
+};
 
 interface Props {
   day: DayOfWeek;
@@ -11,14 +20,64 @@ interface Props {
 
 export function DayTab({ day, isSelected, onPress }: Props) {
   return (
-    <TouchableOpacity onPress={onPress} style={[s.tab, isSelected && s.tabActive]}>
-      <Text style={[s.text, isSelected && s.textActive]}>{DAYS_SHORT[day]}</Text>
-    </TouchableOpacity>
+    <View style={s.tabContainer}>
+      <TouchableOpacity
+        onPress={onPress}
+        style={[
+          s.tab,
+          isSelected ? s.tabActive : s.tabInactive,
+        ]}
+      >
+        <Text style={[s.text, isSelected ? s.textActive : s.textInactive]}>
+          {DAY_SINGLE_LETTER[day]}
+        </Text>
+      </TouchableOpacity>
+      {isSelected ? (
+        <View style={s.indicator} />
+      ) : (
+        <View style={s.indicatorPlaceholder} />
+      )}
+    </View>
   );
 }
+
 const s = StyleSheet.create({
-  tab: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, borderWidth: 0.5, borderColor: 'rgba(0,0,0,0.1)' },
-  tabActive: { backgroundColor: Theme.colors.cardBackground, borderColor: Theme.colors.cardBackground },
-  text: { fontSize: 13, color: Theme.colors.textTertiary },
-  textActive: { color: Theme.colors.surface, fontWeight: '500' },
+  tabContainer: {
+    alignItems: 'center',
+    gap: 6,
+  },
+  tab: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabActive: {
+    backgroundColor: '#2B7FFF',
+  },
+  tabInactive: {
+    backgroundColor: 'rgba(39, 39, 42, 0.5)',
+  },
+  text: {
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  textActive: {
+    color: '#ffffff',
+  },
+  textInactive: {
+    color: '#A9A9A9',
+  },
+  indicator: {
+    width: 20,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#ffffff',
+  },
+  indicatorPlaceholder: {
+    width: 20,
+    height: 4,
+    backgroundColor: 'transparent',
+  },
 });

@@ -47,6 +47,9 @@ export default function DayPickerGrid({
         const configuredColor = config
           ? Theme.groupColors[config.groupId % Theme.groupColors.length].bg
           : undefined;
+        const configuredTextColor = config
+          ? Theme.groupColors[config.groupId % Theme.groupColors.length].text
+          : undefined;
 
         return (
           <DayButton
@@ -56,6 +59,7 @@ export default function DayPickerGrid({
             selected={selected}
             configured={configured}
             configuredColor={configuredColor}
+            configuredTextColor={configuredTextColor}
             onPress={() => onSelect(day)}
           />
         );

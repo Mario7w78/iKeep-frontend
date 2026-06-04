@@ -1,6 +1,7 @@
 // screens/schedule/ScheduleView.tsx
 import { useState, useCallback, useEffect } from 'react';
 import { View, ActivityIndicator, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { ScheduleHeader } from '../../components/organisms/Schedule/ScheduleHeader';
 import { ScheduleGrid } from '../../components/organisms/Schedule/ScheduleGrid';
 import { EnergyPicker } from '../../components/molecules/Energy/EnergyPicker';
@@ -10,7 +11,6 @@ import {
   saveEnergyRecord,
   makeEnergyRecord,
   getEnergyHistory,
-  hasReportedEnergyToday,
 } from '../../../infrastructure/persistence/EnergyHistoryService';
 
 export default function ScheduleView() {
@@ -24,16 +24,6 @@ export default function ScheduleView() {
   } = useScheduleStore();
 
   const [showEnergyPicker, setShowEnergyPicker] = useState(false);
-  const [needsDailyEnergy, setNeedsDailyEnergy] = useState(false);
-
-  // Passive daily check: if schedule exists but no energy today, show prompt
-  useEffect(() => {
-    if (schedule) {
-      hasReportedEnergyToday().then((reported) => {
-        setNeedsDailyEnergy(!reported);
-      });
-    }
-  }, [schedule]);
 
   const items = activitiesForDay();
 
@@ -52,14 +42,6 @@ export default function ScheduleView() {
       });
     },
     [handleGenerateSchedule],
-  );
-
-  const onQuickEnergy = useCallback(
-    async (nivel: number) => {
-      await saveEnergyRecord(makeEnergyRecord(nivel));
-      setNeedsDailyEnergy(false);
-    },
-    [],
   );
 
   if (isLoading) return (
@@ -88,32 +70,6 @@ export default function ScheduleView() {
 
   return (
     <View style={s.container}>
-      {needsDailyEnergy && (
-        <View style={s.energyBanner}>
-          <Text style={s.energyBannerText}>¿Cómo está tu energía hoy?</Text>
-          <View style={s.energyBannerOptions}>
-            <TouchableOpacity
-              style={s.energyBannerBtn}
-              onPress={() => onQuickEnergy(1)}
-            >
-              <Text style={s.energyBannerEmoji}>😴</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={s.energyBannerBtn}
-              onPress={() => onQuickEnergy(2)}
-            >
-              <Text style={s.energyBannerEmoji}>🙂</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={s.energyBannerBtn}
-              onPress={() => onQuickEnergy(3)}
-            >
-              <Text style={s.energyBannerEmoji}>⚡</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
-
       <ScheduleHeader
         selectedDay={selectedDay}
         activityCount={items.length}
@@ -121,12 +77,13 @@ export default function ScheduleView() {
       />
       <ScheduleGrid activities={items} />
 
-      {/* Allow re-generation with energy picker */}
+      {/* FAB to re-generate with energy picker */}
       <TouchableOpacity
-        style={s.regenerateBtn}
+        style={s.fabBtn}
+        activeOpacity={0.8}
         onPress={() => setShowEnergyPicker(true)}
       >
-        <Text style={s.regenerateText}>Regenerar horario</Text>
+        <Ionicons name="refresh" size={24} color={Theme.comfyFontColors.green} />
       </TouchableOpacity>
 
       <EnergyPicker
@@ -139,54 +96,25 @@ export default function ScheduleView() {
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Theme.colors.screenBackground },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 16, padding: 32, backgroundColor: Theme.colors.screenBackground },
+  container: { flex: 1, backgroundColor: '#1F212C' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 16, padding: 32, backgroundColor: '#1F212C' },
   emptyText: { fontSize: 15, color: Theme.colors.textSecondary },
   btn: { backgroundColor: Theme.colors.cardBackground, borderRadius: 12, paddingHorizontal: 28, paddingVertical: 12 },
   btnText: { color: Theme.colors.surface, fontSize: 15, fontWeight: '500' },
-  energyBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: Theme.colors.screenBackground,
-    marginHorizontal: 16,
-    marginTop: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 14,
-  },
-  energyBannerText: {
-    fontSize: 14,
-    color: Theme.colors.surface,
-    fontWeight: '500',
-  },
-  energyBannerOptions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  energyBannerBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Theme.colors.cardBackground,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  energyBannerEmoji: {
-    fontSize: 18,
-  },
-  regenerateBtn: {
+  fabBtn: {
     position: 'absolute',
     bottom: 100,
-    alignSelf: 'center',
-    backgroundColor: Theme.colors.cardBackground,
-    borderRadius: 12,
-    paddingHorizontal: 28,
-    paddingVertical: 12,
-  },
-  regenerateText: {
-    color: Theme.colors.surface,
-    fontSize: 15,
-    fontWeight: '500',
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: Theme.comfyColors.green,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 6,
   },
 });

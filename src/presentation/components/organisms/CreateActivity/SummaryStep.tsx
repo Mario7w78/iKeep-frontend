@@ -38,6 +38,33 @@ export default function SummaryStep({
   onEditGroup,
   onDiscardGroup,
 }: SummaryStepProps) {
+  let totalActivityMinutes = 0;
+  let totalTravelMinutes = 0;
+
+  Object.values(groups).forEach(({ days, config }) => {
+    const daysCount = days.length;
+    const dailyDuration = config.partitions.reduce((sum, p) => sum + p.durationTime, 0);
+    const dailyTravel = config.partitions.reduce((sum, p) => sum + p.travelTime, 0);
+
+    totalActivityMinutes += dailyDuration * daysCount;
+    totalTravelMinutes += dailyTravel * daysCount;
+  });
+
+  const formatTimeSummary = (minutes: number) => {
+    if (minutes === 0) return "0 min";
+    if (minutes < 60) return `${minutes} min`;
+
+    const hrs = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+
+    if (mins === 0) {
+      return hrs === 1 ? "1 hora" : `${hrs} horas`;
+    }
+
+    const hrsStr = hrs === 1 ? "1 hora" : `${hrs} horas`;
+    return `${hrsStr} y ${mins} min`;
+  };
+
   const getIdentityText = (val: string) => {
     switch (val) {
       case "clase": return "Clase";
@@ -126,7 +153,25 @@ export default function SummaryStep({
 
       <View style={styles.summaryCard}>
         <Text style={styles.summaryLabel}>Tiempo semanal configurado</Text>
-        <Text style={styles.summaryValue}>{totalMinutes} min</Text>
+        
+        <View style={styles.timeBreakdownRow}>
+          <Text style={styles.timeBreakdownText}>Actividad:</Text>
+          <Text style={styles.timeBreakdownValue}>{formatTimeSummary(totalActivityMinutes)}</Text>
+        </View>
+        
+        {totalTravelMinutes > 0 && (
+          <View style={styles.timeBreakdownRow}>
+            <Text style={styles.timeBreakdownText}>Traslado:</Text>
+            <Text style={styles.timeBreakdownValue}>{formatTimeSummary(totalTravelMinutes)}</Text>
+          </View>
+        )}
+        
+        <View style={[styles.divider, { backgroundColor: Theme.colors.cardBorder }]} />
+        
+        <View style={styles.timeBreakdownRow}>
+          <Text style={styles.totalLabel}>Total:</Text>
+          <Text style={styles.totalValue}>{formatTimeSummary(totalActivityMinutes + totalTravelMinutes)}</Text>
+        </View>
       </View>
 
       <GroupList
@@ -191,5 +236,34 @@ const styles = StyleSheet.create({
   },
   capitalize: {
     textTransform: "capitalize",
+  },
+  timeBreakdownRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  timeBreakdownText: {
+    color: Theme.colors.textSecondary,
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  timeBreakdownValue: {
+    color: Theme.colors.surface,
+    fontSize: 15,
+    fontWeight: "800",
+  },
+  divider: {
+    height: 1,
+    marginVertical: 4,
+  },
+  totalLabel: {
+    color: Theme.colors.surface,
+    fontSize: 16,
+    fontWeight: "900",
+  },
+  totalValue: {
+    color: Theme.comfyColors.green,
+    fontSize: 18,
+    fontWeight: "900",
   },
 });

@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import {
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -16,6 +17,7 @@ import { useActivityStore, useScheduleStore } from "../../../di/Dependencies";
 import { ScheduledActivity } from "../../../domain/entities/Schedule";
 import { JS_DAY_TO_DAYOFWEEK } from "../../utils/scheduleUtils";
 import { Theme } from "../../components/theme/colors";
+import { SAPO_BASE64 } from "../../components/sapoBase64";
 
 const ENERGY_LEVELS = [
   { label: "Baja energia", color: Theme.comfyColors.yellow },
@@ -34,12 +36,7 @@ function toMinutes(time: string) {
   return hours * 60 + minutes;
 }
 
-function remainingMinutes(item?: ScheduledActivity) {
-  if (!item) return null;
-  const now = new Date();
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
-  return Math.max(toMinutes(item.assignedEndTime) - currentMinutes, 0);
-}
+
 
 export default function HomeView() {
   const navigation = useNavigation<any>();
@@ -47,6 +44,7 @@ export default function HomeView() {
   const activities = useActivityStore((s) => s.activities);
   const loadActivities = useActivityStore((s) => s.loadActivities);
   const [energyIndex, setEnergyIndex] = useState(0);
+
 
   useFocusEffect(
     React.useCallback(() => {
@@ -59,9 +57,41 @@ export default function HomeView() {
     return schedule?.getItemsByDay(today) ?? [];
   }, [schedule]);
 
-  const currentActivity = todayItems[0];
-  const nextActivities = todayItems.slice(currentActivity ? 1 : 0, 4);
-  const minutesLeft = remainingMinutes(currentActivity);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 10000); // refresh every 10 seconds
+    return () => clearInterval(interval);
+  }, []);
+
+  const currentMinutes = useMemo(() => {
+    return currentTime.getHours() * 60 + currentTime.getMinutes();
+  }, [currentTime]);
+
+  const currentActivity = useMemo(() => {
+    return todayItems.find((item) => {
+      const start = toMinutes(item.assignedStartTime);
+      const end = toMinutes(item.assignedEndTime);
+      return currentMinutes >= start && currentMinutes <= end;
+    });
+  }, [todayItems, currentMinutes]);
+
+  const nextActivities = useMemo(() => {
+    return todayItems.filter((item) => {
+      const start = toMinutes(item.assignedStartTime);
+      return start > currentMinutes;
+    });
+  }, [todayItems, currentMinutes]);
+
+  const firstNext = nextActivities[0];
+
+  const minutesLeft = useMemo(() => {
+    if (!currentActivity) return null;
+    return Math.max(toMinutes(currentActivity.assignedEndTime) - currentMinutes, 0);
+  }, [currentActivity, currentMinutes]);
+
   const selectedEnergy = ENERGY_LEVELS[energyIndex];
 
   const moveEnergy = (direction: -1 | 1) => {
@@ -72,6 +102,53 @@ export default function HomeView() {
       return next;
     });
   };
+
+
+
+  const getIdentityLabel = (val?: string) => {
+    switch (val) {
+      case "clase": return "Clase";
+      case "trabajo": return "Trabajo";
+      default: return "Tarea";
+    }
+  };
+
+  const cardStatus = currentActivity
+    ? {
+        pill: "En curso",
+        pillColor: Theme.comfyColors.green,
+        pillText: Theme.comfyFontColors.green,
+        label: getIdentityLabel(currentActivity.activity.identity),
+      }
+    : firstNext
+    ? {
+        pill: "Siguiente",
+        pillColor: Theme.comfyColors.skyBlue,
+        pillText: Theme.comfyFontColors.skyBlue,
+        label: getIdentityLabel(firstNext.activity.identity),
+      }
+    : {
+        pill: "Libre",
+        pillColor: Theme.colors.cardBorder,
+        pillText: Theme.colors.surface,
+        label: "",
+      };
+
+  const currentCardTitle = currentActivity
+    ? currentActivity.activity.title
+    : firstNext
+    ? firstNext.activity.title
+    : "Sin actividades pendientes";
+
+  const formatMinutesRemaining = (minutes: number | null) => {
+    if (minutes === null) return "--";
+    if (minutes < 60) return `${minutes}m`;
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    return m === 0 ? `${h}h` : `${h}h ${m}m`;
+  };
+
+
 
   if (!activities.length) {
     return (
@@ -103,13 +180,12 @@ export default function HomeView() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.content}
       >
-        <View style={styles.header}>
-          <View style={styles.mascot}>
-            <Text style={styles.mascotText}>🥑</Text>
-          </View>
-          <View>
-            <Text style={styles.title}>Hola, Mario. Tu dia esta listo.</Text>
-            <Text style={styles.date}>{dayFormatter.format(new Date())}</Text>
+        <View style={styles.headerContainer}>
+          <View style={styles.sapoWrapper}>
+            <Image
+              source={{ uri: SAPO_BASE64 }}
+              style={styles.sapoIcon}
+            />
           </View>
         </View>
 
@@ -117,7 +193,7 @@ export default function HomeView() {
           colors={["#34364c", "#37362d"]}
           style={[styles.card, styles.energyCard]}
         >
-          <Text style={styles.cardTitle}>¿Como esta tu nivel de energia hoy?</Text>
+          <Text style={styles.cardTitle}>¿Cómo está tu nivel de energía hoy?</Text>
           <View style={styles.energySelector}>
             <Pressable onPress={() => moveEnergy(-1)} hitSlop={12}>
               <Ionicons name="chevron-back" size={34} color={Theme.colors.surface} />
@@ -137,52 +213,70 @@ export default function HomeView() {
 
         <View style={styles.card}>
           <View style={styles.statusRow}>
-            <View style={styles.statusPill}>
-              <Text style={styles.statusText}>En curso</Text>
+            <View style={[styles.statusPill, { backgroundColor: cardStatus.pillColor }]}>
+              <Text style={[styles.statusText, { color: cardStatus.pillText }]}>
+                {cardStatus.pill}
+              </Text>
             </View>
-            <Text style={styles.classLabel}>Clase</Text>
+            {cardStatus.label !== "" && (
+              <Text style={styles.classLabel}>{cardStatus.label}</Text>
+            )}
           </View>
           <Text style={styles.currentTitle}>
-            {currentActivity?.activity.title ?? "Sin actividad en curso"}
+            {currentCardTitle}
           </Text>
-          <View style={styles.timerRow}>
-            <Text style={styles.timerText}>
-              {minutesLeft !== null
-                ? `${String(Math.floor(minutesLeft / 60)).padStart(2, "0")}:${String(minutesLeft % 60).padStart(2, "0")}`
-                : "--:--"}
-            </Text>
-            <Text style={styles.timerLabel}>min restantes</Text>
-          </View>
+          {currentActivity ? (
+            <View style={styles.timerRow}>
+              <Text style={styles.timerText}>
+                {formatMinutesRemaining(minutesLeft)}
+              </Text>
+              <Text style={styles.timerLabel}>restantes</Text>
+            </View>
+          ) : firstNext ? (
+            <View style={styles.timerRow}>
+              <Text style={[styles.timerText, { color: Theme.comfyColors.skyBlue }]}>
+                {firstNext.assignedStartTime}
+              </Text>
+              <Text style={styles.timerLabel}>hora de inicio</Text>
+            </View>
+          ) : (
+            <View style={styles.timerRow}>
+              <Text style={[styles.timerText, { color: Theme.comfyColors.green }]}>
+                Listo
+              </Text>
+              <Text style={styles.timerLabel}>¡Día completado!</Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.changeTitle}>¿Algo cambio hoy ?</Text>
+          <Text style={styles.changeTitle}>¿Algo cambió hoy?</Text>
           <Text style={styles.changeSubtitle}>
-            Añade un imprevisto o una nueva rutina
+            Crea una actividad o administra las que ya tienes
           </Text>
           <TouchableOpacity
             style={styles.actionButton}
             activeOpacity={0.75}
             onPress={() => navigation.navigate("CreateActivityModal")}
           >
-            <Ionicons name="clipboard" size={20} color={Theme.colors.surface} />
-            <Text style={styles.actionText}>Nueva Tarea para hoy</Text>
+            <Ionicons name="add-circle-outline" size={20} color={Theme.colors.surface} />
+            <Text style={styles.actionText}>Crear nueva actividad</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.actionButton}
             activeOpacity={0.75}
-            onPress={() => navigation.navigate("CreateActivityModal")}
+            onPress={() => navigation.navigate("ManageActivities")}
           >
-            <Ionicons name="calendar" size={20} color={Theme.colors.surface} />
-            <Text style={styles.actionText}>Nueva Rutina semanal</Text>
+            <Ionicons name="list-outline" size={20} color={Theme.colors.surface} />
+            <Text style={styles.actionText}>Ver mis actividades</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.scheduleSection}>
-          <Text style={styles.sectionTitle}>PROXIMO EN TU HORARIO</Text>
+          <Text style={styles.sectionTitle}>PRÓXIMO EN TU HORARIO</Text>
           <View style={styles.timeline}>
-            {(nextActivities.length ? nextActivities : todayItems.slice(0, 3)).map(
-              (item, index) => (
+            {nextActivities.length > 0 ? (
+              nextActivities.slice(0, 3).map((item, index) => (
                 <View key={`${item.activity.id}-${index}`} style={styles.nextCard}>
                   <View>
                     <Text style={styles.nextTime}>
@@ -192,15 +286,22 @@ export default function HomeView() {
                   </View>
                   <Ionicons name="lock-closed" size={22} color={Theme.colors.iconSecondary} />
                 </View>
-              ),
-            )}
-            {!todayItems.length && (
+              ))
+            ) : (
               <View style={styles.nextCard}>
                 <View>
-                  <Text style={styles.nextTime}>Sin bloques programados</Text>
-                  <Text style={styles.nextTitle}>Genera tu horario</Text>
+                  <Text style={styles.nextTime}>
+                    {todayItems.length > 0 ? "Día completado" : "Sin bloques programados"}
+                  </Text>
+                  <Text style={styles.nextTitle}>
+                    {todayItems.length > 0 ? "¡Terminaste por hoy!" : "Genera tu horario"}
+                  </Text>
                 </View>
-                <Ionicons name="lock-closed" size={22} color={Theme.colors.iconSecondary} />
+                <Ionicons
+                  name={todayItems.length > 0 ? "checkmark-circle-outline" : "calendar-outline"}
+                  size={22}
+                  color={todayItems.length > 0 ? Theme.comfyColors.green : Theme.colors.iconSecondary}
+                />
               </View>
             )}
           </View>
@@ -220,36 +321,53 @@ const styles = StyleSheet.create({
     paddingTop: 28,
     paddingBottom: 112,
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-    marginBottom: 28,
-  },
-  mascot: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
+  headerContainer: {
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(141, 255, 104, 0.14)",
-    shadowColor: Theme.comfyColors.green,
-    shadowOpacity: 0.45,
-    shadowRadius: 18,
+    marginBottom: 28,
+    marginTop: 10,
   },
-  mascotText: {
-    fontSize: 34,
+  sapoWrapper: {
+    shadowColor: "#8dff68",
+    shadowOpacity: 0.5,
+    shadowRadius: 15,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 8,
   },
-  title: {
+  sapoIcon: {
+    width: 90,
+    height: 96,
+    resizeMode: "contain",
+  },
+  energyCard: {
+    minHeight: 200,
+  },
+  cardTitle: {
     color: Theme.colors.surface,
-    fontSize: 20,
-    fontStyle: "italic",
+    fontSize: 18,
     fontWeight: "800",
+    textAlign: "center",
   },
-  date: {
-    color: Theme.colors.textTertiary,
-    fontSize: 14,
-    marginTop: 2,
+  energySelector: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-around",
+    marginTop: 18,
+  },
+  energyOrb: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    shadowColor: "#000",
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+  },
+  energyLabel: {
+    color: Theme.colors.surface,
+    fontSize: 13,
+    fontWeight: "800",
+    textAlign: "center",
   },
   emptyContainer: {
     flex: 1,
@@ -305,36 +423,7 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
     marginBottom: 22,
   },
-  energyCard: {
-    minHeight: 200,
-  },
-  cardTitle: {
-    color: Theme.colors.surface,
-    fontSize: 18,
-    fontWeight: "800",
-    textAlign: "center",
-  },
-  energySelector: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-around",
-    marginTop: 18,
-  },
-  energyOrb: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    shadowColor: "#000",
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-  },
-  energyLabel: {
-    color: Theme.colors.surface,
-    fontSize: 13,
-    fontWeight: "800",
-    textAlign: "center",
-  },
+
   statusRow: {
     flexDirection: "row",
     alignItems: "center",

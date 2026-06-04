@@ -9,6 +9,7 @@ type DayButtonProps = {
   selected: boolean;
   configured: boolean;
   configuredColor?: string;
+  configuredTextColor?: string;
   onPress: () => void;
 };
 
@@ -18,6 +19,7 @@ export default function DayButton({
   selected,
   configured,
   configuredColor,
+  configuredTextColor,
   onPress,
 }: DayButtonProps) {
   return (
@@ -30,10 +32,22 @@ export default function DayButton({
         selected && styles.buttonSelected,
       ]}
     >
-      <Text style={[styles.letter, selected && styles.textSelected]}>
+      <Text
+        style={[
+          styles.letter,
+          configuredTextColor ? { color: configuredTextColor } : null,
+          selected && styles.textSelected,
+        ]}
+      >
         {letter}
       </Text>
-      <Text style={[styles.name, selected && styles.textSelected]}>
+      <Text
+        style={[
+          styles.name,
+          configuredTextColor ? { color: configuredTextColor } : null,
+          selected && styles.textSelected,
+        ]}
+      >
         {day.substring(0, 3)}
       </Text>
     </TouchableOpacity>

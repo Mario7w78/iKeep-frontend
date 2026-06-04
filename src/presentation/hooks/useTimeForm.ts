@@ -38,7 +38,7 @@ export default function useTimeForm() {
   const endTime = activePartition.endHour;
 
   const { handleCreateActivity, activities } = useActivityStore();
-  const { startHour: dayStartMin, endHour: dayEndMin } = useScheduleStore();
+  const { startHour: dayStartMin, endHour: dayEndMin, handleGenerateSchedule } = useScheduleStore();
 
   const updateActivePartition = (updates: Partial<PartitionConfig>) => {
     setPartitions((prev) =>
@@ -253,6 +253,12 @@ export default function useTimeForm() {
       daysConfig: daysDict,
       days: configuredDays,
     });
+
+    try {
+      await handleGenerateSchedule();
+    } catch (e) {
+      console.error("Error generating schedule after save:", e);
+    }
   };
   const resetPartitions = () => {
     setPartitions([

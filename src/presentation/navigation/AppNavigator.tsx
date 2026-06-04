@@ -11,6 +11,7 @@ import ScheduleScreen from "../screens/Schedule/ScheduleView";
 import StatsView from "../screens/Stats/StatsView";
 import CreateActivityScreen from "../screens/Activity/activityCreation/CreateActivityView";
 import SettingsView from "../screens/Settings/SettingsView";
+import ManageActivitiesView from "../screens/Activity/ManageActivitiesView";
 import { useAppStore } from "../../infrastructure/store/useAppStore";
 import { useScheduleStore } from "../../di/Dependencies";
 import { Theme } from "../components/theme/colors";
@@ -19,6 +20,7 @@ export type RootStackParamList = {
   MainTabs: undefined;
   CreateActivityModal: undefined;
   OnBoardingView: undefined;
+  ManageActivities: undefined;
 };
 
 export type MainTabParamList = {
@@ -110,6 +112,7 @@ export default function AppNavigator() {
     >
       <Stack.Screen name="OnBoardingView" component={OnBoardingView} />
       <Stack.Screen name="MainTabs" component={TabNavigator} />
+      <Stack.Screen name="ManageActivities" component={ManageActivitiesView} />
       <Stack.Screen
         name="CreateActivityModal"
         component={CreateActivityScreen}

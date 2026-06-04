@@ -27,9 +27,27 @@ import {
 } from "../../../infrastructure/persistence/EnergyHistoryService";
 
 const ENERGY_LEVELS = [
-  { label: "Baja energia", color: Theme.comfyColors.yellow, icon: "battery-dead", iconColor: Theme.comfyColors.yellow },
-  { label: "Energia estable", color: Theme.comfyColors.green, icon: "battery-half", iconColor: Theme.comfyColors.green },
-  { label: "Alta energia", color: Theme.comfyColors.skyBlue, icon: "flash", iconColor: Theme.comfyColors.skyBlue },
+  {
+    label: "Baja energia",
+    color: Theme.comfyColors.yellow,
+    icon: "battery-dead",
+    iconColor: Theme.comfyColors.yellow,
+    gradient: ["#34364d", "#4c4832"] as const,
+  },
+  {
+    label: "Energia estable",
+    color: Theme.comfyColors.green,
+    icon: "battery-half",
+    iconColor: Theme.comfyColors.green,
+    gradient: ["#34364d", "#2d3d33"] as const,
+  },
+  {
+    label: "Alta energia",
+    color: Theme.comfyColors.skyBlue,
+    icon: "flash",
+    iconColor: Theme.comfyColors.skyBlue,
+    gradient: ["#34364d", "#2c344d"] as const,
+  },
 ];
 
 const dayFormatter = new Intl.DateTimeFormat("es-PE", {
@@ -53,6 +71,7 @@ export default function HomeView() {
   const activities = useActivityStore((s) => s.activities);
   const loadActivities = useActivityStore((s) => s.loadActivities);
   const [energyIndex, setEnergyIndex] = useState(0);
+  const [savedEnergyIndex, setSavedEnergyIndex] = useState(0);
   const [selectedActivity, setSelectedActivity] = useState<ScheduledActivity | null>(null);
 
   // Initialize energy level from local storage history on mount
@@ -65,9 +84,11 @@ export default function HomeView() {
           const idx = latest.nivel - 1;
           if (idx >= 0 && idx < ENERGY_LEVELS.length) {
             setEnergyIndex(idx);
+            setSavedEnergyIndex(idx);
           }
         } else {
           setEnergyIndex(1); // Default to stable (index 1)
+          setSavedEnergyIndex(1);
         }
       } catch (e) {
         console.error("Error loading energy history:", e);
@@ -131,25 +152,34 @@ export default function HomeView() {
   const selectedEnergy = ENERGY_LEVELS[energyIndex];
 
   const moveEnergy = (direction: -1 | 1) => {
-    let nextIndex = energyIndex + direction;
-    if (nextIndex < 0) nextIndex = ENERGY_LEVELS.length - 1;
-    if (nextIndex >= ENERGY_LEVELS.length) nextIndex = 0;
+    setEnergyIndex((current) => {
+      const next = current + direction;
+      if (next < 0) return ENERGY_LEVELS.length - 1;
+      if (next >= ENERGY_LEVELS.length) return 0;
+      return next;
+    });
+  };
 
+  const handleSaveEnergy = () => {
     Alert.alert(
       "Actualizar horario",
-      `¿Estás seguro de que querés actualizar tu horario para adaptarlo a un nivel de "${ENERGY_LEVELS[nextIndex].label.toLowerCase()}"?`,
+      `¿Estás seguro de que querés actualizar tu horario para adaptarlo a un nivel de "${selectedEnergy.label.toLowerCase()}"?`,
       [
         {
           text: "Cancelar",
           style: "cancel",
+          onPress: () => {
+            // Revert back to the saved state
+            setEnergyIndex(savedEnergyIndex);
+          },
         },
         {
           text: "Sí, actualizar",
           style: "default",
           onPress: async () => {
-            setEnergyIndex(nextIndex);
+            setSavedEnergyIndex(energyIndex);
             try {
-              const nivel = nextIndex + 1;
+              const nivel = energyIndex + 1;
               await saveEnergyRecord(makeEnergyRecord(nivel));
               const historial = await getEnergyHistory(14);
               await handleGenerateSchedule({
@@ -256,7 +286,7 @@ export default function HomeView() {
         </View>
 
         <LinearGradient
-          colors={["#34364c", "#37362d"]}
+          colors={selectedEnergy.gradient}
           style={[styles.card, styles.energyCard]}
         >
           <Text style={styles.cardTitle}>¿Cómo está tu nivel de energía hoy?</Text>
@@ -276,6 +306,25 @@ export default function HomeView() {
             </Pressable>
           </View>
           <Text style={styles.energyLabel}>{selectedEnergy.label}</Text>
+
+          {/* Guardar Button */}
+          {energyIndex !== savedEnergyIndex && (
+            <TouchableOpacity
+              style={[
+                styles.saveEnergyButton,
+                { backgroundColor: selectedEnergy.iconColor },
+              ]}
+              activeOpacity={0.8}
+              onPress={handleSaveEnergy}
+            >
+              <Ionicons
+                name="checkmark-circle-outline"
+                size={18}
+                color={Theme.colors.screenBackground}
+              />
+              <Text style={styles.saveEnergyButtonText}>Guardar</Text>
+            </TouchableOpacity>
+          )}
         </LinearGradient>
 
         <TouchableOpacity 
@@ -663,5 +712,21 @@ const styles = StyleSheet.create({
     color: Theme.colors.surface,
     fontSize: 15,
     fontWeight: "800",
+  },
+  saveEnergyButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    height: 38,
+    borderRadius: 12,
+    marginTop: 12,
+    paddingHorizontal: 16,
+    alignSelf: "center",
+  },
+  saveEnergyButtonText: {
+    color: "#2b2d3b",
+    fontSize: 14,
+    fontWeight: "900",
   },
 });

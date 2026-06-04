@@ -1,6 +1,7 @@
 import { create, StoreApi, UseBoundStore } from 'zustand';
-import { Schedule } from '../../domain/entities/Schedule';
-import { DayOfWeek } from '../../domain/entities/Activity';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Schedule, ScheduleProps } from '../../domain/entities/Schedule';
+import { Activity, DayOfWeek } from '../../domain/entities/Activity';
 import { JS_DAY_TO_DAYOFWEEK } from '../../presentation/utils/scheduleUtils';
 import { GenerateSchedulePort, GenerateScheduleOptions } from '../../application/ports/in/GenerateSchedulePort';
 import { ReschedulePort } from '../../application/ports/in/ReschedulePort';
@@ -21,12 +22,14 @@ interface DayLimitPersistence {
 interface ScheduleStoreState {
   schedule: Schedule | null;
   isLoading: boolean;
+  isLoadedFromStorage: boolean;
   selectedDay: DayOfWeek;
   startHour: number;
   endHour: number;
   activitiesForDay: () => ReturnType<Schedule['getItemsByDay']>;
   handleGenerateSchedule: (energyData?: { nivel_energia: number; historial_energia: EnergyRecord[] }) => Promise<void>;
   loadDayLimits: () => Promise<void>;
+  loadSchedule: () => Promise<void>;
   setSelectedDay: (day: DayOfWeek) => void;
   setStartHour: (hour: number) => void;
   setEndHour: (hour: number) => void;
@@ -43,9 +46,41 @@ export function createScheduleStore(
   rescheduleUseCase?: ReschedulePort,
   suggestTaskUseCase?: SuggestTaskPort
 ): ScheduleStore {
+  const saveScheduleToStorage = async (schedule: Schedule): Promise<void> => {
+    try {
+      const propsToSave = {
+        id: schedule.id,
+        userId: schedule.userId,
+        createdAt: schedule.createdAt,
+        estado: schedule.estado,
+        mensaje: schedule.mensaje,
+        scheduledActivities: schedule.getAllItems().map(item => ({
+          activity: {
+            id: item.activity.id,
+            title: item.activity.title,
+            type: item.activity.type,
+            identity: item.activity.identity,
+            priority: item.activity.priority,
+            difficulty: item.activity.difficulty,
+            deadline: item.activity.deadline,
+            daysEnabled: item.activity.daysEnabled,
+            daysConfig: item.activity.daysConfig,
+          },
+          assignedStartTime: item.assignedStartTime,
+          assignedEndTime: item.assignedEndTime,
+          day: item.day
+        }))
+      };
+      await AsyncStorage.setItem('@schedule', JSON.stringify(propsToSave));
+    } catch (e) {
+      console.error('Error guardando horario en almacenamiento local:', e);
+    }
+  };
+
   return create<ScheduleStoreState>((set, get) => ({
     schedule: null,
     isLoading: false,
+    isLoadedFromStorage: false,
     startHour: 0,
     endHour: 1439,
     selectedDay: JS_DAY_TO_DAYOFWEEK[new Date().getDay()],
@@ -75,6 +110,46 @@ export function createScheduleStore(
       }
     },
 
+    loadSchedule: async () => {
+      try {
+        const stored = await AsyncStorage.getItem('@schedule');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          const scheduledActivities = (parsed.scheduledActivities || []).map((item: any) => ({
+            activity: new Activity({
+              id: item.activity.id,
+              title: item.activity.title,
+              type: item.activity.type,
+              identity: item.activity.identity,
+              priority: item.activity.priority,
+              difficulty: item.activity.difficulty,
+              deadline: item.activity.deadline,
+              daysEnabled: item.activity.daysEnabled,
+              daysConfig: item.activity.daysConfig
+            }),
+            assignedStartTime: item.assignedStartTime,
+            assignedEndTime: item.assignedEndTime,
+            day: item.day
+          }));
+
+          const loadedSchedule = new Schedule({
+            id: parsed.id,
+            userId: parsed.userId,
+            createdAt: new Date(parsed.createdAt),
+            estado: parsed.estado,
+            mensaje: parsed.mensaje,
+            scheduledActivities
+          });
+
+          set({ schedule: loadedSchedule });
+        }
+      } catch (e) {
+        console.error('Error cargando horario de almacenamiento local:', e);
+      } finally {
+        set({ isLoadedFromStorage: true });
+      }
+    },
+
     handleGenerateSchedule: async (energyData) => {
       await get().loadDayLimits();
       const { startHour, endHour } = get();
@@ -87,6 +162,7 @@ export function createScheduleStore(
         }
         const generated = await generateScheduleUseCase.execute(startHour, endHour, options);
         set({ schedule: generated });
+        await saveScheduleToStorage(generated);
       } catch (e) {
         console.error('Error generando horario:', e);
       } finally {
@@ -146,6 +222,7 @@ export function createScheduleStore(
       try {
         const newSchedule = await rescheduleUseCase.execute(request);
         set({ schedule: newSchedule });
+        await saveScheduleToStorage(newSchedule);
       } catch (e) {
         console.error('Error replanificando horario:', e);
       } finally {

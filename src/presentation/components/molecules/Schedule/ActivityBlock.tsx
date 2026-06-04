@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { ScheduledActivity } from '../../../../domain/entities/Schedule';
 import { hhmmToMinutes, minutesToTop, durationToHeight, formatDisplayTime, LABEL_WIDTH } from '../../../utils/scheduleUtils';
 
@@ -11,9 +11,10 @@ const BLOCK_COLORS = [
 
 interface Props {
   item: ScheduledActivity;
+  onPress?: (item: ScheduledActivity) => void;
 }
 
-export function ActivityBlock({ item }: Props) {
+export function ActivityBlock({ item, onPress }: Props) {
   const startMin = hhmmToMinutes(item.assignedStartTime);
   const endMin   = hhmmToMinutes(item.assignedEndTime);
   const top    = minutesToTop(startMin);
@@ -24,7 +25,11 @@ export function ActivityBlock({ item }: Props) {
   const color = BLOCK_COLORS[idNum % BLOCK_COLORS.length];
 
   return (
-    <View style={[s.block, { top, height, backgroundColor: color.bg, borderLeftColor: color.border }]}>
+    <TouchableOpacity 
+      activeOpacity={0.85}
+      onPress={() => onPress?.(item)}
+      style={[s.block, { top, height, backgroundColor: color.bg, borderLeftColor: color.border }]}
+    >
       <Text style={[s.title, { color: color.text }]} numberOfLines={1}>
         {item.activity.title}
       </Text>
@@ -33,7 +38,7 @@ export function ActivityBlock({ item }: Props) {
           {formatDisplayTime(item.assignedStartTime)} – {formatDisplayTime(item.assignedEndTime)}
         </Text>
       )}
-    </View>
+    </TouchableOpacity>
   );
 }
 

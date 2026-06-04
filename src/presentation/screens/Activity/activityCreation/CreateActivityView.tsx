@@ -29,11 +29,25 @@ const TOTAL_STEPS = 5;
 const SHEET_HEIGHT = Dimensions.get("window").height * 0.88;
 const DISMISS_DISTANCE = 130;
 
+const WEEKDAY_ORDER: DayOfWeek[] = [
+  "Lunes",
+  "Martes",
+  "Miercoles",
+  "Jueves",
+  "Viernes",
+  "Sabado",
+  "Domingo",
+];
+
 export default function CreateActivityView({ navigation }: any) {
   const [shouldPopUpAlert, setShouldPopUpAlert] = useState(false);
   const [alertText, setAlertText] = useState("");
   const [step, setStep] = useState(1);
   const translateY = useRef(new Animated.Value(SHEET_HEIGHT)).current;
+  const backdropOpacity = translateY.interpolate({
+    inputRange: [0, SHEET_HEIGHT],
+    outputRange: [1, 0],
+  });
 
   useEffect(() => {
     Animated.spring(translateY, {
@@ -106,6 +120,8 @@ export default function CreateActivityView({ navigation }: any) {
     startTime,
     partitions,
     activePartitionIndex,
+    preferredStartTime,
+    preferredEndTime,
     setActivityName,
     setIsFixed,
     setIdentity,
@@ -122,10 +138,14 @@ export default function CreateActivityView({ navigation }: any) {
     handleAddPartition,
     handleDiscardPartition,
     resetPartitions,
+    setPreferredStartTime,
+    setPreferredEndTime,
   } = useTimeForm();
 
   const configuredDays = useMemo(
-    () => Object.keys(daysDict) as DayOfWeek[],
+    () => (Object.keys(daysDict) as DayOfWeek[]).sort(
+      (a, b) => WEEKDAY_ORDER.indexOf(a) - WEEKDAY_ORDER.indexOf(b)
+    ),
     [daysDict],
   );
 
@@ -227,7 +247,7 @@ export default function CreateActivityView({ navigation }: any) {
       setAlertText,
       setShouldPopUpAlert,
     });
-    navigation.goBack();
+    navigation.navigate("MainTabs", { screen: "Schedule" });
   };
 
   const handleEditGroupWrapper = (group: {
@@ -296,12 +316,16 @@ export default function CreateActivityView({ navigation }: any) {
             durationTimeValue={durationTimeValue}
             travelTimeValue={travelTimeValue}
             isFixed={isFixed}
+            preferredStartTime={preferredStartTime}
+            preferredEndTime={preferredEndTime}
             onSetActivePartition={setActivePartitionIndex}
             onAddPartition={handleAddPartition}
             onDiscardPartition={handleDiscardPartition}
             onSetStartTime={setStartTime}
             onSetDurationTime={setDurationTime}
             onSetTravelTime={setTravelTime}
+            onSetPreferredStartTime={setPreferredStartTime}
+            onSetPreferredEndTime={setPreferredEndTime}
           />
         );
       default:
@@ -345,7 +369,9 @@ export default function CreateActivityView({ navigation }: any) {
 
   return (
     <View style={styles.container}>
-      <Pressable style={styles.backdrop} onPress={closeSheet} />
+      <Animated.View style={[styles.backdrop, { opacity: backdropOpacity }]} pointerEvents="auto">
+        <Pressable style={StyleSheet.absoluteFill} onPress={closeSheet} />
+      </Animated.View>
       <Animated.View style={[styles.sheet, { transform: [{ translateY }] }]}>
         <View style={styles.dragArea} {...panResponder.panHandlers}>
           <View style={styles.dragHandle} />

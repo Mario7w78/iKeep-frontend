@@ -6,8 +6,11 @@ import {
   Alert,
   ScrollView,
   Platform,
+  TouchableOpacity,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { Theme } from "../../components/theme/colors";
 import { useScheduleStore } from "../../../di/Dependencies";
 import {
@@ -15,11 +18,6 @@ import {
   minutesToDate,
   formatTime,
 } from "../../utils/timeUtils";
-import { PrimaryButton } from "../../components/atoms/Common/PrimaryButton";
-import { TimePickerModal } from "../../components/molecules/Settings/TimePickerModel";
-import { SettingsRow } from "../../components/molecules/Settings/SettingsRow";
-
-type TimeTarget = "start" | "end" | null;
 
 const SettingsView = () => {
   const {
@@ -31,46 +29,17 @@ const SettingsView = () => {
   } = useScheduleStore();
 
   const [localStartTime, setLocalStartTime] = useState(
-    minutesToDate(startHour),
+    minutesToDate(startHour)
   );
   const [localEndTime, setLocalEndTime] = useState(minutesToDate(endHour));
-  const [draftTime, setDraftTime] = useState<Date>(new Date());
-  const [activeModal, setActiveModal] = useState<TimeTarget>(null);
+
+  const [showStartPicker, setShowStartPicker] = useState(false);
+  const [showEndPicker, setShowEndPicker] = useState(false);
 
   useEffect(() => {
     setLocalStartTime(minutesToDate(startHour));
     setLocalEndTime(minutesToDate(endHour));
   }, [startHour, endHour]);
-
-  const openModal = (target: TimeTarget) => {
-    setDraftTime(
-      target === "start" ? new Date(localStartTime) : new Date(localEndTime),
-    );
-    setActiveModal(target);
-  };
-
-  const applyDraftTime = (
-    hourString: string,
-    minuteString: string,
-    period: string,
-  ) => {
-    const updated = new Date(draftTime);
-    let hours = parseInt(hourString, 10);
-    if (period === "AM") {
-      if (hours === 12) hours = 0;
-    } else {
-      if (hours !== 12) hours += 12;
-    }
-    updated.setHours(hours);
-    updated.setMinutes(parseInt(minuteString, 10));
-    setDraftTime(updated);
-  };
-
-  const confirmModal = () => {
-    if (activeModal === "start") setLocalStartTime(new Date(draftTime));
-    else setLocalEndTime(new Date(draftTime));
-    setActiveModal(null);
-  };
 
   const handleSave = async () => {
     const startMin = dateToMinutes(localStartTime);
@@ -79,14 +48,18 @@ const SettingsView = () => {
     if (startMin >= endMin) {
       Alert.alert(
         "Horario inválido",
-        "La hora de inicio debe ser anterior a la hora de fin.",
+        "La hora de inicio debe ser anterior a la hora de fin."
       );
       return;
     }
     await setStartHour(startMin);
     await setEndHour(endMin);
     Alert.alert("Éxito", "Configuración guardada correctamente.");
-    await handleGenerateSchedule();
+    try {
+      await handleGenerateSchedule();
+    } catch (e) {
+      console.error("Error generating schedule after settings save:", e);
+    }
   };
 
   return (
@@ -97,45 +70,82 @@ const SettingsView = () => {
         showsVerticalScrollIndicator={false}
       >
         <Text style={styles.pageTitle}>Configuración</Text>
-        <View style={styles.group}>
-          <SettingsRow
-            label="Inicio del día"
-            value={formatTime(localStartTime)}
-            onPress={() => openModal("start")}
-            isFirst
-          />
-          <SettingsRow
-            label="Fin del día"
-            value={formatTime(localEndTime)}
-            onPress={() => openModal("end")}
-            isLast
-          />
+
+        <View style={styles.settingsSection}>
+          <Text style={styles.fieldLabel}>Inicio del día</Text>
+          <TouchableOpacity
+            style={styles.timeInputCard}
+            activeOpacity={0.7}
+            onPress={() => setShowStartPicker((v) => !v)}
+          >
+            <Ionicons name="time-outline" size={24} color={Theme.colors.surface} />
+            <Text style={styles.timeInputText}>
+              {formatTime(localStartTime)}
+            </Text>
+          </TouchableOpacity>
+
+          {(showStartPicker || Platform.OS === "ios") && (
+            <View style={styles.iosPickerCard}>
+              <DateTimePicker
+                value={localStartTime}
+                mode="time"
+                display="spinner"
+                themeVariant="dark"
+                textColor={Theme.colors.surface}
+                onChange={(_, selectedDate) => {
+                  if (selectedDate) setLocalStartTime(selectedDate);
+                  if (Platform.OS !== "ios") setShowStartPicker(false);
+                }}
+                style={styles.iosPicker}
+              />
+            </View>
+          )}
         </View>
+
+        <View style={styles.settingsSection}>
+          <Text style={styles.fieldLabel}>Fin del día</Text>
+          <TouchableOpacity
+            style={styles.timeInputCard}
+            activeOpacity={0.7}
+            onPress={() => setShowEndPicker((v) => !v)}
+          >
+            <Ionicons name="time-outline" size={24} color={Theme.colors.surface} />
+            <Text style={styles.timeInputText}>{formatTime(localEndTime)}</Text>
+          </TouchableOpacity>
+
+          {(showEndPicker || Platform.OS === "ios") && (
+            <View style={styles.iosPickerCard}>
+              <DateTimePicker
+                value={localEndTime}
+                mode="time"
+                display="spinner"
+                themeVariant="dark"
+                textColor={Theme.colors.surface}
+                onChange={(_, selectedDate) => {
+                  if (selectedDate) setLocalEndTime(selectedDate);
+                  if (Platform.OS !== "ios") setShowEndPicker(false);
+                }}
+                style={styles.iosPicker}
+              />
+            </View>
+          )}
+        </View>
+
         <Text style={styles.sectionFooter}>
-          Define el rango de horas en que se generarán tus bloques de actividad.
+          Definí el rango de horas en el que se generarán tus bloques de actividad.
         </Text>
 
         <View style={styles.buttonContainer}>
-          <PrimaryButton title="Guardar Configuración" onPress={handleSave} />
+          <TouchableOpacity
+            style={styles.saveButton}
+            activeOpacity={0.8}
+            onPress={handleSave}
+          >
+            <Ionicons name="save-outline" size={20} color={Theme.comfyFontColors.green} />
+            <Text style={styles.saveButtonText}>Guardar Configuración</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
-
-      <TimePickerModal
-        visible={activeModal === "start"}
-        title="Inicio del día"
-        time={draftTime}
-        onTimeChange={applyDraftTime}
-        onDone={confirmModal}
-        onCancel={() => setActiveModal(null)}
-      />
-      <TimePickerModal
-        visible={activeModal === "end"}
-        title="Fin del día"
-        time={draftTime}
-        onTimeChange={applyDraftTime}
-        onDone={confirmModal}
-        onCancel={() => setActiveModal(null)}
-      />
     </SafeAreaView>
   );
 };
@@ -151,49 +161,79 @@ const styles = StyleSheet.create({
   content: {
     paddingTop: 16,
     paddingBottom: 48,
+    paddingHorizontal: 20,
+    gap: 20,
   },
   pageTitle: {
     fontSize: 24,
-    fontWeight: "700",
+    fontWeight: "900",
     color: Theme.colors.surface,
-    marginBottom: 28,
-    paddingHorizontal: 20,
-  },
-  sectionHeader: {
-    fontSize: 13,
-    fontWeight: "400",
-    color: Theme.colors.surface,
-    letterSpacing: 0.4,
-    textTransform: "uppercase",
     marginBottom: 8,
+  },
+  settingsSection: {
+    gap: 10,
+    width: "100%",
+  },
+  fieldLabel: {
+    color: Theme.colors.iconPrimary,
+    fontSize: 16,
+    fontWeight: "900",
+  },
+  timeInputCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+    minHeight: 54,
+    borderRadius: 18,
+    backgroundColor: "#4d506c",
+    borderWidth: 1,
+    borderColor: Theme.colors.cardBorder,
     paddingHorizontal: 20,
   },
-  group: {
-    backgroundColor: Theme.colors.cardBackground,
-    borderRadius: 12,
-    marginHorizontal: 16,
+  timeInputText: {
+    color: Theme.colors.surface,
+    fontSize: 20,
+    fontWeight: "900",
+  },
+  iosPickerCard: {
+    borderRadius: 18,
     overflow: "hidden",
-    ...Platform.select({
-      ios: {
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.08,
-        shadowRadius: 3,
-      },
-      android: { elevation: 2 },
-    }),
+    backgroundColor: "#3b3e54",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: Theme.colors.cardBorder,
+  },
+  iosPicker: {
+    height: 120,
+    width: "100%",
   },
   sectionFooter: {
-    fontSize: 13,
-    color: Theme.colors.surface,
+    fontSize: 14,
+    color: Theme.colors.textSecondary,
+    lineHeight: 20,
     marginTop: 8,
-    marginBottom: 32,
-    paddingHorizontal: 20,
-    lineHeight: 18,
+    marginBottom: 16,
   },
   buttonContainer: {
-    marginHorizontal: 16,
+    width: "100%",
     marginTop: 8,
+  },
+  saveButton: {
+    backgroundColor: Theme.comfyColors.green,
+    borderRadius: 18,
+    height: 52,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  saveButtonText: {
+    color: Theme.comfyFontColors.green,
+    fontSize: 16,
+    fontWeight: "900",
   },
 });
 

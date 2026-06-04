@@ -1,6 +1,7 @@
 import React from 'react';
 import { TouchableOpacity, Text, View, StyleSheet } from 'react-native';
 import { DayOfWeek } from '../../../../domain/entities/Activity';
+import { JS_DAY_TO_DAYOFWEEK } from '../../../utils/scheduleUtils';
 
 const DAY_SINGLE_LETTER: Record<DayOfWeek, string> = {
   Lunes: 'L',
@@ -19,6 +20,9 @@ interface Props {
 }
 
 export function DayTab({ day, isSelected, onPress }: Props) {
+  const today = JS_DAY_TO_DAYOFWEEK[new Date().getDay()];
+  const isToday = day === today;
+
   return (
     <View style={s.tabContainer}>
       <TouchableOpacity
@@ -26,9 +30,14 @@ export function DayTab({ day, isSelected, onPress }: Props) {
         style={[
           s.tab,
           isSelected ? s.tabActive : s.tabInactive,
+          isToday && !isSelected && { borderColor: '#98FF60', borderWidth: 1.5 }
         ]}
       >
-        <Text style={[s.text, isSelected ? s.textActive : s.textInactive]}>
+        <Text style={[
+          s.text, 
+          isSelected ? s.textActive : s.textInactive,
+          isToday && !isSelected && { color: '#98FF60' }
+        ]}>
           {DAY_SINGLE_LETTER[day]}
         </Text>
       </TouchableOpacity>

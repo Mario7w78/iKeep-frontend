@@ -17,6 +17,8 @@ export interface ActivityProps {
     deadline: string | null;
     daysConfig: Partial<Record<DayOfWeek, DayConfig>>;
     daysEnabled: DayOfWeek[];
+    preferredStartTime?: number | null;
+    preferredEndTime?: number | null;
 }
 
 export class Activity {
@@ -29,6 +31,8 @@ export class Activity {
     readonly deadline: string | null;
     readonly daysEnabled: DayOfWeek[];
     readonly daysConfig: Partial<Record<DayOfWeek, DayConfig>>;
+    readonly preferredStartTime?: number | null;
+    readonly preferredEndTime?: number | null;
 
     constructor(props: ActivityProps) {
         this.id = props.id;
@@ -39,7 +43,9 @@ export class Activity {
         this.difficulty = props.difficulty;
         this.deadline = props.deadline;
         this.daysEnabled = props.daysEnabled;
-        this.daysConfig = props.daysConfig
+        this.daysConfig = props.daysConfig;
+        this.preferredStartTime = props.preferredStartTime ?? null;
+        this.preferredEndTime = props.preferredEndTime ?? null;
     }
 
     isFixed(): boolean {

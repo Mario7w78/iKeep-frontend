@@ -45,7 +45,7 @@ export const domainToScheduleRequest = (
                 const fin = dateToMinutes(partition.endHour);
 
                 const baseDto = {
-                    id: `${act.id}-${config.groupId}-${pIdx}`,
+                    id: `${act.id}-${config.groupId}-${day}-${pIdx}`,
                     nombre: act.title || 'Actividad sin nombre',
                     tipo: act.identity || ('tarea' as BackendActivityType),
                     dia: DAY_TO_INT[day],
@@ -61,7 +61,11 @@ export const domainToScheduleRequest = (
                 if (act.type === ActivityType.FIXED) {
                     actividades_fijas.push(baseDto);
                 } else {
-                    actividades_optimizables.push(baseDto);
+                    actividades_optimizables.push({
+                        ...baseDto,
+                        hora_preferida_inicio: act.preferredStartTime !== undefined ? act.preferredStartTime : null,
+                        hora_preferida_fin: act.preferredEndTime !== undefined ? act.preferredEndTime : null,
+                    });
                 }
             });
         });

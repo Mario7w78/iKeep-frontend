@@ -8,7 +8,7 @@ export class CreateActivityUseCase implements CreateActivityPort {
     private activityRepository: ActivityRepository
   ) { }
 
-  async execute({ activityName, isFixed, identity, priority, difficulty, deadline, daysConfig, days }: CreateActivityCommand): Promise<void> {
+  async execute({ activityName, isFixed, identity, priority, difficulty, deadline, daysConfig, days, preferredStartTime, preferredEndTime }: CreateActivityCommand): Promise<void> {
     const props: ActivityProps = {
       id: Date.now().toString(),
       title: activityName || 'Actividad sin nombre',
@@ -19,6 +19,8 @@ export class CreateActivityUseCase implements CreateActivityPort {
       deadline,
       daysConfig: daysConfig,
       daysEnabled: days,
+      preferredStartTime,
+      preferredEndTime,
     };
     const newActivity = new Activity(props);
 

@@ -14,12 +14,16 @@ type TimeConfigStepProps = {
   durationTimeValue: number;
   travelTimeValue: number;
   isFixed: boolean;
+  preferredStartTime: number | null;
+  preferredEndTime: number | null;
   onSetActivePartition: (index: number) => void;
   onAddPartition: () => void;
   onDiscardPartition: () => void;
   onSetStartTime: (date: Date) => void;
   onSetDurationTime: (value: number) => void;
   onSetTravelTime: (value: number) => void;
+  onSetPreferredStartTime: (val: number | null) => void;
+  onSetPreferredEndTime: (val: number | null) => void;
 };
 
 export default function TimeConfigStep({
@@ -31,12 +35,16 @@ export default function TimeConfigStep({
   durationTimeValue,
   travelTimeValue,
   isFixed,
+  preferredStartTime,
+  preferredEndTime,
   onSetActivePartition,
   onAddPartition,
   onDiscardPartition,
   onSetStartTime,
   onSetDurationTime,
   onSetTravelTime,
+  onSetPreferredStartTime,
+  onSetPreferredEndTime,
 }: TimeConfigStepProps) {
   const displayDays = selectedDays.length > 0 ? selectedDays : configuredDays;
   const firstDay = (displayDays[0] || "Día") as string;
@@ -63,8 +71,8 @@ export default function TimeConfigStep({
         <View style={styles.dayConfigTextBlock}>
           <Text style={styles.dayConfigTitle}>
             {selectedDays.length > 0
-              ? selectedDays.join(" · ")
-              : "Edita un grupo configurado"}
+               ? selectedDays.join(" · ")
+               : "Edita un grupo configurado"}
           </Text>
           <Text style={styles.dayConfigSubtitle}>
             Duración total: {totalGroupMinutes} min
@@ -79,12 +87,16 @@ export default function TimeConfigStep({
         durationTimeValue={durationTimeValue}
         travelTimeValue={travelTimeValue}
         isFixed={isFixed}
+        preferredStartTime={preferredStartTime}
+        preferredEndTime={preferredEndTime}
         onSetActivePartition={onSetActivePartition}
         onAddPartition={onAddPartition}
         onDiscardPartition={onDiscardPartition}
         onSetStartTime={onSetStartTime}
         onSetDurationTime={onSetDurationTime}
         onSetTravelTime={onSetTravelTime}
+        onSetPreferredStartTime={onSetPreferredStartTime}
+        onSetPreferredEndTime={onSetPreferredEndTime}
       />
     </ScrollView>
   );

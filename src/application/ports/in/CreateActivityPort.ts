@@ -10,6 +10,8 @@ export interface CreateActivityCommand {
   deadline: string | null;
   daysConfig: Partial<Record<DayOfWeek, DayConfig>>;
   days: DayOfWeek[];
+  preferredStartTime?: number | null;
+  preferredEndTime?: number | null;
 }
 
 export interface CreateActivityPort {

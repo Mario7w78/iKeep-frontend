@@ -27,4 +27,6 @@ export interface TareaPendienteDto {
   duracion_estimada: number;
   fecha_limite: string | null;
   dificultad: BackendDifficulty;
+  hora_preferida_inicio?: number | null;
+  hora_preferida_fin?: number | null;
 }

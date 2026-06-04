@@ -42,6 +42,8 @@ export class AsyncStorageActivityRepository implements ActivityRepository {
                 deadline: raw.deadline || null,
                 daysEnabled: raw.daysEnabled,
                 daysConfig: restoredDaysConfig,
+                preferredStartTime: raw.preferredStartTime !== undefined ? raw.preferredStartTime : null,
+                preferredEndTime: raw.preferredEndTime !== undefined ? raw.preferredEndTime : null,
             });
         });
     }

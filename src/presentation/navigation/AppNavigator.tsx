@@ -23,10 +23,12 @@ export type RootStackParamList = {
   ManageActivities: undefined;
 };
 
+const DummyComponent = () => null;
+
 export type MainTabParamList = {
   Home: undefined;
   Schedule: undefined;
-  Stats: undefined;
+  // Stats: undefined;
   Setting: undefined;
 };
 
@@ -36,7 +38,7 @@ const Tab = createBottomTabNavigator<MainTabParamList>();
 const TAB_ICONS: Record<keyof MainTabParamList, [string, string]> = {
   Home: ["home", "home-outline"],
   Schedule: ["calendar", "calendar-outline"],
-  Stats: ["bar-chart", "bar-chart-outline"],
+  // Stats: ["bar-chart", "bar-chart-outline"],
   Setting: ["options", "options-outline"],
 };
 
@@ -83,11 +85,13 @@ function TabNavigator() {
         options={{ title: "Calendario" }}
         component={ScheduleScreen}
       />
+      {/* 
       <Tab.Screen
         name="Stats"
         options={{ title: "Estadisticas" }}
         component={StatsView}
       />
+      */}
       <Tab.Screen
         name="Setting"
         options={{ title: "Configuracion" }}
@@ -100,10 +104,12 @@ function TabNavigator() {
 export default function AppNavigator() {
   const hasSeenOnboarding = useAppStore((s) => s.hasSeenOnboarding);
   const loadDayLimits = useScheduleStore((s) => s.loadDayLimits);
+  const loadSchedule = useScheduleStore((s) => s.loadSchedule);
 
   React.useEffect(() => {
     loadDayLimits();
-  }, [loadDayLimits]);
+    loadSchedule();
+  }, [loadDayLimits, loadSchedule]);
 
   return (
     <Stack.Navigator
@@ -118,7 +124,7 @@ export default function AppNavigator() {
         component={CreateActivityScreen}
         options={{
           presentation: "transparentModal",
-          animation: "fade",
+          animation: "none",
           contentStyle: { backgroundColor: "transparent" },
         }}
       />

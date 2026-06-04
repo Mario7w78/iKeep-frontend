@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   Platform,
   StyleSheet,
+  Switch,
+  Pressable,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -26,12 +28,16 @@ type TimePartitionFormProps = {
   durationTimeValue: number;
   travelTimeValue: number;
   isFixed: boolean;
+  preferredStartTime: number | null;
+  preferredEndTime: number | null;
   onSetActivePartition: (index: number) => void;
   onAddPartition: () => void;
   onDiscardPartition: () => void;
   onSetStartTime: (date: Date) => void;
   onSetDurationTime: (value: number) => void;
   onSetTravelTime: (value: number) => void;
+  onSetPreferredStartTime: (val: number | null) => void;
+  onSetPreferredEndTime: (val: number | null) => void;
 };
 
 export default function TimePartitionForm({
@@ -41,14 +47,21 @@ export default function TimePartitionForm({
   durationTimeValue,
   travelTimeValue,
   isFixed,
+  preferredStartTime,
+  preferredEndTime,
   onSetActivePartition,
   onAddPartition,
   onDiscardPartition,
   onSetStartTime,
   onSetDurationTime,
   onSetTravelTime,
+  onSetPreferredStartTime,
+  onSetPreferredEndTime,
 }: TimePartitionFormProps) {
   const [showStartPicker, setShowStartPicker] = useState(false);
+  const [showPrefStartPicker, setShowPrefStartPicker] = useState(false);
+  const [showPrefEndPicker, setShowPrefEndPicker] = useState(false);
+  const [showHelper, setShowHelper] = useState(true);
   const [durationHoursText, setDurationHoursText] = useState("");
   const [durationMinutesText, setDurationMinutesText] = useState("");
   const [travelHoursText, setTravelHoursText] = useState("");
@@ -59,10 +72,10 @@ export default function TimePartitionForm({
     const m = durationTimeValue % 60;
 
     if (Number(durationHoursText) !== h) {
-      setDurationHoursText(h ? String(h) : "");
+      setDurationHoursText(String(h));
     }
     if (Number(durationMinutesText) !== m) {
-      setDurationMinutesText(m ? String(m) : "");
+      setDurationMinutesText(String(m));
     }
   }, [durationTimeValue]);
 
@@ -71,10 +84,10 @@ export default function TimePartitionForm({
     const m = travelTimeValue % 60;
 
     if (Number(travelHoursText) !== h) {
-      setTravelHoursText(h ? String(h) : "");
+      setTravelHoursText(String(h));
     }
     if (Number(travelMinutesText) !== m) {
-      setTravelMinutesText(m ? String(m) : "");
+      setTravelMinutesText(String(m));
     }
   }, [travelTimeValue]);
 
@@ -110,6 +123,46 @@ export default function TimePartitionForm({
     onSetTravelTime(currentH * 60 + m);
   };
 
+  const handleToggleRestriction = (val: boolean) => {
+    if (val) {
+      onSetPreferredStartTime(540); // 09:00 default
+      onSetPreferredEndTime(660);   // 11:00 default
+    } else {
+      onSetPreferredStartTime(null);
+      onSetPreferredEndTime(null);
+    }
+  };
+
+  const minutesToTimeStr = (minutes: number | null): string => {
+    if (minutes === null) return "00:00";
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    const hStr = h < 10 ? `0${h}` : `${h}`;
+    const mStr = m < 10 ? `0${m}` : `${m}`;
+    return `${hStr}:${mStr}`;
+  };
+
+  const minutesToDateObject = (minutes: number | null): Date => {
+    const d = new Date();
+    if (minutes === null) {
+      d.setHours(0, 0, 0, 0);
+    } else {
+      d.setHours(Math.floor(minutes / 60), minutes % 60, 0, 0);
+    }
+    return d;
+  };
+
+  const formatWindowDuration = (start: number, end: number) => {
+    const diff = end - start;
+    if (diff <= 0) return "0min";
+    const h = Math.floor(diff / 60);
+    const m = diff % 60;
+    if (h === 0) return `${m}min`;
+    return m === 0 ? `${h}h` : `${h}h ${m}min`;
+  };
+
+  const isRestricted = preferredStartTime !== null && preferredEndTime !== null;
+
   return (
     <View style={styles.card}>
       <View style={styles.headerRow}>
@@ -119,9 +172,17 @@ export default function TimePartitionForm({
           <Text style={styles.addButtonText}>Añadir bloque</Text>
         </TouchableOpacity>
       </View>
-      <Text style={styles.helperText}>
-        Si Realizas esta actividad en más de un momento el mismo día (Ej: mañana y tarde), Añade otros bloques para configurarlos.
-      </Text>
+      {showHelper && (
+        <View style={styles.helperCard}>
+          <Ionicons name="bulb-outline" size={18} color="#8dccff" style={styles.helperIcon} />
+          <Text style={styles.helperText}>
+            Si realizas esta actividad más de una vez en el mismo día (ej. mañana y tarde), puedes añadir otros bloques para configurarlos.
+          </Text>
+          <TouchableOpacity onPress={() => setShowHelper(false)} hitSlop={12}>
+            <Ionicons name="close" size={18} color={Theme.colors.textTertiary} />
+          </TouchableOpacity>
+        </View>
+      )}
 
       <View style={styles.segmentTabs}>
         {partitions.map((_, index) => (
@@ -257,6 +318,139 @@ export default function TimePartitionForm({
           <Text style={styles.timeInputLabel}>Minutos</Text>
         </View>
       </View>
+
+      {!isFixed && (
+        <View style={styles.restrictionSection}>
+          <View style={styles.divider} />
+
+          <View style={styles.switchRow}>
+            <View style={{ flex: 1, paddingRight: 8 }}>
+              <Text style={styles.restrictionTitle}>Restringir horario</Text>
+              <Text style={styles.restrictionSubtitle}>
+                Restringe esta actividad dentro de un rango de horas preferido
+              </Text>
+            </View>
+            <Switch
+              value={isRestricted}
+              onValueChange={handleToggleRestriction}
+              disabled={durationTimeValue >= 1440}
+              trackColor={{ false: "#525576", true: Theme.comfyColors.green }}
+              thumbColor={Theme.colors.surface}
+            />
+          </View>
+
+          {isRestricted && (
+            <View style={styles.restrictionDetails}>
+              <View style={styles.timeRangePickerRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.timeLabel}>Desde</Text>
+                  <TouchableOpacity
+                    style={styles.timeSelectorBtn}
+                    onPress={() => {
+                      setShowPrefStartPicker(true);
+                      setShowPrefEndPicker(false);
+                    }}
+                  >
+                    <Ionicons name="time-outline" size={20} color={Theme.colors.surface} />
+                    <Text style={styles.timeSelectorText}>
+                      {minutesToTimeStr(preferredStartTime)}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={{ width: 16, alignItems: 'center', justifyContent: 'center', marginTop: 24 }}>
+                  <Text style={{ color: Theme.colors.textSecondary }}>—</Text>
+                </View>
+
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.timeLabel}>Hasta</Text>
+                  <TouchableOpacity
+                    style={styles.timeSelectorBtn}
+                    onPress={() => {
+                      setShowPrefEndPicker(true);
+                      setShowPrefStartPicker(false);
+                    }}
+                  >
+                    <Ionicons name="time-outline" size={20} color={Theme.colors.surface} />
+                    <Text style={styles.timeSelectorText}>
+                      {minutesToTimeStr(preferredEndTime)}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {showPrefStartPicker && (
+                <View style={styles.pickerContainer}>
+                  <DateTimePicker
+                    value={minutesToDateObject(preferredStartTime)}
+                    mode="time"
+                    display="spinner"
+                    themeVariant="dark"
+                    textColor={Theme.colors.surface}
+                    onChange={(_, selectedDate) => {
+                      if (selectedDate) {
+                        const mins = selectedDate.getHours() * 60 + selectedDate.getMinutes();
+                        onSetPreferredStartTime(mins);
+                      }
+                      if (Platform.OS !== "ios") setShowPrefStartPicker(false);
+                    }}
+                  />
+                  {Platform.OS === "ios" && (
+                    <TouchableOpacity
+                      style={styles.doneBtn}
+                      onPress={() => setShowPrefStartPicker(false)}
+                    >
+                      <Text style={styles.doneText}>Aceptar</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+
+              {showPrefEndPicker && (
+                <View style={styles.pickerContainer}>
+                  <DateTimePicker
+                    value={minutesToDateObject(preferredEndTime)}
+                    mode="time"
+                    display="spinner"
+                    themeVariant="dark"
+                    textColor={Theme.colors.surface}
+                    onChange={(_, selectedDate) => {
+                      if (selectedDate) {
+                        const mins = selectedDate.getHours() * 60 + selectedDate.getMinutes();
+                        onSetPreferredEndTime(mins);
+                      }
+                      if (Platform.OS !== "ios") setShowPrefEndPicker(false);
+                    }}
+                  />
+                  {Platform.OS === "ios" && (
+                    <TouchableOpacity
+                      style={styles.doneBtn}
+                      onPress={() => setShowPrefEndPicker(false)}
+                    >
+                      <Text style={styles.doneText}>Aceptar</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+
+              <View style={styles.windowInfoContainer}>
+                {preferredEndTime! - preferredStartTime! < durationTimeValue ? (
+                  <View style={styles.warningContainer}>
+                    <Ionicons name="warning" size={16} color={Theme.colors.error} />
+                    <Text style={styles.warningText}>
+                      La ventana seleccionada ({preferredEndTime! - preferredStartTime!} min) es más corta que la duración estimada ({durationTimeValue} min)
+                    </Text>
+                  </View>
+                ) : (
+                  <Text style={styles.windowLengthText}>
+                    Ventana: {formatWindowDuration(preferredStartTime!, preferredEndTime!)}
+                  </Text>
+                )}
+              </View>
+            </View>
+          )}
+        </View>
+      )}
     </View>
   );
 }
@@ -292,13 +486,28 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "800",
   },
+  helperCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(141, 204, 255, 0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(141, 204, 255, 0.15)",
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    gap: 8,
+    marginTop: -4,
+    marginBottom: 8,
+  },
+  helperIcon: {
+    marginTop: 1,
+  },
   helperText: {
-    color: Theme.colors.iconPrimary,
-    fontSize: 10,
+    flex: 1,
+    color: Theme.colors.textSecondary,
+    fontSize: 12,
     fontWeight: "600",
-    lineHeight: 16,
-    marginTop: -8,
-    marginBottom: 4,
+    lineHeight: 17,
   },
   segmentTabs: {
     flexDirection: "row",
@@ -420,5 +629,108 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "800",
     marginLeft: 8,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: Theme.colors.cardBorder,
+    marginVertical: 14,
+    opacity: 0.5,
+  },
+  restrictionSection: {
+    marginTop: 8,
+  },
+  switchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  restrictionTitle: {
+    color: Theme.colors.surface,
+    fontSize: 16,
+    fontWeight: "800",
+  },
+  restrictionSubtitle: {
+    color: Theme.colors.textSecondary,
+    fontSize: 11,
+    fontWeight: "500",
+    marginTop: 2,
+    lineHeight: 15,
+  },
+  restrictionDetails: {
+    marginTop: 16,
+    gap: 12,
+  },
+  timeRangePickerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  timeLabel: {
+    color: Theme.colors.textSecondary,
+    fontSize: 12,
+    fontWeight: "700",
+    marginBottom: 6,
+  },
+  timeSelectorBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: Theme.colors.screenBackground,
+    borderColor: Theme.colors.cardBorder,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  timeSelectorText: {
+    color: Theme.colors.surface,
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  pickerContainer: {
+    backgroundColor: Theme.colors.screenBackground,
+    borderRadius: 16,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: Theme.colors.cardBorder,
+    marginTop: 4,
+  },
+  doneBtn: {
+    alignSelf: "flex-end",
+    backgroundColor: Theme.comfyColors.green,
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    marginTop: 8,
+  },
+  doneText: {
+    color: Theme.comfyFontColors.green,
+    fontWeight: "800",
+    fontSize: 12,
+  },
+  windowInfoContainer: {
+    marginTop: 4,
+  },
+  windowLengthText: {
+    color: Theme.comfyColors.green,
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  warningContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "rgba(255, 77, 77, 0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 77, 77, 0.2)",
+    borderRadius: 10,
+    padding: 10,
+  },
+  warningText: {
+    color: Theme.colors.error,
+    fontSize: 12,
+    fontWeight: "700",
+    flex: 1,
+    lineHeight: 16,
   },
 });

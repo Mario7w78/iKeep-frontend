@@ -52,7 +52,7 @@ export default function DaySelectionStep({
         />
       </View>
       <Text style={styles.heroTitle}>Selección de días</Text>
-      <Text style={styles.heroSubtitle}>¿Qué días tenés esta actividad?</Text>
+      <Text style={styles.heroSubtitle}>¿Qué días tienes esta actividad?</Text>
 
       <View style={styles.infoCard}>
         <Ionicons
@@ -69,7 +69,7 @@ export default function DaySelectionStep({
         <View style={styles.sectionHeader}>
           <Ionicons name="albums-outline" size={18} color={Theme.colors.iconPrimary} />
           <Text style={styles.sectionHeaderText}>
-            Tenés {Object.keys(groups).length} grupo
+            Tienes {Object.keys(groups).length} grupo
             {Object.keys(groups).length > 1 ? "s" : ""} configurado
             {Object.keys(groups).length > 1 ? "s" : ""}
           </Text>

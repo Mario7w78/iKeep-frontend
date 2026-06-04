@@ -180,12 +180,16 @@ export default function HomeView() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.content}
       >
-        <View style={styles.headerContainer}>
-          <View style={styles.sapoWrapper}>
+        <View style={styles.header}>
+          <View style={styles.mascot}>
             <Image
               source={{ uri: SAPO_BASE64 }}
-              style={styles.sapoIcon}
+              style={styles.sapoMascotImage}
             />
+          </View>
+          <View>
+            <Text style={styles.title}>Hola, Mario. Tu día está listo.</Text>
+            <Text style={styles.date}>{dayFormatter.format(new Date())}</Text>
           </View>
         </View>
 
@@ -321,23 +325,38 @@ const styles = StyleSheet.create({
     paddingTop: 28,
     paddingBottom: 112,
   },
-  headerContainer: {
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    marginBottom: 28,
+  },
+  mascot: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 28,
-    marginTop: 10,
+    backgroundColor: "rgba(141, 255, 104, 0.14)",
+    shadowColor: Theme.comfyColors.green,
+    shadowOpacity: 0.45,
+    shadowRadius: 18,
   },
-  sapoWrapper: {
-    shadowColor: "#8dff68",
-    shadowOpacity: 0.5,
-    shadowRadius: 15,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 8,
-  },
-  sapoIcon: {
-    width: 90,
-    height: 96,
+  sapoMascotImage: {
+    width: 38,
+    height: 40,
     resizeMode: "contain",
+  },
+  title: {
+    color: Theme.colors.surface,
+    fontSize: 20,
+    fontStyle: "italic",
+    fontWeight: "800",
+  },
+  date: {
+    color: Theme.colors.textTertiary,
+    fontSize: 14,
+    marginTop: 2,
   },
   energyCard: {
     minHeight: 200,

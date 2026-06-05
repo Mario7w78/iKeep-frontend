@@ -1,4 +1,5 @@
 import { create, StoreApi, UseBoundStore } from 'zustand';
+import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Schedule, ScheduleProps } from '../../domain/entities/Schedule';
 import { Activity, DayOfWeek } from '../../domain/entities/Activity';
@@ -163,8 +164,12 @@ export function createScheduleStore(
         const generated = await generateScheduleUseCase.execute(startHour, endHour, options);
         set({ schedule: generated });
         await saveScheduleToStorage(generated);
-      } catch (e) {
+      } catch (e: any) {
         console.error('Error generando horario:', e);
+        Alert.alert(
+          'Error al generar horario',
+          e instanceof Error ? e.message : String(e)
+        );
       } finally {
         set({ isLoading: false });
       }

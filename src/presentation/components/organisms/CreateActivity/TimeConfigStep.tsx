@@ -99,7 +99,6 @@ export default function TimeConfigStep({
       {/* Group Tabs Selection */}
       {Object.keys(groups).length > 1 && (
         <View style={styles.tabsWrapper}>
-          <Text style={styles.tabsLabel}>Grupos de días:</Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -128,7 +127,7 @@ export default function TimeConfigStep({
 
       <View style={styles.dayConfigHeader}>
         <View style={styles.dayConfigTextBlock}>
-          <Text style={styles.headerContextLabel}>Días en este grupo:</Text>
+          <Text style={styles.headerContextLabel}>Día:</Text>
           <View style={styles.chipsRow}>
             {displayDays.map((day) => {
               return (

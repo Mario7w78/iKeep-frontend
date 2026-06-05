@@ -47,7 +47,7 @@ export default function SummaryStep({
     const dailyTravel = config.partitions.reduce((sum, p) => sum + p.travelTime, 0);
 
     totalActivityMinutes += dailyDuration * daysCount;
-    totalTravelMinutes += (dailyTravel * 2) * daysCount; // Consider round-trip (ida y vuelta)
+    totalTravelMinutes += dailyTravel * daysCount;
   });
 
   const formatTimeSummary = (minutes: number) => {
@@ -161,7 +161,7 @@ export default function SummaryStep({
         
         {totalTravelMinutes > 0 && (
           <View style={styles.timeBreakdownRow}>
-            <Text style={styles.timeBreakdownText}>Traslado (Ida y vuelta):</Text>
+            <Text style={styles.timeBreakdownText}>Traslado:</Text>
             <Text style={styles.timeBreakdownValue}>{formatTimeSummary(totalTravelMinutes)}</Text>
           </View>
         )}

@@ -9,12 +9,12 @@ import {
   PanResponder,
   Pressable,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 import { DayOfWeek } from "../../../../domain/entities/Activity";
 import { Theme } from "../../../components/theme/colors";
-import PopUpAlert from "../../../components/atoms/Common/PopUpAlert";
 
 import useFrequency from "../../../hooks/useFrequency";
 import useTimeForm from "../../../hooks/useTimeForm";
@@ -41,8 +41,6 @@ const WEEKDAY_ORDER: DayOfWeek[] = [
 ];
 
 export default function CreateActivityView({ navigation, route }: any) {
-  const [shouldPopUpAlert, setShouldPopUpAlert] = useState(false);
-  const [alertText, setAlertText] = useState("");
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const translateY = useRef(new Animated.Value(SHEET_HEIGHT)).current;
@@ -92,8 +90,7 @@ export default function CreateActivityView({ navigation, route }: any) {
   ).current;
 
   const showAlert = (text: string) => {
-    setAlertText(text);
-    setShouldPopUpAlert(true);
+    Alert.alert("Atención", text);
   };
 
   const {
@@ -232,8 +229,6 @@ export default function CreateActivityView({ navigation, route }: any) {
         !validatePartitions(
           partitions,
           selectedDays,
-          setAlertText,
-          setShouldPopUpAlert,
         )
       ) {
         return;
@@ -247,8 +242,6 @@ export default function CreateActivityView({ navigation, route }: any) {
           preferredStartTime,
           preferredEndTime,
           durationTimeValue,
-          setAlertText,
-          setShouldPopUpAlert,
         )
       ) {
         return;
@@ -317,8 +310,6 @@ export default function CreateActivityView({ navigation, route }: any) {
         !validatePartitions(
           config.partitions,
           [day],
-          setAlertText,
-          setShouldPopUpAlert,
         )
       ) {
         setStep(4);
@@ -333,8 +324,6 @@ export default function CreateActivityView({ navigation, route }: any) {
           preferredStartTime,
           preferredEndTime,
           durationTimeValue,
-          setAlertText,
-          setShouldPopUpAlert,
         )
       ) {
         setStep(4);
@@ -358,8 +347,6 @@ export default function CreateActivityView({ navigation, route }: any) {
       await handleSaveActivity({
         daysDict,
         selectedDays,
-        setAlertText,
-        setShouldPopUpAlert,
       });
       navigation.navigate("MainTabs", { screen: "Schedule" });
     } catch (e) {
@@ -549,11 +536,7 @@ export default function CreateActivityView({ navigation, route }: any) {
         </View>
       </Animated.View>
 
-      <PopUpAlert
-        text={alertText}
-        isVisible={shouldPopUpAlert}
-        onClose={() => setShouldPopUpAlert(false)}
-      />
+
 
       {isLoading && (
         <View style={styles.loadingOverlay}>

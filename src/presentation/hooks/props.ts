@@ -16,6 +16,4 @@ export type editGroupProps = {
 export type saveActivityProps = {
     daysDict: Partial<Record<DayOfWeek, DayConfig>>,
     selectedDays: DayOfWeek[],
-    setAlertText: React.Dispatch<React.SetStateAction<string>>,
-    setShouldPopUpAlert: React.Dispatch<React.SetStateAction<boolean>>, 
 }

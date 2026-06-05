@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { Alert } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { DayOfWeek } from "../../domain/entities/Activity";
 import { calculateEndTime, areOverlapping, dateToMinutes, formatTime } from "../../presentation/utils/timeUtils";
@@ -184,8 +185,6 @@ export default function useTimeForm() {
   const validatePartitions = (
     parts: PartitionConfig[],
     days: DayOfWeek[],
-    setAlert: (t: string) => void,
-    showAlertFlag: (b: boolean) => void,
   ): boolean => {
     if (isFixed) {
       for (let i = 0; i < parts.length; i++) {
@@ -195,10 +194,10 @@ export default function useTimeForm() {
           const sMin2 = dateToMinutes(new Date(parts[j].startHour));
           const eMin2 = dateToMinutes(new Date(parts[j].endHour));
           if (areOverlapping(sMin, eMin, sMin2, eMin2)) {
-            setAlert(
-              `Los bloques horarios para el día ${days.join(", ")} no pueden superponerse.`,
+            Alert.alert(
+              "Atención",
+              `Los bloques horarios para el día ${days.join(", ")} no pueden superponerse.`
             );
-            showAlertFlag(true);
             return false;
           }
         }
@@ -228,8 +227,6 @@ export default function useTimeForm() {
     prefStart: number | null,
     prefEnd: number | null,
     duration: number,
-    setAlert: (t: string) => void,
-    showAlertFlag: (b: boolean) => void,
   ): boolean => {
     const schedule = useScheduleStore.getState().schedule;
     if (!schedule) return true;
@@ -250,10 +247,10 @@ export default function useTimeForm() {
             const itemEnd = timeStrToMinutes(item.assignedEndTime);
 
             if (partStart < itemEnd && partEnd > itemStart) {
-              setAlert(
+              Alert.alert(
+                "Conflicto de Horario",
                 `El horario del día ${day} (${formatTime(part.startHour)} - ${formatTime(part.endHour)}) se superpone con la actividad ya establecida "${item.activity.title}" (${item.assignedStartTime} - ${item.assignedEndTime}).`
               );
-              showAlertFlag(true);
               return false;
             }
           }
@@ -283,10 +280,10 @@ export default function useTimeForm() {
             const overlapText = overlappingActivities.length > 0
               ? ` debido a la superposición con: ${overlappingActivities.join(", ")}`
               : "";
-            setAlert(
+            Alert.alert(
+              "Conflicto de Horario",
               `La ventana preferida el día ${day} (${minutesToTimeStr(prefStart)} - ${minutesToTimeStr(prefEnd)}) no deja suficiente tiempo libre para realizar la actividad (${duration} min)${overlapText}.`
             );
-            showAlertFlag(true);
             return false;
           }
         }
@@ -298,26 +295,21 @@ export default function useTimeForm() {
   const handleSaveActivity = async ({
     daysDict,
     selectedDays,
-    setAlertText,
-    setShouldPopUpAlert,
   }: saveActivityProps) => {
     const configuredDays = Object.keys(daysDict) as DayOfWeek[];
 
     if (!activityName.trim()) {
-      setAlertText("Ingresa un nombre para la actividad");
-      setShouldPopUpAlert(true);
+      Alert.alert("Atención", "Ingresa un nombre para la actividad");
       return;
     }
 
     if (configuredDays.length === 0) {
-      setAlertText("Guarda la configuración de al menos un día");
-      setShouldPopUpAlert(true);
+      Alert.alert("Atención", "Guarda la configuración de al menos un día");
       return;
     }
 
     if (selectedDays.length > 0) {
-      setAlertText(`Guarda la configuración de: ${selectedDays.join(", ")}`);
-      setShouldPopUpAlert(true);
+      Alert.alert("Atención", `Guarda la configuración de: ${selectedDays.join(", ")}`);
       return;
     }
 
@@ -328,8 +320,6 @@ export default function useTimeForm() {
         !validatePartitions(
           config.partitions,
           [day],
-          setAlertText,
-          setShouldPopUpAlert,
         )
       ) {
         return;
@@ -346,8 +336,7 @@ export default function useTimeForm() {
     if (preferredStartTime !== null && preferredEndTime !== null) {
       const durationVal = durationTimeValue;
       if (preferredEndTime - preferredStartTime < durationVal) {
-        setAlertText(`La ventana seleccionada es más corta que la duración estimada de la actividad.`);
-        setShouldPopUpAlert(true);
+        Alert.alert("Atención", `La ventana seleccionada es más corta que la duración estimada de la actividad.`);
         return;
       }
     }

@@ -9,6 +9,7 @@ import { saveActivityProps } from "./props";
 
 export default function useTimeForm() {
   const [activityName, setActivityName] = useState("");
+  const [activityId, setActivityId] = useState<string | null>(null);
   const [isFixed, setIsFixed] = useState(true);
   const [identity, setIdentity] = useState<"clase" | "trabajo" | "tarea">("clase");
   const [priority, setPriority] = useState<"baja" | "media" | "alta">("media");
@@ -206,6 +207,94 @@ export default function useTimeForm() {
     return true;
   };
 
+  const timeStrToMinutes = (timeStr: string): number => {
+    const [h, m] = timeStr.split(":").map(Number);
+    return h * 60 + m;
+  };
+
+  const minutesToTimeStr = (minutes: number): string => {
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    const hStr = h < 10 ? `0${h}` : `${h}`;
+    const mStr = m < 10 ? `0${m}` : `${m}`;
+    return `${hStr}:${mStr}`;
+  };
+
+  const validateOverlapWithSchedule = (
+    currentId: string | null,
+    isFixedActivity: boolean,
+    days: DayOfWeek[],
+    parts: PartitionConfig[],
+    prefStart: number | null,
+    prefEnd: number | null,
+    duration: number,
+    setAlert: (t: string) => void,
+    showAlertFlag: (b: boolean) => void,
+  ): boolean => {
+    const schedule = useScheduleStore.getState().schedule;
+    if (!schedule) return true;
+
+    for (const day of days) {
+      const scheduledItems = schedule.getItemsByDay(day);
+      const otherItems = scheduledItems.filter(
+        (item) => item.activity.id !== currentId
+      );
+
+      if (isFixedActivity) {
+        for (const part of parts) {
+          const partStart = dateToMinutes(new Date(part.startHour));
+          const partEnd = dateToMinutes(new Date(part.endHour));
+
+          for (const item of otherItems) {
+            const itemStart = timeStrToMinutes(item.assignedStartTime);
+            const itemEnd = timeStrToMinutes(item.assignedEndTime);
+
+            if (partStart < itemEnd && partEnd > itemStart) {
+              setAlert(
+                `El horario del día ${day} (${formatTime(part.startHour)} - ${formatTime(part.endHour)}) se superpone con la actividad ya establecida "${item.activity.title}" (${item.assignedStartTime} - ${item.assignedEndTime}).`
+              );
+              showAlertFlag(true);
+              return false;
+            }
+          }
+        }
+      } else {
+        if (prefStart !== null && prefEnd !== null) {
+          let blockedMinutes = 0;
+          let overlappingActivities: string[] = [];
+
+          for (const item of otherItems) {
+            const itemStart = timeStrToMinutes(item.assignedStartTime);
+            const itemEnd = timeStrToMinutes(item.assignedEndTime);
+
+            const overlapStart = Math.max(prefStart, itemStart);
+            const overlapEnd = Math.min(prefEnd, itemEnd);
+
+            if (overlapStart < overlapEnd) {
+              blockedMinutes += (overlapEnd - overlapStart);
+              overlappingActivities.push(`"${item.activity.title}" (${item.assignedStartTime} - ${item.assignedEndTime})`);
+            }
+          }
+
+          const totalWindowMinutes = prefEnd - prefStart;
+          const freeMinutes = totalWindowMinutes - blockedMinutes;
+
+          if (freeMinutes < duration) {
+            const overlapText = overlappingActivities.length > 0
+              ? ` debido a la superposición con: ${overlappingActivities.join(", ")}`
+              : "";
+            setAlert(
+              `La ventana preferida el día ${day} (${minutesToTimeStr(prefStart)} - ${minutesToTimeStr(prefEnd)}) no deja suficiente tiempo libre para realizar la actividad (${duration} min)${overlapText}.`
+            );
+            showAlertFlag(true);
+            return false;
+          }
+        }
+      }
+    }
+    return true;
+  };
+
   const handleSaveActivity = async ({
     daysDict,
     selectedDays,
@@ -267,6 +356,7 @@ export default function useTimeForm() {
     const finalDifficulty = isFixed ? "media" : difficulty;
 
     await handleCreateActivity({
+      id: activityId || undefined,
       activityName,
       isFixed,
       identity,
@@ -298,6 +388,8 @@ export default function useTimeForm() {
   };
 
   return {
+    activityId,
+    setActivityId,
     activityName,
     isFixed,
     identity,
@@ -330,6 +422,7 @@ export default function useTimeForm() {
     handleSubGeneric,
     updateTime,
     validatePartitions,
+    validateOverlapWithSchedule,
     handleSaveActivity,
     setPartitions,
     setActivePartitionIndex,

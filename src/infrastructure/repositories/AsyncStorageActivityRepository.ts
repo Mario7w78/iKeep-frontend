@@ -8,7 +8,12 @@ export class AsyncStorageActivityRepository implements ActivityRepository {
 
     async save(activity: Activity): Promise<void> {
         const all = await this.getAll();
-        all.push(activity);
+        const index = all.findIndex(a => a.id === activity.id);
+        if (index >= 0) {
+            all[index] = activity;
+        } else {
+            all.push(activity);
+        }
         await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(all));
     }
 

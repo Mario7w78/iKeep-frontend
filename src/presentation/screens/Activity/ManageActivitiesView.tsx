@@ -85,9 +85,20 @@ export default function ManageActivitiesView({ navigation }: any) {
                 </View>
               </View>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.deleteButton} onPress={() => onDelete(item.id, item.title)}>
-              <Ionicons name="trash-outline" size={22} color={Theme.colors.error} />
-            </TouchableOpacity>
+            <View style={styles.actionButtonsCol}>
+              <TouchableOpacity
+                style={styles.editButton}
+                onPress={() => navigation.navigate("CreateActivityModal", { activity: item })}
+              >
+                <Ionicons name="create-outline" size={22} color={Theme.colors.iconPrimary} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={() => onDelete(item.id, item.title)}
+              >
+                <Ionicons name="trash-outline" size={22} color={Theme.colors.error} />
+              </TouchableOpacity>
+            </View>
           </View>
         )}
         ListEmptyComponent={
@@ -179,6 +190,16 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 12,
     backgroundColor: "rgba(255, 77, 77, 0.1)",
+  },
+  actionButtonsCol: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  editButton: {
+    padding: 8,
+    borderRadius: 12,
+    backgroundColor: "rgba(174, 190, 255, 0.1)",
   },
   emptyContainer: {
     alignItems: "center",

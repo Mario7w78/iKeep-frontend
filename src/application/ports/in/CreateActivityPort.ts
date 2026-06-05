@@ -2,6 +2,7 @@ import { DayOfWeek } from "../../../domain/entities/Activity";
 import { DayConfig } from "../../../domain/entities/activity.types";
 
 export interface CreateActivityCommand {
+  id?: string;
   activityName: string;
   isFixed: boolean;
   identity: "clase" | "trabajo" | "tarea";

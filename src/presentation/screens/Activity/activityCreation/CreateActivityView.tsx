@@ -40,7 +40,7 @@ const WEEKDAY_ORDER: DayOfWeek[] = [
   "Domingo",
 ];
 
-export default function CreateActivityView({ navigation }: any) {
+export default function CreateActivityView({ navigation, route }: any) {
   const [shouldPopUpAlert, setShouldPopUpAlert] = useState(false);
   const [alertText, setAlertText] = useState("");
   const [step, setStep] = useState(1);
@@ -108,9 +108,13 @@ export default function CreateActivityView({ navigation }: any) {
     handleDiscardGroup,
     setEditingGroupId,
     setSelectedDays,
+    setDaysDict,
+    setNextGroupId,
   } = useFrequency();
 
   const {
+    activityId,
+    setActivityId,
     activityName,
     isFixed,
     identity,
@@ -134,6 +138,7 @@ export default function CreateActivityView({ navigation }: any) {
     setDurationTime,
     setTravelTime,
     validatePartitions,
+    validateOverlapWithSchedule,
     handleSaveActivity,
     setPartitions,
     setActivePartitionIndex,
@@ -145,6 +150,25 @@ export default function CreateActivityView({ navigation }: any) {
     setPreferredStartTime,
     setPreferredEndTime,
   } = useTimeForm();
+
+  useEffect(() => {
+    if (route.params?.activity) {
+      const act = route.params.activity;
+      setActivityId(act.id);
+      setActivityName(act.title);
+      setIsFixed(act.isFixed());
+      setIdentity(act.identity);
+      setPriority(act.priority === 5 ? "alta" : act.priority === 3 ? "media" : "baja");
+      setDifficulty(act.difficulty);
+      setDeadline(act.deadline ? new Date(act.deadline) : null);
+      setPreferredStartTime(act.preferredStartTime ?? null);
+      setPreferredEndTime(act.preferredEndTime ?? null);
+      setDaysDict(act.daysConfig || {});
+      
+      const maxGroupId = Math.max(...Object.values(act.daysConfig || {}).map((cfg: any) => cfg?.groupId ?? 0), 0);
+      setNextGroupId(maxGroupId + 1);
+    }
+  }, [route.params?.activity]);
 
   const displayTotal = isFixed ? 4 : 5;
   const displayStep = useMemo(() => {
@@ -214,6 +238,21 @@ export default function CreateActivityView({ navigation }: any) {
       ) {
         return;
       }
+      if (
+        !validateOverlapWithSchedule(
+          activityId,
+          isFixed,
+          selectedDays,
+          partitions,
+          preferredStartTime,
+          preferredEndTime,
+          durationTimeValue,
+          setAlertText,
+          setShouldPopUpAlert,
+        )
+      ) {
+        return;
+      }
       const wasEditing = editingGroupId !== null;
       const hadConfiguredDays = configuredDays.length > 0;
       handleUpdateFrequency({ partitions });
@@ -271,13 +310,29 @@ export default function CreateActivityView({ navigation }: any) {
       return;
     }
 
-    // Validate partitions
+    // Validate partitions and overlaps
     for (const day of configuredDays) {
       const config = daysDict[day]!;
       if (
         !validatePartitions(
           config.partitions,
           [day],
+          setAlertText,
+          setShouldPopUpAlert,
+        )
+      ) {
+        setStep(4);
+        return;
+      }
+      if (
+        !validateOverlapWithSchedule(
+          activityId,
+          isFixed,
+          [day],
+          config.partitions,
+          preferredStartTime,
+          preferredEndTime,
+          durationTimeValue,
           setAlertText,
           setShouldPopUpAlert,
         )
@@ -432,11 +487,11 @@ export default function CreateActivityView({ navigation }: any) {
         }
         return configuredDays.length > 0 ? "Guardar y configurar otro día" : "Guardar y ver resumen";
       case 5:
-        return "Crear actividad";
+        return activityId ? "Guardar cambios" : "Crear actividad";
       default:
         return "Continuar";
     }
-  }, [step, selectedDays, configuredDays, editingGroupId]);
+  }, [step, selectedDays, configuredDays, editingGroupId, activityId]);
 
   return (
     <View style={styles.container}>
@@ -450,7 +505,7 @@ export default function CreateActivityView({ navigation }: any) {
 
         <View style={styles.header}>
           <View>
-            <Text style={styles.title}>Nueva Actividad</Text>
+            <Text style={styles.title}>{activityId ? "Editar Actividad" : "Nueva Actividad"}</Text>
             <Text style={styles.stepText}>
               Paso {displayStep} de {displayTotal}
             </Text>

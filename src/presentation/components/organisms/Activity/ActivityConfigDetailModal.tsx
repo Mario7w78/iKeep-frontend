@@ -10,6 +10,7 @@ import {
   Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
 import { Activity, DayOfWeek } from "../../../../domain/entities/Activity";
 import { DayConfig } from "../../../../domain/entities/activity.types";
 import { Theme } from "../../theme/colors";
@@ -27,6 +28,8 @@ export function ActivityConfigDetailModal({
   activity,
   onClose,
 }: ActivityConfigDetailModalProps) {
+  const navigation = useNavigation<any>();
+
   if (!activity) return null;
 
   const getIdentityIcon = (identity: string) => {
@@ -479,13 +482,26 @@ export function ActivityConfigDetailModal({
             </View>
           </ScrollView>
 
-          <TouchableOpacity
-            style={styles.actionButton}
-            activeOpacity={0.8}
-            onPress={onClose}
-          >
-            <Text style={styles.actionButtonText}>Entendido</Text>
-          </TouchableOpacity>
+          <View style={styles.buttonRow}>
+            <TouchableOpacity
+              style={[styles.actionButton, styles.editButtonSecondary]}
+              activeOpacity={0.8}
+              onPress={() => {
+                onClose();
+                navigation.navigate("CreateActivityModal", { activity });
+              }}
+            >
+              <Ionicons name="create-outline" size={20} color={Theme.colors.surface} />
+              <Text style={[styles.actionButtonText, { color: Theme.colors.surface }]}>Editar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.actionButton, styles.closeButtonSecondary]}
+              activeOpacity={0.8}
+              onPress={onClose}
+            >
+              <Text style={styles.actionButtonText}>Entendido</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     </Modal>
@@ -739,7 +755,6 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   actionButton: {
-    backgroundColor: Theme.comfyColors.green,
     borderRadius: 18,
     height: 52,
     alignItems: "center",
@@ -750,5 +765,20 @@ const styles = StyleSheet.create({
     color: Theme.comfyFontColors.green,
     fontSize: 16,
     fontWeight: "900",
+  },
+  buttonRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 8,
+  },
+  editButtonSecondary: {
+    flex: 1,
+    flexDirection: "row",
+    gap: 8,
+    backgroundColor: "#5665dc",
+  },
+  closeButtonSecondary: {
+    flex: 1.2,
+    backgroundColor: Theme.colors.cardBorder,
   },
 });

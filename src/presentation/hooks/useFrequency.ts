@@ -1,5 +1,4 @@
 import { useState, useCallback } from 'react';
-import { useFocusEffect } from '@react-navigation/native';
 import { DayOfWeek } from '../../domain/entities/Activity';
 import { DayConfig } from '../../domain/entities/activity.types';
 import { frequencyProps, editGroupProps } from './props';
@@ -79,6 +78,32 @@ export default function useFrequency() {
         }
     };
 
+    const decoupleDay = useCallback((day: DayOfWeek) => {
+        setDaysDict(prev => {
+            const config = prev[day];
+            if (!config) return prev;
+
+            // Count how many days share this groupId
+            const groupDays = (Object.keys(prev) as DayOfWeek[]).filter(
+                d => prev[d]?.groupId === config.groupId
+            );
+
+            if (groupDays.length <= 1) return prev; // Already decoupled or unique
+
+            const newGroupId = nextGroupId;
+            setNextGroupId(p => p + 1);
+
+            return {
+                ...prev,
+                [day]: {
+                    ...config,
+                    groupId: newGroupId,
+                    partitions: config.partitions.map(p => ({ ...p })), // clone partitions
+                }
+            };
+        });
+    }, [nextGroupId]);
+
     const isDayConfigured = (day: DayOfWeek) => !!daysDict[day];
     const groups = getGroups();
 
@@ -97,5 +122,6 @@ export default function useFrequency() {
         handleDiscardGroup,
         handleSelect,
         isDayConfigured,
+        decoupleDay,
     };
 }

@@ -14,6 +14,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 
 import { DayOfWeek } from "../../../../domain/entities/Activity";
+import { calculateEndTime } from "../../../utils/timeUtils";
 import { Theme } from "../../../components/theme/colors";
 
 import useFrequency from "../../../hooks/useFrequency";
@@ -21,12 +22,11 @@ import useTimeForm from "../../../hooks/useTimeForm";
 
 import ProgressIndicator from "../../../components/atoms/CreateActivity/ProgressIndicator";
 import NameIdentityStep from "../../../components/organisms/CreateActivity/NameIdentityStep";
-import PriorityDeadlineStep from "../../../components/organisms/CreateActivity/PriorityDeadlineStep";
 import DaySelectionStep from "../../../components/organisms/CreateActivity/DaySelectionStep";
 import TimeConfigStep from "../../../components/organisms/CreateActivity/TimeConfigStep";
 import SummaryStep from "../../../components/organisms/CreateActivity/SummaryStep";
 
-const TOTAL_STEPS = 5;
+const TOTAL_STEPS = 4;
 const SHEET_HEIGHT = Dimensions.get("window").height * 0.88;
 const DISMISS_DISTANCE = 130;
 
@@ -43,7 +43,9 @@ const WEEKDAY_ORDER: DayOfWeek[] = [
 export default function CreateActivityView({ navigation, route }: any) {
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
+  const [activeGroupId, setActiveGroupId] = useState<number | null>(null);
   const translateY = useRef(new Animated.Value(SHEET_HEIGHT)).current;
+  
   const backdropOpacity = translateY.interpolate({
     inputRange: [0, SHEET_HEIGHT],
     outputRange: [1, 0],
@@ -107,6 +109,8 @@ export default function CreateActivityView({ navigation, route }: any) {
     setSelectedDays,
     setDaysDict,
     setNextGroupId,
+    nextGroupId,
+    decoupleDay,
   } = useFrequency();
 
   const {
@@ -148,6 +152,7 @@ export default function CreateActivityView({ navigation, route }: any) {
     setPreferredEndTime,
   } = useTimeForm();
 
+  // Load existing activity for editing
   useEffect(() => {
     if (route.params?.activity) {
       const act = route.params.activity;
@@ -162,17 +167,13 @@ export default function CreateActivityView({ navigation, route }: any) {
       setPreferredEndTime(act.preferredEndTime ?? null);
       setDaysDict(act.daysConfig || {});
       
+      const configured = Object.keys(act.daysConfig || {}) as DayOfWeek[];
+      setSelectedDays(configured);
+
       const maxGroupId = Math.max(...Object.values(act.daysConfig || {}).map((cfg: any) => cfg?.groupId ?? 0), 0);
       setNextGroupId(maxGroupId + 1);
     }
   }, [route.params?.activity]);
-
-  const displayTotal = isFixed ? 4 : 5;
-  const displayStep = useMemo(() => {
-    if (!isFixed) return step;
-    if (step === 1) return 1;
-    return step - 1; // skips step 2 (Priority & Deadline) when fixed
-  }, [step, isFixed]);
 
   const configuredDays = useMemo(
     () => (Object.keys(daysDict) as DayOfWeek[]).sort(
@@ -198,87 +199,144 @@ export default function CreateActivityView({ navigation, route }: any) {
     [configuredDays, daysDict],
   );
 
+  // Sync active group's partitions in daysDict with useTimeForm's partitions state
+  useEffect(() => {
+    if (step === 3 && activeGroupId !== null) {
+      setDaysDict(prev => {
+        const next = { ...prev };
+        const daysInActiveGroup = Object.keys(next).filter(
+          (d) => next[d as DayOfWeek]?.groupId === activeGroupId
+        ) as DayOfWeek[];
+
+        if (daysInActiveGroup.length === 0) return prev;
+
+        const firstDay = daysInActiveGroup[0];
+        const currentPartitions = next[firstDay]?.partitions;
+        if (JSON.stringify(currentPartitions) === JSON.stringify(partitions)) {
+          return prev;
+        }
+
+        daysInActiveGroup.forEach((day) => {
+          if (next[day]) {
+            next[day] = {
+              ...next[day]!,
+              partitions: partitions,
+            };
+          }
+        });
+        return next;
+      });
+    }
+  }, [partitions, activeGroupId, step]);
+
+  const handleContinueFromDays = () => {
+    if (selectedDays.length === 0) {
+      showAlert("Selecciona al menos un día para la actividad");
+      return;
+    }
+
+    const next = { ...daysDict };
+    
+    // 1. Remove days not in selectedDays
+    (Object.keys(next) as DayOfWeek[]).forEach((day) => {
+      if (!selectedDays.includes(day)) {
+        delete next[day];
+      }
+    });
+
+    // 2. Add newly selected days
+    const newDays = selectedDays.filter((day) => !next[day]);
+    let updatedNextGroupId = nextGroupId;
+    if (newDays.length > 0) {
+      const defaultPartitions = [
+        {
+          startHour: new Date(),
+          endHour: calculateEndTime(new Date(), 60),
+          durationTime: 60,
+          travelTime: 0,
+        },
+      ];
+      newDays.forEach((day) => {
+        next[day] = {
+          partitions: defaultPartitions,
+          groupId: updatedNextGroupId,
+        };
+      });
+      setNextGroupId(updatedNextGroupId + 1);
+    }
+
+    setDaysDict(next);
+
+    // 3. Select the first group ID
+    const firstConfig = Object.values(next)[0];
+    if (firstConfig) {
+      setActiveGroupId(firstConfig.groupId);
+      setPartitions(firstConfig.partitions);
+      setActivePartitionIndex(0);
+    }
+
+    setStep(3);
+  };
+
+  const handleSwitchGroup = (groupId: number) => {
+    setActiveGroupId(groupId);
+    const groupConfig = Object.values(daysDict).find((cfg) => cfg?.groupId === groupId);
+    if (groupConfig) {
+      setPartitions(groupConfig.partitions);
+      setActivePartitionIndex(0);
+    }
+  };
+
   const handlePrimaryPress = () => {
     if (step === 1) {
       if (!activityName.trim()) {
         showAlert("Ingresa un nombre para la actividad");
         return;
       }
-      setStep(isFixed ? 3 : 2);
-      return;
-    }
-
-    if (step === 2) {
-      setStep(3);
+      setStep(2);
       return;
     }
 
     if (step === 3) {
-      if (selectedDays.length > 0) {
-        setStep(4);
-      } else if (configuredDays.length > 0) {
-        setStep(5);
-      } else {
-        showAlert("Selecciona al menos un día para la actividad");
+      // Validate all partitions and overlaps before leaving Step 3
+      for (const day of configuredDays) {
+        const config = daysDict[day]!;
+        if (!validatePartitions(config.partitions, [day])) {
+          setActiveGroupId(config.groupId);
+          setPartitions(config.partitions);
+          return;
+        }
+        if (
+          !validateOverlapWithSchedule(
+            activityId,
+            isFixed,
+            [day],
+            config.partitions,
+            preferredStartTime,
+            preferredEndTime,
+            durationTimeValue,
+          )
+        ) {
+          setActiveGroupId(config.groupId);
+          setPartitions(config.partitions);
+          return;
+        }
       }
+      setStep(4);
       return;
     }
 
     if (step === 4) {
-      if (
-        !validatePartitions(
-          partitions,
-          selectedDays,
-        )
-      ) {
-        return;
-      }
-      if (
-        !validateOverlapWithSchedule(
-          activityId,
-          isFixed,
-          selectedDays,
-          partitions,
-          preferredStartTime,
-          preferredEndTime,
-          durationTimeValue,
-        )
-      ) {
-        return;
-      }
-      const wasEditing = editingGroupId !== null;
-      const hadConfiguredDays = configuredDays.length > 0;
-      handleUpdateFrequency({ partitions });
-      resetPartitions();
-      setSelectedDays([]);
-      setEditingGroupId(null);
-      
-      if (wasEditing) {
-        setStep(5);
-      } else if (hadConfiguredDays) {
-        setStep(3);
-      } else {
-        setStep(5);
-      }
-      return;
-    }
-
-    if (step === 5) {
       handleCreate();
       return;
     }
   };
 
   const handleBackPress = () => {
-    if (step === 5) {
+    if (step === 4) {
       setStep(3);
-    } else if (step === 4) {
-      setEditingGroupId(null);
-      setSelectedDays([]);
-      resetPartitions();
-      setStep(3);
-    } else if (step === 3 && isFixed) {
-      setStep(1);
+    } else if (step === 3) {
+      setStep(2);
     } else {
       setStep((s) => Math.max(s - 1, 1));
     }
@@ -293,26 +351,17 @@ export default function CreateActivityView({ navigation, route }: any) {
 
     if (configuredDays.length === 0) {
       showAlert("Configura al menos un día antes de crear la actividad");
-      setStep(3);
-      return;
-    }
-
-    if (selectedDays.length > 0) {
-      showAlert(`Guarda la configuración de: ${selectedDays.join(", ")}`);
-      setStep(4);
+      setStep(2);
       return;
     }
 
     // Validate partitions and overlaps
     for (const day of configuredDays) {
       const config = daysDict[day]!;
-      if (
-        !validatePartitions(
-          config.partitions,
-          [day],
-        )
-      ) {
-        setStep(4);
+      if (!validatePartitions(config.partitions, [day])) {
+        setStep(3);
+        setActiveGroupId(config.groupId);
+        setPartitions(config.partitions);
         return;
       }
       if (
@@ -326,7 +375,9 @@ export default function CreateActivityView({ navigation, route }: any) {
           durationTimeValue,
         )
       ) {
-        setStep(4);
+        setStep(3);
+        setActiveGroupId(config.groupId);
+        setPartitions(config.partitions);
         return;
       }
     }
@@ -337,7 +388,7 @@ export default function CreateActivityView({ navigation, route }: any) {
         showAlert(
           "La ventana seleccionada es más corta que la duración estimada de la actividad."
         );
-        setStep(4);
+        setStep(3);
         return;
       }
     }
@@ -367,7 +418,8 @@ export default function CreateActivityView({ navigation, route }: any) {
       setPartitions,
       setActivePartitionIndex,
     });
-    setStep(4);
+    setActiveGroupId(group.groupId);
+    setStep(3);
   };
 
   const renderStep = () => {
@@ -379,41 +431,29 @@ export default function CreateActivityView({ navigation, route }: any) {
             identity={identity}
             isFixed={isFixed}
             difficulty={difficulty}
+            priority={priority}
+            deadline={deadline}
             onSetActivityName={setActivityName}
             onSetIdentity={setIdentity}
             onSetIsFixed={setIsFixed}
             onSetDifficulty={setDifficulty}
-          />
-        );
-      case 2:
-        return (
-          <PriorityDeadlineStep
-            priority={priority}
-            deadline={deadline}
-            isFixed={isFixed}
             onSetPriority={setPriority}
             onSetDeadline={setDeadline}
           />
         );
-      case 3:
+      case 2:
         return (
           <DaySelectionStep
             selectedDays={selectedDays}
             daysDict={daysDict}
-            groups={groups}
-            editingGroupId={editingGroupId}
             configuredDaysCount={configuredDays.length}
             isFixed={isFixed}
             onSelectDay={handleSelect}
             isDayConfigured={isDayConfigured}
-            onEditGroup={handleEditGroupWrapper}
-            onDiscardGroup={(gid) => {
-              handleDiscardGroup(gid);
-              if (editingGroupId === gid) resetPartitions();
-            }}
+            onContinue={handleContinueFromDays}
           />
         );
-      case 4:
+      case 3:
         return (
           <TimeConfigStep
             selectedDays={selectedDays}
@@ -436,6 +476,10 @@ export default function CreateActivityView({ navigation, route }: any) {
             onSetTravelTime={setTravelTime}
             onSetPreferredStartTime={setPreferredStartTime}
             onSetPreferredEndTime={setPreferredEndTime}
+            groups={groups}
+            activeGroupId={activeGroupId}
+            onSwitchGroup={handleSwitchGroup}
+            onDecoupleDay={decoupleDay}
           />
         );
       default:
@@ -453,8 +497,12 @@ export default function CreateActivityView({ navigation, route }: any) {
             editingGroupId={editingGroupId}
             onEditGroup={handleEditGroupWrapper}
             onDiscardGroup={(gid) => {
+              const groupDays = groups[gid]?.days || [];
               handleDiscardGroup(gid);
-              if (editingGroupId === gid) resetPartitions();
+              setSelectedDays(prev => prev.filter(d => !groupDays.includes(d)));
+              if (activeGroupId === gid) {
+                setActiveGroupId(null);
+              }
             }}
           />
         );
@@ -464,21 +512,15 @@ export default function CreateActivityView({ navigation, route }: any) {
   const primaryTitle = useMemo(() => {
     switch (step) {
       case 1:
-      case 2:
         return "Continuar";
       case 3:
-        return selectedDays.length > 0 ? "Configurar horario para estos días" : "Ver resumen";
+        return "Ver resumen";
       case 4:
-        if (editingGroupId !== null) {
-          return "Guardar cambios";
-        }
-        return configuredDays.length > 0 ? "Guardar y configurar otro día" : "Guardar y ver resumen";
-      case 5:
         return activityId ? "Guardar cambios" : "Crear actividad";
       default:
         return "Continuar";
     }
-  }, [step, selectedDays, configuredDays, editingGroupId, activityId]);
+  }, [step, activityId]);
 
   return (
     <View style={styles.container}>
@@ -494,7 +536,7 @@ export default function CreateActivityView({ navigation, route }: any) {
           <View>
             <Text style={styles.title}>{activityId ? "Editar Actividad" : "Nueva Actividad"}</Text>
             <Text style={styles.stepText}>
-              Paso {displayStep} de {displayTotal}
+              Paso {step} de {TOTAL_STEPS}
             </Text>
           </View>
           <TouchableOpacity style={styles.closeButton} onPress={closeSheet}>
@@ -506,37 +548,37 @@ export default function CreateActivityView({ navigation, route }: any) {
           </TouchableOpacity>
         </View>
 
-        <ProgressIndicator totalSteps={displayTotal} currentStep={displayStep} />
+        <ProgressIndicator totalSteps={TOTAL_STEPS} currentStep={step} />
 
         {renderStep()}
 
         <View style={styles.footer}>
           {step > 1 && (
             <TouchableOpacity
-              style={styles.secondaryButton}
+              style={[
+                styles.secondaryButton,
+                step === 2 && { flex: 1 }
+              ]}
               onPress={handleBackPress}
             >
               <Text style={styles.secondaryButtonText}>Atrás</Text>
             </TouchableOpacity>
           )}
-          <TouchableOpacity
-            style={[
-              styles.primaryButton,
-              step > 1 && styles.primaryButtonWithBack,
-            ]}
-            onPress={handlePrimaryPress}
-          >
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-              {primaryTitle === "Guardar y configurar otro día" && (
-                <Ionicons name="refresh-outline" size={20} color={Theme.colors.surface} />
-              )}
-              <Text style={styles.primaryButtonText}>{primaryTitle}</Text>
-            </View>
-          </TouchableOpacity>
+          {step !== 2 && (
+            <TouchableOpacity
+              style={[
+                styles.primaryButton,
+                step > 1 && styles.primaryButtonWithBack,
+              ]}
+              onPress={handlePrimaryPress}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <Text style={styles.primaryButtonText}>{primaryTitle}</Text>
+              </View>
+            </TouchableOpacity>
+          )}
         </View>
       </Animated.View>
-
-
 
       {isLoading && (
         <View style={styles.loadingOverlay}>

@@ -1,7 +1,8 @@
 import React from "react";
-import { View, Text, ScrollView, StyleSheet } from "react-native";
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { DayOfWeek } from "../../../../domain/entities/Activity";
-import { PartitionConfig } from "../../../../domain/entities/activity.types";
+import { PartitionConfig, DayConfig } from "../../../../domain/entities/activity.types";
 import { Theme } from "../../theme/colors";
 import TimePartitionForm from "../../molecules/CreateActivity/TimePartitionForm";
 
@@ -39,6 +40,11 @@ type TimeConfigStepProps = {
   onSetTravelTime: (value: number) => void;
   onSetPreferredStartTime: (val: number | null) => void;
   onSetPreferredEndTime: (val: number | null) => void;
+
+  groups: Record<number, { days: DayOfWeek[]; config: DayConfig }>;
+  activeGroupId: number | null;
+  onSwitchGroup: (groupId: number) => void;
+  onDecoupleDay: (day: DayOfWeek) => void;
 };
 
 export default function TimeConfigStep({
@@ -62,8 +68,14 @@ export default function TimeConfigStep({
   onSetTravelTime,
   onSetPreferredStartTime,
   onSetPreferredEndTime,
+  
+  groups,
+  activeGroupId,
+  onSwitchGroup,
+  onDecoupleDay,
 }: TimeConfigStepProps) {
-  const displayDays = selectedDays.length > 0 ? selectedDays : configuredDays;
+  const activeGroup = groups[activeGroupId ?? -1];
+  const displayDays = activeGroup ? activeGroup.days : [];
 
   const totalGroupMinutes = partitions.reduce(
     (sum, p) => sum + p.durationTime + p.travelTime,
@@ -80,15 +92,59 @@ export default function TimeConfigStep({
       <Text style={styles.stepTitle}>Configuración detallada</Text>
       <Text style={styles.stepSubtitle}>Ajusta los parámetros de horario</Text>
 
+      {/* Group Tabs Selection */}
+      {Object.keys(groups).length > 1 && (
+        <View style={styles.tabsWrapper}>
+          <Text style={styles.tabsLabel}>Grupos de días:</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.tabsContainer}
+            contentContainerStyle={styles.tabsContent}
+          >
+            {Object.entries(groups).map(([idStr, gp]) => {
+              const id = Number(idStr);
+              const isActive = id === activeGroupId;
+              const daysLabel = gp.days.map(getDayAbbreviation).join(", ");
+              return (
+                <TouchableOpacity
+                  key={id}
+                  style={[styles.tabButton, isActive && styles.tabButtonActive]}
+                  onPress={() => onSwitchGroup(id)}
+                >
+                  <Text style={[styles.tabButtonText, isActive && styles.tabButtonTextActive]}>
+                    {daysLabel}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+      )}
+
       <View style={styles.dayConfigHeader}>
         <View style={styles.dayConfigTextBlock}>
-          <Text style={styles.headerContextLabel}>Días configurados:</Text>
+          <Text style={styles.headerContextLabel}>Días en este grupo:</Text>
           <View style={styles.chipsRow}>
-            {displayDays.map((day) => (
-              <View key={day} style={styles.dayChip}>
-                <Text style={styles.dayChipText}>{getDayAbbreviation(day)}</Text>
-              </View>
-            ))}
+            {displayDays.map((day) => {
+              const showDecouple = displayDays.length > 1;
+              return (
+                <View key={day} style={styles.dayChipContainer}>
+                  <View style={styles.dayChip}>
+                    <Text style={styles.dayChipText}>{getDayAbbreviation(day)}</Text>
+                  </View>
+                  {showDecouple && (
+                    <TouchableOpacity
+                      style={styles.decoupleButton}
+                      onPress={() => onDecoupleDay(day)}
+                    >
+                      <Ionicons name="git-branch-outline" size={14} color="#8dccff" />
+                      <Text style={styles.decoupleButtonText}>Desacoplar</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              );
+            })}
           </View>
           <Text style={styles.dayConfigSubtitle}>
             Duración total: {totalGroupMinutes} min
@@ -142,6 +198,43 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginTop: -10,
   },
+  tabsWrapper: {
+    marginVertical: 4,
+  },
+  tabsLabel: {
+    color: Theme.colors.iconPrimary,
+    fontSize: 14,
+    fontWeight: "800",
+    marginBottom: 8,
+  },
+  tabsContainer: {
+    flexDirection: "row",
+  },
+  tabsContent: {
+    gap: 8,
+    paddingBottom: 4,
+  },
+  tabButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: Theme.colors.cardBackground,
+    borderWidth: 2,
+    borderColor: Theme.colors.cardBorder,
+  },
+  tabButtonActive: {
+    backgroundColor: "#5665dc",
+    borderColor: "#8dccff",
+  },
+  tabButtonText: {
+    color: Theme.colors.iconPrimary,
+    fontSize: 14,
+    fontWeight: "800",
+  },
+  tabButtonTextActive: {
+    color: Theme.colors.surface,
+    fontWeight: "900",
+  },
   dayConfigHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -150,14 +243,8 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 16,
   },
-
   dayConfigTextBlock: {
     flex: 1,
-  },
-  dayConfigTitle: {
-    color: Theme.colors.surface,
-    fontSize: 18,
-    fontWeight: "900",
   },
   dayConfigSubtitle: {
     color: Theme.colors.textSecondary,
@@ -173,21 +260,41 @@ const styles = StyleSheet.create({
   chipsRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8,
+    gap: 10,
     marginBottom: 10,
   },
-  dayChip: {
-    backgroundColor: "rgba(86, 101, 220, 0.18)",
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+  dayChipContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(86, 101, 220, 0.12)",
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
     borderWidth: 1,
-    borderColor: "rgba(86, 101, 220, 0.3)",
+    borderColor: "rgba(86, 101, 220, 0.25)",
+    gap: 6,
+  },
+  dayChip: {
+    backgroundColor: "transparent",
   },
   dayChipText: {
     color: "#8dccff",
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "900",
     textTransform: "uppercase",
+  },
+  decoupleButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    gap: 3,
+  },
+  decoupleButtonText: {
+    color: Theme.colors.surface,
+    fontSize: 10,
+    fontWeight: "800",
   },
 });

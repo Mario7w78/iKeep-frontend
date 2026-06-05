@@ -308,11 +308,6 @@ export default function useTimeForm() {
       return;
     }
 
-    if (selectedDays.length > 0) {
-      Alert.alert("Atención", `Guarda la configuración de: ${selectedDays.join(", ")}`);
-      return;
-    }
-
     // Usar la función de validación centralizada
     for (const day of configuredDays) {
       const config = daysDict[day]!;

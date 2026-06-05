@@ -214,11 +214,20 @@ export default function CreateActivityView({ navigation }: any) {
       ) {
         return;
       }
+      const wasEditing = editingGroupId !== null;
+      const hadConfiguredDays = configuredDays.length > 0;
       handleUpdateFrequency({ partitions });
       resetPartitions();
       setSelectedDays([]);
       setEditingGroupId(null);
-      setStep(5);
+      
+      if (wasEditing) {
+        setStep(5);
+      } else if (hadConfiguredDays) {
+        setStep(3);
+      } else {
+        setStep(5);
+      }
       return;
     }
 
@@ -416,15 +425,18 @@ export default function CreateActivityView({ navigation }: any) {
       case 2:
         return "Continuar";
       case 3:
-        return selectedDays.length > 0 ? "Configurar horario" : "Ver resumen";
+        return selectedDays.length > 0 ? "Configurar horario para estos días" : "Ver resumen";
       case 4:
-        return "Guardar horario";
+        if (editingGroupId !== null) {
+          return "Guardar cambios";
+        }
+        return configuredDays.length > 0 ? "Guardar y configurar otro día" : "Guardar y ver resumen";
       case 5:
         return "Crear actividad";
       default:
         return "Continuar";
     }
-  }, [step, selectedDays, configuredDays]);
+  }, [step, selectedDays, configuredDays, editingGroupId]);
 
   return (
     <View style={styles.container}>
@@ -472,7 +484,12 @@ export default function CreateActivityView({ navigation }: any) {
             ]}
             onPress={handlePrimaryPress}
           >
-            <Text style={styles.primaryButtonText}>{primaryTitle}</Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              {primaryTitle === "Guardar y configurar otro día" && (
+                <Ionicons name="refresh-outline" size={20} color={Theme.colors.surface} />
+              )}
+              <Text style={styles.primaryButtonText}>{primaryTitle}</Text>
+            </View>
           </TouchableOpacity>
         </View>
       </Animated.View>

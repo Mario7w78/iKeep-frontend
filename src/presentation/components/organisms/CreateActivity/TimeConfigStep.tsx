@@ -5,6 +5,19 @@ import { PartitionConfig } from "../../../../domain/entities/activity.types";
 import { Theme } from "../../theme/colors";
 import TimePartitionForm from "../../molecules/CreateActivity/TimePartitionForm";
 
+const getDayAbbreviation = (day: string) => {
+  switch (day) {
+    case "Lunes": return "Lun";
+    case "Martes": return "Mar";
+    case "Miercoles": return "Mié";
+    case "Jueves": return "Jue";
+    case "Viernes": return "Vie";
+    case "Sabado": return "Sáb";
+    case "Domingo": return "Dom";
+    default: return day;
+  }
+};
+
 type TimeConfigStepProps = {
   selectedDays: DayOfWeek[];
   configuredDays: DayOfWeek[];
@@ -69,11 +82,14 @@ export default function TimeConfigStep({
 
       <View style={styles.dayConfigHeader}>
         <View style={styles.dayConfigTextBlock}>
-          <Text style={styles.dayConfigTitle}>
-            {selectedDays.length > 0
-               ? selectedDays.join(" · ")
-               : "Edita un grupo configurado"}
-          </Text>
+          <Text style={styles.headerContextLabel}>Días configurados:</Text>
+          <View style={styles.chipsRow}>
+            {displayDays.map((day) => (
+              <View key={day} style={styles.dayChip}>
+                <Text style={styles.dayChipText}>{getDayAbbreviation(day)}</Text>
+              </View>
+            ))}
+          </View>
           <Text style={styles.dayConfigSubtitle}>
             Duración total: {totalGroupMinutes} min
           </Text>
@@ -147,5 +163,31 @@ const styles = StyleSheet.create({
     color: Theme.colors.textSecondary,
     fontSize: 15,
     fontWeight: "800",
+  },
+  headerContextLabel: {
+    color: Theme.colors.iconPrimary,
+    fontSize: 14,
+    fontWeight: "800",
+    marginBottom: 8,
+  },
+  chipsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 10,
+  },
+  dayChip: {
+    backgroundColor: "rgba(86, 101, 220, 0.18)",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: "rgba(86, 101, 220, 0.3)",
+  },
+  dayChipText: {
+    color: "#8dccff",
+    fontSize: 12,
+    fontWeight: "900",
+    textTransform: "uppercase",
   },
 });

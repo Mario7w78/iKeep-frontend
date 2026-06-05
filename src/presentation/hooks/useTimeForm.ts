@@ -131,10 +131,19 @@ export default function useTimeForm() {
     setActivePartitionIndex(partitions.length);
   };
 
-  const handleDiscardPartition = () => {
+  const handleDiscardPartition = (index?: number) => {
     if (partitions.length <= 1) return;
-    setPartitions((prev) => prev.filter((_, i) => i !== activePartitionIndex));
-    setActivePartitionIndex((prev) => (prev > 0 ? prev - 1 : 0));
+    const targetIndex = index !== undefined ? index : activePartitionIndex;
+    setPartitions((prev) => prev.filter((_, i) => i !== targetIndex));
+    setActivePartitionIndex((prev) => {
+      if (targetIndex === prev) {
+        return prev > 0 ? prev - 1 : 0;
+      }
+      if (targetIndex < prev) {
+        return prev - 1;
+      }
+      return prev;
+    });
   };
 
   const handleAddGeneric = (

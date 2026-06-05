@@ -13,7 +13,6 @@ type DaySelectionStepProps = {
   isFixed: boolean;
   onSelectDay: (day: DayOfWeek) => void;
   isDayConfigured: (day: DayOfWeek) => boolean;
-  onContinue: () => void;
 };
 
 export default function DaySelectionStep({
@@ -23,7 +22,6 @@ export default function DaySelectionStep({
   isFixed,
   onSelectDay,
   isDayConfigured,
-  onContinue,
 }: DaySelectionStepProps) {
   return (
     <ScrollView
@@ -55,13 +53,6 @@ export default function DaySelectionStep({
             : `${configuredDaysCount} día${configuredDaysCount !== 1 ? "s" : ""} configurado${configuredDaysCount !== 1 ? "s" : ""}`}
         </Text>
       </View>
-
-      <TouchableOpacity
-        style={styles.continueButton}
-        onPress={onContinue}
-      >
-        <Text style={styles.continueButtonText}>Continuar a Horarios</Text>
-      </TouchableOpacity>
     </ScrollView>
   );
 }
@@ -102,19 +93,6 @@ const styles = StyleSheet.create({
   selectionSummaryText: {
     color: Theme.colors.surface,
     fontSize: 15,
-    fontWeight: "900",
-  },
-  continueButton: {
-    backgroundColor: Theme.comfyColors.green,
-    borderRadius: 24,
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 56,
-    marginTop: 12,
-  },
-  continueButtonText: {
-    color: Theme.comfyFontColors.green,
-    fontSize: 18,
     fontWeight: "900",
   },
 });

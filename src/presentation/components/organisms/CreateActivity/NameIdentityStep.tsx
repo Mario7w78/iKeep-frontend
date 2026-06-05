@@ -315,118 +315,122 @@ export default function NameIdentityStep({
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.sectionTitle}>Dificultad de la actividad</Text>
-      <View style={styles.threeColumnGrid}>
-        <TouchableOpacity
-          style={[
-            styles.card,
-            difficulty === "baja" && styles.cardSelected,
-            isFixed && difficulty !== "baja" && styles.cardDisabled,
-          ]}
-          disabled={isFixed}
-          onPress={() => onSetDifficulty("baja")}
-        >
-          <Ionicons
-            name="leaf-outline"
-            size={24}
-            color={difficulty === "baja" ? Theme.colors.surface : Theme.colors.iconPrimary}
-          />
-          <Text style={[styles.cardTitle, difficulty === "baja" && styles.cardTitleSelected]}>Baja</Text>
-        </TouchableOpacity>
+      {!isFixed && (
+        <>
+          <Text style={styles.sectionTitle}>Dificultad de la actividad</Text>
+          <View style={styles.threeColumnGrid}>
+            <TouchableOpacity
+              style={[
+                styles.card,
+                difficulty === "baja" && styles.cardSelected,
+                isFixed && difficulty !== "baja" && styles.cardDisabled,
+              ]}
+              disabled={isFixed}
+              onPress={() => onSetDifficulty("baja")}
+            >
+              <Ionicons
+                name="leaf-outline"
+                size={24}
+                color={difficulty === "baja" ? Theme.colors.surface : Theme.colors.iconPrimary}
+              />
+              <Text style={[styles.cardTitle, difficulty === "baja" && styles.cardTitleSelected]}>Baja</Text>
+            </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[
-            styles.card,
-            difficulty === "media" && styles.cardSelected,
-            isFixed && difficulty !== "media" && styles.cardDisabled,
-          ]}
-          disabled={isFixed}
-          onPress={() => onSetDifficulty("media")}
-        >
-          <Ionicons
-            name="speedometer-outline"
-            size={24}
-            color={difficulty === "media" ? Theme.colors.surface : Theme.colors.iconPrimary}
-          />
-          <Text style={[styles.cardTitle, difficulty === "media" && styles.cardTitleSelected]}>Normal</Text>
-        </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.card,
+                difficulty === "media" && styles.cardSelected,
+                isFixed && difficulty !== "media" && styles.cardDisabled,
+              ]}
+              disabled={isFixed}
+              onPress={() => onSetDifficulty("media")}
+            >
+              <Ionicons
+                name="speedometer-outline"
+                size={24}
+                color={difficulty === "media" ? Theme.colors.surface : Theme.colors.iconPrimary}
+              />
+              <Text style={[styles.cardTitle, difficulty === "media" && styles.cardTitleSelected]}>Normal</Text>
+            </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[
-            styles.card,
-            difficulty === "alta" && styles.cardSelected,
-            isFixed && difficulty !== "alta" && styles.cardDisabled,
-          ]}
-          disabled={isFixed}
-          onPress={() => onSetDifficulty("alta")}
-        >
-          <Ionicons
-            name="flame-outline"
-            size={24}
-            color={difficulty === "alta" ? Theme.colors.surface : Theme.colors.iconPrimary}
-          />
-          <Text style={[styles.cardTitle, difficulty === "alta" && styles.cardTitleSelected]}>Alta</Text>
-        </TouchableOpacity>
-      </View>
+            <TouchableOpacity
+              style={[
+                styles.card,
+                difficulty === "alta" && styles.cardSelected,
+                isFixed && difficulty !== "alta" && styles.cardDisabled,
+              ]}
+              disabled={isFixed}
+              onPress={() => onSetDifficulty("alta")}
+            >
+              <Ionicons
+                name="flame-outline"
+                size={24}
+                color={difficulty === "alta" ? Theme.colors.surface : Theme.colors.iconPrimary}
+              />
+              <Text style={[styles.cardTitle, difficulty === "alta" && styles.cardTitleSelected]}>Alta</Text>
+            </TouchableOpacity>
+          </View>
 
-      <View style={styles.divider} />
+          <View style={styles.divider} />
 
-      <Text style={styles.sectionTitle}>Prioridad de la actividad</Text>
-      <Text style={styles.subtitle}>Indica la importancia para priorizar en el calendario</Text>
-      <View style={styles.threeColumnGrid}>
-        <TouchableOpacity
-          style={[
-            styles.card,
-            priority === "baja" && styles.cardSelected,
-            isFixed && priority !== "baja" && styles.cardDisabled,
-          ]}
-          disabled={isFixed}
-          onPress={() => onSetPriority("baja")}
-        >
-          <Ionicons
-            name="arrow-down-circle-outline"
-            size={24}
-            color={priority === "baja" ? Theme.colors.surface : Theme.colors.iconPrimary}
-          />
-          <Text style={[styles.cardTitle, priority === "baja" && styles.cardTitleSelected]}>Baja</Text>
-        </TouchableOpacity>
+          <Text style={styles.sectionTitle}>Prioridad de la actividad</Text>
+          <Text style={styles.subtitle}>Indica la importancia para priorizar en el calendario</Text>
+          <View style={styles.threeColumnGrid}>
+            <TouchableOpacity
+              style={[
+                styles.card,
+                priority === "baja" && styles.cardSelected,
+                isFixed && priority !== "baja" && styles.cardDisabled,
+              ]}
+              disabled={isFixed}
+              onPress={() => onSetPriority("baja")}
+            >
+              <Ionicons
+                name="arrow-down-circle-outline"
+                size={24}
+                color={priority === "baja" ? Theme.colors.surface : Theme.colors.iconPrimary}
+              />
+              <Text style={[styles.cardTitle, priority === "baja" && styles.cardTitleSelected]}>Baja</Text>
+            </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[
-            styles.card,
-            priority === "media" && styles.cardSelected,
-            isFixed && priority !== "media" && styles.cardDisabled,
-          ]}
-          disabled={isFixed}
-          onPress={() => onSetPriority("media")}
-        >
-          <Ionicons
-            name="play-circle-outline"
-            size={24}
-            color={priority === "media" ? Theme.colors.surface : Theme.colors.iconPrimary}
-          />
-          <Text style={[styles.cardTitle, priority === "media" && styles.cardTitleSelected]}>Media</Text>
-        </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.card,
+                priority === "media" && styles.cardSelected,
+                isFixed && priority !== "media" && styles.cardDisabled,
+              ]}
+              disabled={isFixed}
+              onPress={() => onSetPriority("media")}
+            >
+              <Ionicons
+                name="play-circle-outline"
+                size={24}
+                color={priority === "media" ? Theme.colors.surface : Theme.colors.iconPrimary}
+              />
+              <Text style={[styles.cardTitle, priority === "media" && styles.cardTitleSelected]}>Media</Text>
+            </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[
-            styles.card,
-            priority === "alta" && styles.cardSelected,
-            isFixed && priority !== "alta" && styles.cardDisabled,
-          ]}
-          disabled={isFixed}
-          onPress={() => onSetPriority("alta")}
-        >
-          <Ionicons
-            name="arrow-up-circle-outline"
-            size={24}
-            color={priority === "alta" ? Theme.colors.surface : Theme.colors.iconPrimary}
-          />
-          <Text style={[styles.cardTitle, priority === "alta" && styles.cardTitleSelected]}>Alta</Text>
-        </TouchableOpacity>
-      </View>
+            <TouchableOpacity
+              style={[
+                styles.card,
+                priority === "alta" && styles.cardSelected,
+                isFixed && priority !== "alta" && styles.cardDisabled,
+              ]}
+              disabled={isFixed}
+              onPress={() => onSetPriority("alta")}
+            >
+              <Ionicons
+                name="arrow-up-circle-outline"
+                size={24}
+                color={priority === "alta" ? Theme.colors.surface : Theme.colors.iconPrimary}
+              />
+              <Text style={[styles.cardTitle, priority === "alta" && styles.cardTitleSelected]}>Alta</Text>
+            </TouchableOpacity>
+          </View>
 
-      <View style={styles.divider} />
+          <View style={styles.divider} />
+        </>
+      )}
 
       <View style={styles.deadlineToggleRow}>
         <View style={styles.deadlineTextCol}>

@@ -123,20 +123,22 @@ export default function SummaryStep({
         </View>
       </View>
 
-      <View style={styles.summaryGrid}>
-        <View style={styles.summaryCardHalf}>
-          <Text style={styles.summaryLabel}>Prioridad</Text>
-          <Text style={[styles.summaryValue, styles.capitalize]}>
-            {priority}
-          </Text>
+      {!isFixed && (
+        <View style={styles.summaryGrid}>
+          <View style={styles.summaryCardHalf}>
+            <Text style={styles.summaryLabel}>Prioridad</Text>
+            <Text style={[styles.summaryValue, styles.capitalize]}>
+              {priority}
+            </Text>
+          </View>
+          <View style={styles.summaryCardHalf}>
+            <Text style={styles.summaryLabel}>Dificultad</Text>
+            <Text style={styles.summaryValue}>
+              {getDifficultyText(difficulty)}
+            </Text>
+          </View>
         </View>
-        <View style={styles.summaryCardHalf}>
-          <Text style={styles.summaryLabel}>Dificultad</Text>
-          <Text style={styles.summaryValue}>
-            {getDifficultyText(difficulty)}
-          </Text>
-        </View>
-      </View>
+      )}
 
       <View style={styles.summaryGrid}>
         <View style={styles.summaryCardHalf}>

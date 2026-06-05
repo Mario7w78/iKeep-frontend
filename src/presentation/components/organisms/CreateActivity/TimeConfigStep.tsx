@@ -44,7 +44,7 @@ type TimeConfigStepProps = {
   groups: Record<number, { days: DayOfWeek[]; config: DayConfig }>;
   activeGroupId: number | null;
   onSwitchGroup: (groupId: number) => void;
-  onDecoupleDay: (day: DayOfWeek) => void;
+  onCopyConfig: (fromDay: DayOfWeek) => void;
 };
 
 export default function TimeConfigStep({
@@ -72,10 +72,14 @@ export default function TimeConfigStep({
   groups,
   activeGroupId,
   onSwitchGroup,
-  onDecoupleDay,
+  onCopyConfig,
 }: TimeConfigStepProps) {
   const activeGroup = groups[activeGroupId ?? -1];
   const displayDays = activeGroup ? activeGroup.days : [];
+
+  const otherConfiguredDays = configuredDays.filter(
+    (day) => !displayDays.includes(day)
+  );
 
   const totalGroupMinutes = partitions.reduce(
     (sum, p) => sum + p.durationTime + p.travelTime,
@@ -127,21 +131,11 @@ export default function TimeConfigStep({
           <Text style={styles.headerContextLabel}>Días en este grupo:</Text>
           <View style={styles.chipsRow}>
             {displayDays.map((day) => {
-              const showDecouple = displayDays.length > 1;
               return (
                 <View key={day} style={styles.dayChipContainer}>
                   <View style={styles.dayChip}>
                     <Text style={styles.dayChipText}>{getDayAbbreviation(day)}</Text>
                   </View>
-                  {showDecouple && (
-                    <TouchableOpacity
-                      style={styles.decoupleButton}
-                      onPress={() => onDecoupleDay(day)}
-                    >
-                      <Ionicons name="git-branch-outline" size={14} color="#8dccff" />
-                      <Text style={styles.decoupleButtonText}>Desacoplar</Text>
-                    </TouchableOpacity>
-                  )}
                 </View>
               );
             })}
@@ -151,6 +145,28 @@ export default function TimeConfigStep({
           </Text>
         </View>
       </View>
+
+      {otherConfiguredDays.length > 0 && (
+        <View style={styles.copyConfigSection}>
+          <Text style={styles.copyConfigTitle}>Copiar horario de:</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.copyConfigRow}
+          >
+            {otherConfiguredDays.map((day) => (
+              <TouchableOpacity
+                key={day}
+                style={styles.copyDayButton}
+                onPress={() => onCopyConfig(day)}
+              >
+                <Ionicons name="copy-outline" size={14} color="#8dccff" style={{ marginRight: 4 }} />
+                <Text style={styles.copyDayButtonText}>{getDayAbbreviation(day)}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      )}
 
       <TimePartitionForm
         partitions={partitions}
@@ -283,18 +299,33 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     textTransform: "uppercase",
   },
-  decoupleButton: {
+  copyConfigSection: {
+    marginVertical: 4,
+  },
+  copyConfigTitle: {
+    color: Theme.colors.iconPrimary,
+    fontSize: 14,
+    fontWeight: "800",
+    marginBottom: 8,
+  },
+  copyConfigRow: {
+    flexDirection: "row",
+    gap: 8,
+    paddingBottom: 4,
+  },
+  copyDayButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.08)",
-    borderRadius: 8,
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    gap: 3,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 16,
+    backgroundColor: Theme.colors.cardBackground,
+    borderWidth: 2,
+    borderColor: Theme.colors.cardBorder,
   },
-  decoupleButtonText: {
+  copyDayButtonText: {
     color: Theme.colors.surface,
-    fontSize: 10,
+    fontSize: 13,
     fontWeight: "800",
   },
 });

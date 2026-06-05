@@ -110,7 +110,6 @@ export default function CreateActivityView({ navigation, route }: any) {
     setDaysDict,
     setNextGroupId,
     nextGroupId,
-    decoupleDay,
   } = useFrequency();
 
   const {
@@ -261,8 +260,9 @@ export default function CreateActivityView({ navigation, route }: any) {
           partitions: defaultPartitions,
           groupId: updatedNextGroupId,
         };
+        updatedNextGroupId++;
       });
-      setNextGroupId(updatedNextGroupId + 1);
+      setNextGroupId(updatedNextGroupId);
     }
 
     setDaysDict(next);
@@ -276,6 +276,19 @@ export default function CreateActivityView({ navigation, route }: any) {
     }
 
     setStep(3);
+  };
+
+  const handleCopyConfig = (fromDay: DayOfWeek) => {
+    const sourceConfig = daysDict[fromDay];
+    if (sourceConfig) {
+      const clonedPartitions = sourceConfig.partitions.map((p) => ({
+        ...p,
+        startHour: new Date(p.startHour),
+        endHour: new Date(p.endHour),
+      }));
+      setPartitions(clonedPartitions);
+      setActivePartitionIndex(0);
+    }
   };
 
   const handleSwitchGroup = (groupId: number) => {
@@ -294,6 +307,11 @@ export default function CreateActivityView({ navigation, route }: any) {
         return;
       }
       setStep(2);
+      return;
+    }
+
+    if (step === 2) {
+      handleContinueFromDays();
       return;
     }
 
@@ -450,7 +468,6 @@ export default function CreateActivityView({ navigation, route }: any) {
             isFixed={isFixed}
             onSelectDay={handleSelect}
             isDayConfigured={isDayConfigured}
-            onContinue={handleContinueFromDays}
           />
         );
       case 3:
@@ -479,7 +496,7 @@ export default function CreateActivityView({ navigation, route }: any) {
             groups={groups}
             activeGroupId={activeGroupId}
             onSwitchGroup={handleSwitchGroup}
-            onDecoupleDay={decoupleDay}
+            onCopyConfig={handleCopyConfig}
           />
         );
       default:
@@ -513,6 +530,8 @@ export default function CreateActivityView({ navigation, route }: any) {
     switch (step) {
       case 1:
         return "Continuar";
+      case 2:
+        return "Continuar a Horarios";
       case 3:
         return "Ver resumen";
       case 4:
@@ -564,19 +583,17 @@ export default function CreateActivityView({ navigation, route }: any) {
               <Text style={styles.secondaryButtonText}>Atrás</Text>
             </TouchableOpacity>
           )}
-          {step !== 2 && (
-            <TouchableOpacity
-              style={[
-                styles.primaryButton,
-                step > 1 && styles.primaryButtonWithBack,
-              ]}
-              onPress={handlePrimaryPress}
-            >
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                <Text style={styles.primaryButtonText}>{primaryTitle}</Text>
-              </View>
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity
+            style={[
+              styles.primaryButton,
+              step > 1 && styles.primaryButtonWithBack,
+            ]}
+            onPress={handlePrimaryPress}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <Text style={styles.primaryButtonText}>{primaryTitle}</Text>
+            </View>
+          </TouchableOpacity>
         </View>
       </Animated.View>
 

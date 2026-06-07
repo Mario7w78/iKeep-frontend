@@ -38,7 +38,7 @@ export function ScheduleGrid({
         <View style={StyleSheet.absoluteFillObject}>
           {activities.map((act) => (
             <ActivityBlock 
-              key={`${act.activity.id}-${act.day}-${act.assignedStartTime}`} 
+              key={`${act.activity?.id ?? act.tipo ?? 'unknown'}-${act.day}-${act.assignedStartTime}`} 
               item={act} 
               onPress={onActivityPress}
             />

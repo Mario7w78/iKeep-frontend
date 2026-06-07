@@ -14,7 +14,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 
 import { DayOfWeek } from "../../../../domain/entities/Activity";
-import { calculateEndTime } from "../../../utils/timeUtils";
+import { calculateEndTime, calculateDurationAcrossMidnight } from "../../../utils/timeUtils";
 import { Theme } from "../../../components/theme/colors";
 
 import useFrequency from "../../../hooks/useFrequency";
@@ -129,6 +129,10 @@ export default function CreateActivityView({ navigation, route }: any) {
     activePartitionIndex,
     preferredStartTime,
     preferredEndTime,
+    optionalDay,
+    dayFrom,
+    dayTo,
+    isAnchor,
     setActivityName,
     setIsFixed,
     setIdentity,
@@ -149,6 +153,10 @@ export default function CreateActivityView({ navigation, route }: any) {
     resetPartitions,
     setPreferredStartTime,
     setPreferredEndTime,
+    setOptionalDay,
+    setDayFrom,
+    setDayTo,
+    setIsAnchor,
   } = useTimeForm();
 
   // Load existing activity for editing
@@ -164,6 +172,10 @@ export default function CreateActivityView({ navigation, route }: any) {
       setDeadline(act.deadline ? new Date(act.deadline) : null);
       setPreferredStartTime(act.preferredStartTime ?? null);
       setPreferredEndTime(act.preferredEndTime ?? null);
+      setOptionalDay(act.optionalDay ?? false);
+      setDayFrom(act.dayFrom ?? null);
+      setDayTo(act.dayTo ?? null);
+      setIsAnchor(act.isAnchor ?? false);
       setDaysDict(act.daysConfig || {});
       
       const configured = Object.keys(act.daysConfig || {}) as DayOfWeek[];
@@ -402,7 +414,7 @@ export default function CreateActivityView({ navigation, route }: any) {
 
     // Validate preferred window
     if (preferredStartTime !== null && preferredEndTime !== null) {
-      if (preferredEndTime - preferredStartTime < durationTimeValue) {
+      if (calculateDurationAcrossMidnight(preferredStartTime, preferredEndTime) < durationTimeValue) {
         showAlert(
           "La ventana seleccionada es más corta que la duración estimada de la actividad."
         );
@@ -457,6 +469,8 @@ export default function CreateActivityView({ navigation, route }: any) {
             onSetDifficulty={setDifficulty}
             onSetPriority={setPriority}
             onSetDeadline={setDeadline}
+            isAnchor={isAnchor}
+            onToggleAnchor={setIsAnchor}
           />
         );
       case 2:
@@ -466,8 +480,14 @@ export default function CreateActivityView({ navigation, route }: any) {
             daysDict={daysDict}
             configuredDaysCount={configuredDays.length}
             isFixed={isFixed}
+            optionalDay={optionalDay}
             onSelectDay={handleSelect}
             isDayConfigured={isDayConfigured}
+            onToggleOptionalDay={setOptionalDay}
+            dayFrom={dayFrom}
+            dayTo={dayTo}
+            onSetDayFrom={setDayFrom}
+            onSetDayTo={setDayTo}
           />
         );
       case 3:

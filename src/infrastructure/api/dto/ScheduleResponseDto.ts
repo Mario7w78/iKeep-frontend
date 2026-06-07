@@ -1,6 +1,6 @@
 import { BackendActivityType } from './ActivityDto';
 
-export type ScheduleEstado = 'OPTIMA' | 'FACTIBLE';
+export type ScheduleEstado = 'OPTIMA' | 'FACTIBLE' | 'INFACTIBLE' | 'DESCONOCIDO';
 
 export interface BloqueTiempoDto {
   id_actividad: string;
@@ -16,4 +16,6 @@ export interface ScheduleResponseDto {
   estado: ScheduleEstado;
   bloques: BloqueTiempoDto[];
   mensaje: string;
+  recomendaciones?: string[];
+  tareas_omitidas?: string[];
 }

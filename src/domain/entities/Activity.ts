@@ -19,6 +19,10 @@ export interface ActivityProps {
     daysEnabled: DayOfWeek[];
     preferredStartTime?: number | null;
     preferredEndTime?: number | null;
+    optionalDay?: boolean;
+    dayFrom?: number;
+    dayTo?: number;
+    isAnchor?: boolean;
 }
 
 export class Activity {
@@ -33,6 +37,10 @@ export class Activity {
     readonly daysConfig: Partial<Record<DayOfWeek, DayConfig>>;
     readonly preferredStartTime?: number | null;
     readonly preferredEndTime?: number | null;
+    readonly optionalDay?: boolean;
+    readonly dayFrom?: number;
+    readonly dayTo?: number;
+    readonly isAnchor?: boolean;
 
     constructor(props: ActivityProps) {
         this.id = props.id;
@@ -46,6 +54,10 @@ export class Activity {
         this.daysConfig = props.daysConfig;
         this.preferredStartTime = props.preferredStartTime ?? null;
         this.preferredEndTime = props.preferredEndTime ?? null;
+        this.optionalDay = props.optionalDay ?? false;
+        this.dayFrom = props.dayFrom;
+        this.dayTo = props.dayTo;
+        this.isAnchor = props.isAnchor ?? false;
     }
 
     isFixed(): boolean {

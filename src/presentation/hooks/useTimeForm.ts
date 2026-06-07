@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { Alert } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { DayOfWeek } from "../../domain/entities/Activity";
-import { calculateEndTime, areOverlapping, dateToMinutes, formatTime } from "../../presentation/utils/timeUtils";
+import { calculateEndTime, areOverlapping, dateToMinutes, formatTime, calculateDurationAcrossMidnight } from "../../presentation/utils/timeUtils";
 import { timeType } from "../../domain/entities/activity.types";
 import { useActivityStore, useScheduleStore } from "../../di/Dependencies";
 import { PartitionConfig } from "../../domain/entities/activity.types";
@@ -19,6 +19,10 @@ export default function useTimeForm() {
 
   const [preferredStartTime, setPreferredStartTime] = useState<number | null>(null);
   const [preferredEndTime, setPreferredEndTime] = useState<number | null>(null);
+  const [optionalDay, setOptionalDay] = useState(false);
+  const [dayFrom, setDayFrom] = useState<number | null>(null);
+  const [dayTo, setDayTo] = useState<number | null>(null);
+  const [isAnchor, setIsAnchor] = useState(false);
 
   const [selectedTimeTypeDuration, setSelectedTypeDuration] =
     useState<timeType>(timeType.both);
@@ -234,7 +238,7 @@ export default function useTimeForm() {
     for (const day of days) {
       const scheduledItems = schedule.getItemsByDay(day);
       const otherItems = scheduledItems.filter(
-        (item) => item.activity.id !== currentId
+        (item) => item.activity && item.activity.id !== currentId
       );
 
       if (isFixedActivity) {
@@ -249,7 +253,7 @@ export default function useTimeForm() {
             if (partStart < itemEnd && partEnd > itemStart) {
               Alert.alert(
                 "Conflicto de Horario",
-                `El horario del día ${day} (${formatTime(part.startHour)} - ${formatTime(part.endHour)}) se superpone con la actividad ya establecida "${item.activity.title}" (${item.assignedStartTime} - ${item.assignedEndTime}).`
+                `El horario del día ${day} (${formatTime(part.startHour)} - ${formatTime(part.endHour)}) se superpone con la actividad ya establecida "${item.activity?.title ?? 'Actividad sin nombre'}" (${item.assignedStartTime} - ${item.assignedEndTime}).`
               );
               return false;
             }
@@ -260,20 +264,41 @@ export default function useTimeForm() {
           let blockedMinutes = 0;
           let overlappingActivities: string[] = [];
 
+          // Normalise preferred window to a flat timeline handling crossover
+          let normPrefStart = prefStart;
+          let normPrefEnd = prefEnd;
+          if (normPrefEnd < normPrefStart) {
+            normPrefEnd += 1440;
+          }
+
           for (const item of otherItems) {
             const itemStart = timeStrToMinutes(item.assignedStartTime);
-            const itemEnd = timeStrToMinutes(item.assignedEndTime);
+            let itemEnd = timeStrToMinutes(item.assignedEndTime);
 
-            const overlapStart = Math.max(prefStart, itemStart);
-            const overlapEnd = Math.min(prefEnd, itemEnd);
+            // Normalise item if it crosses midnight
+            let normItemStart = itemStart;
+            let normItemEnd = itemEnd;
+            if (normItemEnd < normItemStart) {
+              normItemEnd += 1440;
+            }
+
+            // If the item falls entirely before the normalised preferred window,
+            // shift it forward by one day so overlap is computed correctly
+            if (normItemEnd <= normPrefStart) {
+              normItemStart += 1440;
+              normItemEnd += 1440;
+            }
+
+            const overlapStart = Math.max(normPrefStart, normItemStart);
+            const overlapEnd = Math.min(normPrefEnd, normItemEnd);
 
             if (overlapStart < overlapEnd) {
               blockedMinutes += (overlapEnd - overlapStart);
-              overlappingActivities.push(`"${item.activity.title}" (${item.assignedStartTime} - ${item.assignedEndTime})`);
+              overlappingActivities.push(`"${item.activity?.title ?? 'Actividad sin nombre'}" (${item.assignedStartTime} - ${item.assignedEndTime})`);
             }
           }
 
-          const totalWindowMinutes = prefEnd - prefStart;
+          const totalWindowMinutes = calculateDurationAcrossMidnight(prefStart, prefEnd);
           const freeMinutes = totalWindowMinutes - blockedMinutes;
 
           if (freeMinutes < duration) {
@@ -330,7 +355,7 @@ export default function useTimeForm() {
     // If preferred window is set, validate length >= duration of task
     if (preferredStartTime !== null && preferredEndTime !== null) {
       const durationVal = durationTimeValue;
-      if (preferredEndTime - preferredStartTime < durationVal) {
+      if (calculateDurationAcrossMidnight(preferredStartTime, preferredEndTime) < durationVal) {
         Alert.alert("Atención", `La ventana seleccionada es más corta que la duración estimada de la actividad.`);
         return;
       }
@@ -351,6 +376,10 @@ export default function useTimeForm() {
       days: configuredDays,
       preferredStartTime,
       preferredEndTime,
+      optionalDay,
+      dayFrom: dayFrom ?? undefined,
+      dayTo: dayTo ?? undefined,
+      isAnchor: isAnchor || undefined,
     });
 
     try {
@@ -390,6 +419,7 @@ export default function useTimeForm() {
     activePartitionIndex,
     preferredStartTime,
     preferredEndTime,
+    optionalDay,
     setActivityName,
     setIsFixed: handleSetIsFixed,
     setIdentity: handleSetIdentity,
@@ -415,5 +445,12 @@ export default function useTimeForm() {
     resetPartitions,
     setPreferredStartTime,
     setPreferredEndTime,
+    setOptionalDay,
+    dayFrom,
+    dayTo,
+    isAnchor,
+    setDayFrom,
+    setDayTo,
+    setIsAnchor,
   };
 }

@@ -13,6 +13,10 @@ export interface CreateActivityCommand {
   days: DayOfWeek[];
   preferredStartTime?: number | null;
   preferredEndTime?: number | null;
+  optionalDay?: boolean;
+  dayFrom?: number;
+  dayTo?: number;
+  isAnchor?: boolean;
 }
 
 export interface CreateActivityPort {

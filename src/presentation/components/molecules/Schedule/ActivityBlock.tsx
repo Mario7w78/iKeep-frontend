@@ -19,7 +19,27 @@ export function ActivityBlock({ item, onPress }: Props) {
   const endMin   = hhmmToMinutes(item.assignedEndTime);
   const top    = minutesToTop(startMin);
   const height = durationToHeight(startMin, endMin);
-  
+
+  // Travel blocks and items without activity render with gray style
+  if (!item.activity) {
+    return (
+      <TouchableOpacity
+        activeOpacity={0.85}
+        onPress={() => onPress?.(item)}
+        style={[s.block, { top, height, backgroundColor: '#1A1A1A', borderLeftColor: '#555' }]}
+      >
+        <Text style={[s.title, { color: '#999' }]} numberOfLines={1}>
+          {item.tipo === 'viaje' ? '🚗 Viaje' : 'Actividad'}
+        </Text>
+        {height > 36 && (
+          <Text style={[s.time, { color: '#777' }]}>
+            {formatDisplayTime(item.assignedStartTime)} – {formatDisplayTime(item.assignedEndTime)}
+          </Text>
+        )}
+      </TouchableOpacity>
+    );
+  }
+
   // Use a hash of the activity ID to ensure consistent color across different days
   const idNum = parseInt(item.activity.id.slice(-6), 10) || 0;
   const color = BLOCK_COLORS[idNum % BLOCK_COLORS.length];

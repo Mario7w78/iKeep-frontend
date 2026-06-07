@@ -2,10 +2,11 @@
 import { Activity, DayOfWeek } from './Activity';
 
 export interface ScheduledActivity {
-    activity: Activity;
+    activity?: Activity;
     assignedStartTime: string; // HH:mm
     assignedEndTime: string;   // HH:mm
     day: DayOfWeek;
+    tipo?: string;
 }
 
 export interface ScheduleProps {
@@ -15,6 +16,8 @@ export interface ScheduleProps {
     scheduledActivities: ScheduledActivity[];
     estado?: string;
     mensaje?: string;
+    recomendaciones?: string[];
+    tareasOmitidas?: string[];
 }
 
 export class Schedule {
@@ -23,6 +26,8 @@ export class Schedule {
     readonly createdAt: Date;
     readonly estado?: string;
     readonly mensaje?: string;
+    readonly recomendaciones: string[];
+    readonly tareasOmitidas: string[];
     private readonly items: ScheduledActivity[];
 
     constructor(props: ScheduleProps) {
@@ -31,6 +36,8 @@ export class Schedule {
         this.createdAt = props.createdAt;
         this.estado = props.estado;
         this.mensaje = props.mensaje;
+        this.recomendaciones = props.recomendaciones ?? [];
+        this.tareasOmitidas = props.tareasOmitidas ?? [];
         this.items = props.scheduledActivities;
     }
     
@@ -46,7 +53,7 @@ export class Schedule {
 
     getTotalActiveMinutes(): number {
         return this.items.reduce((total, item) => {
-            return total + item.activity.getTotalTimeRequired();
+            return total + (item.activity ? item.activity.getTotalTimeRequired() : 0);
         }, 0);
     }
 

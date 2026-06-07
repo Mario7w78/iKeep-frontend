@@ -55,6 +55,7 @@ export function ActivityDetailModal({ visible, activityItem, onClose }: Activity
   if (!activityItem) return null;
 
   const { activity, assignedStartTime, assignedEndTime, day } = activityItem;
+  if (!activity) return null;
 
   const getIdentityIcon = (identity: string) => {
     switch (identity) {

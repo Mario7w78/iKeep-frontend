@@ -15,6 +15,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { PartitionConfig } from "../../../../domain/entities/activity.types";
 import { Theme } from "../../theme/colors";
 import TimeChip from "../../atoms/CreateActivity/TimeChip";
+import { calculateDurationAcrossMidnight } from "../../../utils/timeUtils";
 
 const formatTime = (date: Date) =>
   new Date(date).toLocaleTimeString([], {
@@ -129,7 +130,7 @@ export default function TimePartitionForm({
   };
 
   const formatWindowDuration = (start: number, end: number) => {
-    const diff = end - start;
+    const diff = calculateDurationAcrossMidnight(start, end);
     if (diff <= 0) return "0min";
     const h = Math.floor(diff / 60);
     const m = diff % 60;
@@ -494,11 +495,11 @@ export default function TimePartitionForm({
               )}
 
               <View style={styles.windowInfoContainer}>
-                {preferredEndTime! - preferredStartTime! < durationTimeValue ? (
+                {calculateDurationAcrossMidnight(preferredStartTime!, preferredEndTime!) < durationTimeValue ? (
                   <View style={styles.warningContainer}>
                     <Ionicons name="warning" size={16} color={Theme.colors.error} />
                     <Text style={styles.warningText}>
-                      La ventana seleccionada ({preferredEndTime! - preferredStartTime!} min) es más corta que la duración estimada ({durationTimeValue} min)
+                      La ventana seleccionada ({calculateDurationAcrossMidnight(preferredStartTime!, preferredEndTime!)} min) es más corta que la duración estimada ({durationTimeValue} min)
                     </Text>
                   </View>
                 ) : (

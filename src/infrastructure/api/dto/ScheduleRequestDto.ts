@@ -9,4 +9,6 @@ export interface ScheduleRequestDto {
   ubicaciones: UbicacionDto[];
   tiempos_traslado: TiempoTrasladoDto[];
   contexto_usuario: ContextoUsuarioDto;
+  dia_inicio?: number;
+  dias_totales?: number;
 }

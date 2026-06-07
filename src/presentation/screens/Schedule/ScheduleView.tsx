@@ -68,7 +68,7 @@ function ChronologicalAgendaList({
     return Theme.comfyColors.green;
   };
 
-  const getIdentityIcon = (identity: string) => {
+  const getIdentityIcon = (identity: string | undefined) => {
     switch (identity) {
       case 'clase': return 'school-outline';
       case 'trabajo': return 'briefcase-outline';
@@ -82,19 +82,21 @@ function ChronologicalAgendaList({
       contentContainerStyle={s.listContent}
       showsVerticalScrollIndicator={false}
     >
-      {activities.map((act) => (
+      {activities.map((act) => {
+        const actActivity = act.activity;
+        return (
         <TouchableOpacity
-          key={`${act.activity.id}-${act.day}-${act.assignedStartTime}`}
+          key={`${actActivity?.id ?? act.tipo ?? 'unknown'}-${act.day}-${act.assignedStartTime}`}
           style={s.listItem}
           activeOpacity={0.7}
           onPress={() => onActivityPress(act)}
         >
           <View style={s.listItemHeader}>
             <View style={s.listItemIconWrapper}>
-              <Ionicons name={getIdentityIcon(act.activity.identity)} size={18} color={Theme.comfyFontColors.green} />
+              <Ionicons name={getIdentityIcon(actActivity?.identity)} size={18} color={Theme.comfyFontColors.green} />
             </View>
             <Text style={s.listItemTitle} numberOfLines={1}>
-              {act.activity.title}
+              {actActivity?.title ?? (act.tipo === 'viaje' ? 'Viaje' : 'Actividad')}
             </Text>
           </View>
 
@@ -108,24 +110,27 @@ function ChronologicalAgendaList({
               </Text>
             </View>
 
+            {actActivity && (
             <View style={s.listItemBadges}>
-              <View style={[s.listBadge, { borderColor: getPriorityColor(act.activity.priority) + '30', backgroundColor: getPriorityColor(act.activity.priority) + '10' }]}>
-                <Ionicons name="flag" size={12} color={getPriorityColor(act.activity.priority)} />
-                <Text style={[s.listBadgeText, { color: getPriorityColor(act.activity.priority) }]}>
-                  Prioridad {getPriorityLabel(act.activity.priority)}
+              <View style={[s.listBadge, { borderColor: getPriorityColor(actActivity.priority) + '30', backgroundColor: getPriorityColor(actActivity.priority) + '10' }]}>
+                <Ionicons name="flag" size={12} color={getPriorityColor(actActivity.priority)} />
+                <Text style={[s.listBadgeText, { color: getPriorityColor(actActivity.priority) }]}>
+                  Prioridad {getPriorityLabel(actActivity.priority)}
                 </Text>
               </View>
 
-              <View style={[s.listBadge, { borderColor: getDifficultyColor(act.activity.difficulty) + '30', backgroundColor: getDifficultyColor(act.activity.difficulty) + '10' }]}>
-                <Ionicons name="speedometer-outline" size={12} color={getDifficultyColor(act.activity.difficulty)} />
-                <Text style={[s.listBadgeText, { color: getDifficultyColor(act.activity.difficulty) }]}>
-                  Dificultad {getDifficultyLabel(act.activity.difficulty)}
+              <View style={[s.listBadge, { borderColor: getDifficultyColor(actActivity.difficulty) + '30', backgroundColor: getDifficultyColor(actActivity.difficulty) + '10' }]}>
+                <Ionicons name="speedometer-outline" size={12} color={getDifficultyColor(actActivity.difficulty)} />
+                <Text style={[s.listBadgeText, { color: getDifficultyColor(actActivity.difficulty) }]}>
+                  Dificultad {getDifficultyLabel(actActivity.difficulty)}
                 </Text>
               </View>
             </View>
+            )}
           </View>
         </TouchableOpacity>
-      ))}
+        );
+      })}
     </ScrollView>
   );
 }

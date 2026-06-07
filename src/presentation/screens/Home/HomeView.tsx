@@ -25,6 +25,8 @@ import {
   saveEnergyRecord,
   makeEnergyRecord,
   getEnergyHistory,
+  saveEnergyPatternOverride,
+  getEnergyPatternOverride,
 } from "../../../infrastructure/persistence/EnergyHistoryService";
 
 const ENERGY_LEVELS = [
@@ -70,11 +72,14 @@ export default function HomeView() {
   const schedule = useScheduleStore((s) => s.schedule);
   const isLoadedFromStorage = useScheduleStore((s) => s.isLoadedFromStorage);
   const handleGenerateSchedule = useScheduleStore((s) => s.handleGenerateSchedule);
+  const customEnergyPattern = useScheduleStore((s) => s.customEnergyPattern);
+  const setCustomEnergyPattern = useScheduleStore((s) => s.setCustomEnergyPattern);
   const activities = useActivityStore((s) => s.activities);
   const loadActivities = useActivityStore((s) => s.loadActivities);
   const [energyIndex, setEnergyIndex] = useState(0);
   const [savedEnergyIndex, setSavedEnergyIndex] = useState(0);
   const [selectedActivity, setSelectedActivity] = useState<ScheduledActivity | null>(null);
+  const [localPattern, setLocalPattern] = useState<string | null>(null);
 
   // Initialize energy level from local storage history on mount
   useEffect(() => {
@@ -92,12 +97,18 @@ export default function HomeView() {
           setEnergyIndex(1); // Default to stable (index 1)
           setSavedEnergyIndex(1);
         }
+        const savedPattern = await getEnergyPatternOverride();
+        if (savedPattern) setLocalPattern(savedPattern);
       } catch (e) {
         console.error("Error loading energy history:", e);
       }
     };
     initEnergy();
   }, []);
+
+  useEffect(() => {
+    setLocalPattern(customEnergyPattern);
+  }, [customEnergyPattern]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -212,14 +223,14 @@ export default function HomeView() {
         pill: "En curso",
         pillColor: Theme.comfyColors.green,
         pillText: Theme.comfyFontColors.green,
-        label: getIdentityLabel(currentActivity.activity.identity),
+        label: getIdentityLabel(currentActivity.activity?.identity),
       }
     : firstNext
     ? {
         pill: "Siguiente",
         pillColor: Theme.comfyColors.skyBlue,
         pillText: Theme.comfyFontColors.skyBlue,
-        label: getIdentityLabel(firstNext.activity.identity),
+        label: getIdentityLabel(firstNext.activity?.identity),
       }
     : {
         pill: "Libre",
@@ -229,9 +240,9 @@ export default function HomeView() {
       };
 
   const currentCardTitle = currentActivity
-    ? currentActivity.activity.title
+    ? currentActivity.activity?.title ?? 'Actividad sin nombre'
     : firstNext
-    ? firstNext.activity.title
+    ? firstNext.activity?.title ?? 'Actividad sin nombre'
     : "Sin actividades pendientes";
 
   const formatMinutesRemaining = (minutes: number | null) => {
@@ -329,6 +340,80 @@ export default function HomeView() {
           )}
         </LinearGradient>
 
+        {/* Energy pattern override */}
+        <View style={[styles.card, styles.patternCard]}>
+          <Text style={styles.patternTitle}>Patrón de energía</Text>
+          <Text style={styles.patternSubtitle}>
+            Opcional: indica tu patrón si querés que el scheduler lo tenga en cuenta
+          </Text>
+          <View style={styles.patternRow}>
+            {[
+              { value: null as string | null, label: 'Automático' },
+              { value: 'TRANSCRIPTORIO', label: 'Transcrito' },
+              { value: 'TENDENCIA', label: 'Tendencia' },
+              { value: 'CRONICO', label: 'Crónico' },
+            ].map((opt) => (
+              <TouchableOpacity
+                key={opt.value ?? 'auto'}
+                style={[
+                  styles.patternChip,
+                  localPattern === opt.value && styles.patternChipActive,
+                ]}
+                onPress={async () => {
+                  setLocalPattern(opt.value);
+                  await saveEnergyPatternOverride(opt.value);
+                  await setCustomEnergyPattern(opt.value);
+                }}
+              >
+                <Text style={[
+                  styles.patternChipText,
+                  localPattern === opt.value && styles.patternChipTextActive,
+                ]}>{opt.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* INFACTIBLE info card */}
+        {schedule?.estado === 'INFACTIBLE' && (
+          <View style={[styles.card, styles.infactibleCard]}>
+            <View style={styles.infactibleHeader}>
+              <Ionicons name="warning-outline" size={22} color={Theme.comfyColors.yellow} />
+              <Text style={styles.infactibleTitle}>Horario parcialmente generado</Text>
+            </View>
+            {schedule.recomendaciones.length > 0 && (
+              <View style={styles.infactibleSection}>
+                <Text style={styles.infactibleSectionTitle}>Recomendaciones:</Text>
+                {schedule.recomendaciones.map((rec, idx) => (
+                  <Text key={idx} style={styles.infactibleBullet}>• {rec}</Text>
+                ))}
+              </View>
+            )}
+            {schedule.tareasOmitidas.length > 0 && (
+              <View style={styles.infactibleSection}>
+                <Text style={styles.infactibleSectionTitle}>
+                  {schedule.tareasOmitidas.length} tarea{schedule.tareasOmitidas.length > 1 ? 's' : ''} no se pudieron programar:
+                </Text>
+                {schedule.tareasOmitidas.map((name, idx) => (
+                  <Text key={idx} style={styles.infactibleBullet}>• {name}</Text>
+                ))}
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* DESCONOCIDO warning */}
+        {schedule?.estado === 'DESCONOCIDO' && (
+          <View style={[styles.card, styles.desconocidoCard]}>
+            <View style={styles.infactibleHeader}>
+              <Ionicons name="time-outline" size={20} color={Theme.comfyColors.yellow} />
+              <Text style={styles.desconocidoText}>
+                El servidor no encontró respuesta a tiempo, mostrando horario base
+              </Text>
+            </View>
+          </View>
+        )}
+
         <TouchableOpacity 
           style={styles.card}
           activeOpacity={0.75}
@@ -401,16 +486,16 @@ export default function HomeView() {
             {nextActivities.length > 0 ? (
               nextActivities.slice(0, 3).map((item, index) => (
                 <TouchableOpacity 
-                  key={`${item.activity.id}-${index}`} 
+                  key={`${item.activity?.id ?? item.tipo ?? index}-${index}`} 
                   style={styles.nextCard}
                   activeOpacity={0.75}
-                  onPress={() => setSelectedActivity(item)}
+                  onPress={() => item.activity && setSelectedActivity(item)}
                 >
                   <View>
                     <Text style={styles.nextTime}>
                       {item.assignedStartTime} - {item.assignedEndTime}
                     </Text>
-                    <Text style={styles.nextTitle}>{item.activity.title}</Text>
+                    <Text style={styles.nextTitle}>{item.activity?.title ?? (item.tipo === 'viaje' ? 'Viaje' : 'Actividad')}</Text>
                   </View>
                   <Ionicons name="chevron-forward" size={20} color={Theme.colors.iconSecondary} />
                 </TouchableOpacity>
@@ -731,5 +816,89 @@ const styles = StyleSheet.create({
     color: "#2b2d3b",
     fontSize: 14,
     fontWeight: "900",
+  },
+  infactibleCard: {
+    backgroundColor: 'rgba(255, 183, 77, 0.12)',
+    borderColor: Theme.comfyColors.yellow,
+  },
+  infactibleHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  infactibleTitle: {
+    color: Theme.comfyColors.yellow,
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  infactibleSection: {
+    marginTop: 8,
+    paddingLeft: 4,
+  },
+  infactibleSectionTitle: {
+    color: Theme.colors.surface,
+    fontSize: 13,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  infactibleBullet: {
+    color: Theme.colors.textSecondary,
+    fontSize: 13,
+    lineHeight: 20,
+    paddingLeft: 8,
+  },
+  desconocidoCard: {
+    backgroundColor: 'rgba(255, 183, 77, 0.08)',
+    borderColor: Theme.comfyColors.yellow,
+    paddingVertical: 12,
+  },
+  desconocidoText: {
+    color: Theme.comfyColors.yellow,
+    fontSize: 13,
+    fontWeight: '600',
+    flex: 1,
+  },
+  patternCard: {
+    borderLeftWidth: 3,
+    borderLeftColor: Theme.comfyColors.skyBlue,
+  },
+  patternTitle: {
+    color: Theme.colors.surface,
+    fontSize: 16,
+    fontWeight: "900",
+    marginBottom: 4,
+  },
+  patternSubtitle: {
+    color: Theme.colors.textTertiary,
+    fontSize: 13,
+    fontWeight: "600",
+    marginBottom: 14,
+    lineHeight: 18,
+  },
+  patternRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  patternChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: "#4d506c",
+    borderWidth: 1,
+    borderColor: Theme.colors.cardBorder,
+  },
+  patternChipActive: {
+    backgroundColor: "rgba(141,255,104,0.15)",
+    borderColor: Theme.comfyColors.green,
+  },
+  patternChipText: {
+    color: Theme.colors.textTertiary,
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  patternChipTextActive: {
+    color: Theme.comfyColors.green,
   },
 });

@@ -63,6 +63,22 @@ export async function hasReportedEnergyToday(): Promise<boolean> {
   );
 }
 
+const ENERGY_PATTERN_KEY = '@energy_pattern_override';
+
+/** Save the user's manual energy pattern override (null to clear). */
+export async function saveEnergyPatternOverride(pattern: string | null): Promise<void> {
+  if (pattern !== null) {
+    await AsyncStorage.setItem(ENERGY_PATTERN_KEY, pattern);
+  } else {
+    await AsyncStorage.removeItem(ENERGY_PATTERN_KEY);
+  }
+}
+
+/** Load the user's manual energy pattern override, or null if not set. */
+export async function getEnergyPatternOverride(): Promise<string | null> {
+  return AsyncStorage.getItem(ENERGY_PATTERN_KEY);
+}
+
 /** Create an EnergyRecord for the current moment. */
 export function makeEnergyRecord(
   nivel: number,

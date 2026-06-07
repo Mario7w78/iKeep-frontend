@@ -26,6 +26,10 @@ const SettingsView = () => {
     setStartHour,
     setEndHour,
     handleGenerateSchedule,
+    rollingWeekStartDay,
+    rollingWeekTotalDays,
+    setRollingWeekStartDay,
+    setRollingWeekTotalDays,
   } = useScheduleStore();
 
   const [isEditing, setIsEditing] = useState(false);
@@ -36,11 +40,15 @@ const SettingsView = () => {
 
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
+  const [localDiaInicio, setLocalDiaInicio] = useState(rollingWeekStartDay);
+  const [localDiasTotales, setLocalDiasTotales] = useState(rollingWeekTotalDays);
 
   useEffect(() => {
     setLocalStartTime(minutesToDate(startHour));
     setLocalEndTime(minutesToDate(endHour));
-  }, [startHour, endHour]);
+    setLocalDiaInicio(rollingWeekStartDay);
+    setLocalDiasTotales(rollingWeekTotalDays);
+  }, [startHour, endHour, rollingWeekStartDay, rollingWeekTotalDays]);
 
   const handleSave = () => {
     const startMin = dateToMinutes(localStartTime);
@@ -68,6 +76,8 @@ const SettingsView = () => {
           onPress: async () => {
             await setStartHour(startMin);
             await setEndHour(endMin);
+            await setRollingWeekStartDay(localDiaInicio);
+            await setRollingWeekTotalDays(localDiasTotales);
             try {
               await handleGenerateSchedule();
               setIsEditing(false);
@@ -84,6 +94,8 @@ const SettingsView = () => {
   const handleCancel = () => {
     setLocalStartTime(minutesToDate(startHour));
     setLocalEndTime(minutesToDate(endHour));
+    setLocalDiaInicio(rollingWeekStartDay);
+    setLocalDiasTotales(rollingWeekTotalDays);
     setShowStartPicker(false);
     setShowEndPicker(false);
     setIsEditing(false);
@@ -158,6 +170,49 @@ const SettingsView = () => {
               />
             </View>
           )}
+        </View>
+
+        <View style={styles.divider} />
+
+        <Text style={styles.sectionTitle}>Semana móvil</Text>
+        <Text style={styles.fieldLabel}>Día de inicio de la semana</Text>
+        <View style={styles.dayPickerRow}>
+          {['Lu','Ma','Mi','Ju','Vi','Sá','Do'].map((label, idx) => (
+            <TouchableOpacity
+              key={idx}
+              style={[
+                styles.dayPickerButton,
+                localDiaInicio === idx && styles.dayPickerButtonActive,
+                !isEditing && { opacity: 0.6 },
+              ]}
+              disabled={!isEditing}
+              onPress={() => setLocalDiaInicio(idx)}
+            >
+              <Text style={[
+                styles.dayPickerText,
+                localDiaInicio === idx && styles.dayPickerTextActive,
+              ]}>{label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <Text style={styles.fieldLabel}>Duración de la semana (días)</Text>
+        <View style={styles.durationRow}>
+          <TouchableOpacity
+            style={[styles.durationBtn, !isEditing && { opacity: 0.6 }]}
+            disabled={!isEditing}
+            onPress={() => setLocalDiasTotales(Math.max(1, localDiasTotales - 1))}
+          >
+            <Ionicons name="remove" size={24} color={Theme.colors.surface} />
+          </TouchableOpacity>
+          <Text style={styles.durationValue}>{localDiasTotales}</Text>
+          <TouchableOpacity
+            style={[styles.durationBtn, !isEditing && { opacity: 0.6 }]}
+            disabled={!isEditing}
+            onPress={() => setLocalDiasTotales(Math.min(7, localDiasTotales + 1))}
+          >
+            <Ionicons name="add" size={24} color={Theme.colors.surface} />
+          </TouchableOpacity>
         </View>
 
         <Text style={styles.sectionFooter}>
@@ -259,6 +314,65 @@ const styles = StyleSheet.create({
   iosPicker: {
     height: 120,
     width: "100%",
+  },
+  sectionTitle: {
+    color: Theme.colors.surface,
+    fontSize: 18,
+    fontWeight: "900",
+    marginTop: 4,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: Theme.colors.cardBorder,
+  },
+  dayPickerRow: {
+    flexDirection: "row",
+    gap: 6,
+  },
+  dayPickerButton: {
+    flex: 1,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: "#4d506c",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "transparent",
+  },
+  dayPickerButtonActive: {
+    backgroundColor: Theme.comfyColors.green,
+    borderColor: "rgba(141,255,104,0.3)",
+  },
+  dayPickerText: {
+    color: Theme.colors.textTertiary,
+    fontSize: 14,
+    fontWeight: "800",
+  },
+  dayPickerTextActive: {
+    color: Theme.comfyFontColors.green,
+  },
+  durationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 16,
+  },
+  durationBtn: {
+    width: 52,
+    height: 52,
+    borderRadius: 14,
+    backgroundColor: "#4d506c",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: Theme.colors.cardBorder,
+  },
+  durationValue: {
+    color: Theme.colors.surface,
+    fontSize: 28,
+    fontWeight: "900",
+    minWidth: 48,
+    textAlign: "center",
   },
   sectionFooter: {
     fontSize: 14,

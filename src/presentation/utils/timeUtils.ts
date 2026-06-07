@@ -48,7 +48,34 @@ export const areOverlapping = (
   start2: number,
   end2: number,
 ): boolean => {
-  return start1 < end2 && start2 < end1;
+  const wraps1 = end1 < start1;
+  const wraps2 = end2 < start2;
+
+  if (wraps1 && wraps2) return true; // Two wrapping intervals always overlap
+
+  if (!wraps1 && !wraps2) {
+    // Neither wraps — standard linear overlap
+    return start1 < end2 && start2 < end1;
+  }
+
+  // One wraps: the wrapping interval covers [start..1439] and [0..end]
+  // Overlaps if the non-wrapping start falls in the wrap arc
+  if (wraps1) return start2 < end1 || start1 < end2;
+  return start1 < end2 || start2 < end1;
+};
+
+/** Returns the minute difference handling end < start (crossover).
+ *  When end >= start: returns end - start.
+ *  When end < start: returns (1440 - start) + end.
+ */
+export const calculateDurationAcrossMidnight = (start: number, end: number): number => {
+  if (end >= start) return end - start;
+  return 1440 - start + end;
+};
+
+/** Returns true unless start === end (same semantic as settings / onboarding). */
+export const isValidTimeRange = (start: number, end: number): boolean => {
+  return start !== end;
 };
 
 export const getTodayFormatted = () => {

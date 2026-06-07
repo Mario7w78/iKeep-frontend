@@ -17,9 +17,11 @@ export interface EnergyRecordDto {
 
 export interface ContextoUsuarioDto {
   nivel_energia: number;
-  horario_inicio: number;
-  horario_fin: number;
+  horario_inicio: number | number[];
+  horario_fin: number | number[];
   bloques_sueno: BloqueSuenoDto[];
   /** Last 14 days of energy history (optional, for pattern detection) */
   historial_energia?: EnergyRecordDto[];
+  /** Manual energy pattern override: 'TRANSCRIPTORIO' | 'TENDENCIA' | 'CRONICO' */
+  patron_energia_manual?: string;
 }

@@ -16,6 +16,8 @@ type NameIdentityStepProps = {
   onSetDifficulty: (difficulty: "baja" | "media" | "alta") => void;
   onSetPriority: (priority: "baja" | "media" | "alta") => void;
   onSetDeadline: (deadline: Date | null) => void;
+  isAnchor?: boolean;
+  onToggleAnchor?: (value: boolean) => void;
 };
 
 const clearTime = (date: Date) => {
@@ -170,6 +172,8 @@ export default function NameIdentityStep({
   onSetDifficulty,
   onSetPriority,
   onSetDeadline,
+  isAnchor,
+  onToggleAnchor,
 }: NameIdentityStepProps) {
   const [hasDeadline, setHasDeadline] = useState(deadline !== null);
 
@@ -429,6 +433,31 @@ export default function NameIdentityStep({
           </View>
 
           <View style={styles.divider} />
+
+          {onToggleAnchor && (
+            <>
+              <Text style={styles.sectionTitle}>Anclaje de día</Text>
+              <TouchableOpacity
+                style={[styles.anchorToggle, isAnchor && styles.anchorToggleActive]}
+                activeOpacity={0.7}
+                onPress={() => onToggleAnchor(!isAnchor)}
+              >
+                <Ionicons
+                  name={isAnchor ? "checkmark-circle" : "ellipse-outline"}
+                  size={22}
+                  color={isAnchor ? Theme.comfyColors.green : Theme.colors.textTertiary}
+                />
+                <View style={styles.anchorToggleText}>
+                  <Text style={[styles.anchorToggleTitle, isAnchor && styles.anchorToggleTitleActive]}>
+                    Fijar día, horario flexible
+                  </Text>
+                  <Text style={styles.anchorToggleSubtitle}>
+                    La actividad se programa en un día fijo pero puede moverse dentro del horario
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </>
+          )}
         </>
       )}
 
@@ -548,6 +577,38 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: Theme.colors.cardBorder,
     marginVertical: 12,
+  },
+  anchorToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: Theme.colors.cardBackground,
+    borderWidth: 1,
+    borderColor: Theme.colors.cardBorder,
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  anchorToggleActive: {
+    borderColor: Theme.comfyColors.green,
+    backgroundColor: "rgba(141,255,104,0.08)",
+  },
+  anchorToggleText: {
+    flex: 1,
+  },
+  anchorToggleTitle: {
+    color: Theme.colors.surface,
+    fontSize: 15,
+    fontWeight: "800",
+  },
+  anchorToggleTitleActive: {
+    color: Theme.comfyColors.green,
+  },
+  anchorToggleSubtitle: {
+    color: Theme.colors.textTertiary,
+    fontSize: 12,
+    fontWeight: "600",
+    marginTop: 2,
   },
   deadlineToggleRow: {
     flexDirection: "row",

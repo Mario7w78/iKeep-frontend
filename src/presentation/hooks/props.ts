@@ -16,4 +16,7 @@ export type editGroupProps = {
 export type saveActivityProps = {
     daysDict: Partial<Record<DayOfWeek, DayConfig>>,
     selectedDays: DayOfWeek[],
+    dayFrom?: number;
+    dayTo?: number;
+    isAnchor?: boolean;
 }

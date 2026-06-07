@@ -19,7 +19,7 @@ export interface TareaPendienteDto {
   id: string;
   nombre: string;
   tipo: BackendActivityType;
-  dia: number;
+  dia?: number;
   hora_inicio: number;
   hora_fin: number;
   ubicacion_id: string | null;
@@ -29,4 +29,8 @@ export interface TareaPendienteDto {
   dificultad: BackendDifficulty;
   hora_preferida_inicio?: number | null;
   hora_preferida_fin?: number | null;
+  dias_permitidos?: number[];
+  dia_desde?: number;
+  dia_hasta?: number;
+  es_ancla?: boolean;
 }

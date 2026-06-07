@@ -11,13 +11,21 @@ import { SugerenciaTareaDto } from '../api/dto/SuggestTaskDto';
 import { RescheduleRequestDto } from '../api/dto/RescheduleRequestDto';
 import { ScheduleResponseDto, ScheduleEstado } from '../api/dto/ScheduleResponseDto';
 import { scheduleToBloqueTiempo } from '../api/mappers/rescheduleMapper';
-import { EnergyRecord, getEnergyHistory } from '../persistence/EnergyHistoryService';
+import { EnergyRecord, getEnergyHistory, getEnergyPatternOverride, saveEnergyPatternOverride } from '../persistence/EnergyHistoryService';
 
 interface DayLimitPersistence {
   getStartHour: () => Promise<number>;
   getEndHour: () => Promise<number>;
   setStartHour: (hour: number) => Promise<void>;
   setEndHour: (hour: number) => Promise<void>;
+  getDiaInicio: () => Promise<number>;
+  getDiasTotales: () => Promise<number>;
+  setDiaInicio: (val: number) => Promise<void>;
+  setDiasTotales: (val: number) => Promise<void>;
+  getPerDayStartHours: () => Promise<number[] | null>;
+  setPerDayStartHours: (val: number[] | null) => Promise<void>;
+  getPerDayEndHours: () => Promise<number[] | null>;
+  setPerDayEndHours: (val: number[] | null) => Promise<void>;
 }
 
 interface ScheduleStoreState {
@@ -37,6 +45,16 @@ interface ScheduleStoreState {
   suggestions: SugerenciaTareaDto[];
   handleReschedule: (affectedActivityId: string, lostMinutes: number) => Promise<void>;
   handleSuggestTask: (freeMinutes: number) => Promise<SugerenciaTareaDto[]>;
+  rollingWeekStartDay: number;
+  rollingWeekTotalDays: number;
+  customEnergyPattern: string | null;
+  perDayStartHours: number[] | null;
+  perDayEndHours: number[] | null;
+  setRollingWeekStartDay: (day: number) => Promise<void>;
+  setRollingWeekTotalDays: (days: number) => Promise<void>;
+  setCustomEnergyPattern: (pattern: string | null) => Promise<void>;
+  setPerDayStartHours: (hours: number[] | null) => Promise<void>;
+  setPerDayEndHours: (hours: number[] | null) => Promise<void>;
 }
 
 export type ScheduleStore = UseBoundStore<StoreApi<ScheduleStoreState>>;
@@ -55,8 +73,10 @@ export function createScheduleStore(
         createdAt: schedule.createdAt,
         estado: schedule.estado,
         mensaje: schedule.mensaje,
+        recomendaciones: schedule.recomendaciones,
+        tareasOmitidas: schedule.tareasOmitidas,
         scheduledActivities: schedule.getAllItems().map(item => ({
-          activity: {
+          activity: item.activity ? {
             id: item.activity.id,
             title: item.activity.title,
             type: item.activity.type,
@@ -66,10 +86,12 @@ export function createScheduleStore(
             deadline: item.activity.deadline,
             daysEnabled: item.activity.daysEnabled,
             daysConfig: item.activity.daysConfig,
-          },
+            optionalDay: item.activity.optionalDay,
+          } : null,
           assignedStartTime: item.assignedStartTime,
           assignedEndTime: item.assignedEndTime,
-          day: item.day
+          day: item.day,
+          tipo: item.tipo,
         }))
       };
       await AsyncStorage.setItem('@schedule', JSON.stringify(propsToSave));
@@ -86,6 +108,11 @@ export function createScheduleStore(
     endHour: 1439,
     selectedDay: JS_DAY_TO_DAYOFWEEK[new Date().getDay()],
     suggestions: [],
+    rollingWeekStartDay: 0,
+    rollingWeekTotalDays: 7,
+    customEnergyPattern: null,
+    perDayStartHours: null,
+    perDayEndHours: null,
 
     activitiesForDay: () => {
       const { schedule, selectedDay } = get();
@@ -96,6 +123,11 @@ export function createScheduleStore(
       try {
         const start = await dayLimitPersistence.getStartHour();
         const end = await dayLimitPersistence.getEndHour();
+        const diaInicio = await dayLimitPersistence.getDiaInicio();
+        const diasTotales = await dayLimitPersistence.getDiasTotales();
+        const perDayStart = await dayLimitPersistence.getPerDayStartHours();
+        const perDayEnd = await dayLimitPersistence.getPerDayEndHours();
+        const energyPattern = await getEnergyPatternOverride();
 
         let sH = start !== null ? start : 240;
         let eH = end !== null ? end : 1320;
@@ -105,7 +137,15 @@ export function createScheduleStore(
           eH = 1320;
         }
 
-        set({ startHour: sH, endHour: eH });
+        set({
+          startHour: sH,
+          endHour: eH,
+          rollingWeekStartDay: diaInicio ?? 0,
+          rollingWeekTotalDays: diasTotales ?? 7,
+          perDayStartHours: perDayStart ?? null,
+          perDayEndHours: perDayEnd ?? null,
+          customEnergyPattern: energyPattern,
+        });
       } catch (e) {
         console.error('Error cargando límites del día:', e);
       }
@@ -117,7 +157,7 @@ export function createScheduleStore(
         if (stored) {
           const parsed = JSON.parse(stored);
           const scheduledActivities = (parsed.scheduledActivities || []).map((item: any) => ({
-            activity: new Activity({
+            activity: item.activity ? new Activity({
               id: item.activity.id,
               title: item.activity.title,
               type: item.activity.type,
@@ -125,12 +165,14 @@ export function createScheduleStore(
               priority: item.activity.priority,
               difficulty: item.activity.difficulty,
               deadline: item.activity.deadline,
-              daysEnabled: item.activity.daysEnabled,
-              daysConfig: item.activity.daysConfig
-            }),
+            daysEnabled: item.activity.daysEnabled,
+            daysConfig: item.activity.daysConfig,
+            optionalDay: item.activity.optionalDay ?? false,
+          }) : undefined,
             assignedStartTime: item.assignedStartTime,
             assignedEndTime: item.assignedEndTime,
-            day: item.day
+            day: item.day,
+            tipo: item.tipo,
           }));
 
           const loadedSchedule = new Schedule({
@@ -139,6 +181,8 @@ export function createScheduleStore(
             createdAt: new Date(parsed.createdAt),
             estado: parsed.estado,
             mensaje: parsed.mensaje,
+            recomendaciones: parsed.recomendaciones ?? [],
+            tareasOmitidas: parsed.tareasOmitidas ?? [],
             scheduledActivities
           });
 
@@ -153,10 +197,16 @@ export function createScheduleStore(
 
     handleGenerateSchedule: async (energyData) => {
       await get().loadDayLimits();
-      const { startHour, endHour } = get();
+      const { startHour, endHour, rollingWeekStartDay, rollingWeekTotalDays, customEnergyPattern, perDayStartHours, perDayEndHours } = get();
       set({ isLoading: true });
       try {
-        const options: GenerateScheduleOptions = {};
+        const options: GenerateScheduleOptions = {
+          dia_inicio: rollingWeekStartDay,
+          dias_totales: rollingWeekTotalDays,
+          patron_energia_manual: customEnergyPattern ?? undefined,
+          perDayStartHours: perDayStartHours ?? undefined,
+          perDayEndHours: perDayEndHours ?? undefined,
+        };
         if (energyData) {
           options.nivel_energia = energyData.nivel_energia;
           options.historial_energia = energyData.historial_energia;
@@ -195,6 +245,51 @@ export function createScheduleStore(
       }
     },
 
+    setRollingWeekStartDay: async (day) => {
+      try {
+        await dayLimitPersistence.setDiaInicio(day);
+        set({ rollingWeekStartDay: day });
+      } catch (e) {
+        console.error('Error guardando día de inicio de semana:', e);
+      }
+    },
+
+    setRollingWeekTotalDays: async (days) => {
+      try {
+        await dayLimitPersistence.setDiasTotales(days);
+        set({ rollingWeekTotalDays: days });
+      } catch (e) {
+        console.error('Error guardando total de días de semana:', e);
+      }
+    },
+
+    setCustomEnergyPattern: async (pattern) => {
+      try {
+        await saveEnergyPatternOverride(pattern);
+        set({ customEnergyPattern: pattern });
+      } catch (e) {
+        console.error('Error guardando patrón de energía:', e);
+      }
+    },
+
+    setPerDayStartHours: async (hours) => {
+      try {
+        await dayLimitPersistence.setPerDayStartHours(hours);
+        set({ perDayStartHours: hours });
+      } catch (e) {
+        console.error('Error guardando horario de inicio por día:', e);
+      }
+    },
+
+    setPerDayEndHours: async (hours) => {
+      try {
+        await dayLimitPersistence.setPerDayEndHours(hours);
+        set({ perDayEndHours: hours });
+      } catch (e) {
+        console.error('Error guardando horario de fin por día:', e);
+      }
+    },
+
     handleReschedule: async (affectedActivityId: string, lostMinutes: number) => {
       const { schedule, startHour, endHour } = get();
       if (!schedule || !rescheduleUseCase) return;
@@ -210,16 +305,18 @@ export function createScheduleStore(
         mensaje: schedule.mensaje || '',
       };
 
+      const { customEnergyPattern, perDayStartHours, perDayEndHours } = get();
       const request: RescheduleRequestDto = {
         horario_actual: horarioActual,
         actividad_afectada_id: affectedActivityId,
         tiempo_perdido_minutos: lostMinutes,
         contexto_usuario: {
           nivel_energia: lastRecord?.nivel ?? 2,
-          horario_inicio: startHour,
-          horario_fin: endHour,
+          horario_inicio: perDayStartHours ?? startHour,
+          horario_fin: perDayEndHours ?? endHour,
           bloques_sueno: [],
           historial_energia: historial.length > 0 ? historial : undefined,
+          patron_energia_manual: customEnergyPattern ?? undefined,
         },
       };
 

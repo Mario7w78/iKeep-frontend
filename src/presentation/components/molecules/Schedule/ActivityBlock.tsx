@@ -1,6 +1,6 @@
 import { TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { ScheduledActivity } from '../../../../domain/entities/Schedule';
-import { hhmmToMinutes, minutesToTop, durationToHeight, formatDisplayTime, LABEL_WIDTH } from '../../../utils/scheduleUtils';
+import { hhmmToMinutes, formatDisplayTime, LABEL_WIDTH } from '../../../utils/scheduleUtils';
 
 const BLOCK_COLORS = [
   { bg: '#221A3D', border: '#5D4BB3', text: '#DDD6FF' },
@@ -12,13 +12,15 @@ const BLOCK_COLORS = [
 interface Props {
   item: ScheduledActivity;
   onPress?: (item: ScheduledActivity) => void;
+  displayStart?: number;
+  hourHeight?: number;
 }
 
-export function ActivityBlock({ item, onPress }: Props) {
+export function ActivityBlock({ item, onPress, displayStart = 0, hourHeight = 56 }: Props) {
   const startMin = hhmmToMinutes(item.assignedStartTime);
   const endMin   = hhmmToMinutes(item.assignedEndTime);
-  const top    = minutesToTop(startMin);
-  const height = durationToHeight(startMin, endMin);
+  const top = ((startMin - displayStart * 60) / 60) * hourHeight;
+  const height = Math.max(((endMin - startMin) / 60) * hourHeight - 4, 28);
 
   // Travel blocks and items without activity render with gray style
   if (!item.activity) {

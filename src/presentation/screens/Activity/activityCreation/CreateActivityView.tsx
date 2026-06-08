@@ -186,6 +186,23 @@ export default function CreateActivityView({ navigation, route }: any) {
     }
   }, [route.params?.activity]);
 
+  // Mutual exclusion: anchor (día fijo), optionalDay (scheduler), y dayRange no pueden coexistir
+  useEffect(() => {
+    if (isAnchor) {
+      setOptionalDay(false);
+      setDayFrom(null);
+      setDayTo(null);
+    }
+  }, [isAnchor]);
+
+  useEffect(() => {
+    if (optionalDay) {
+      setIsAnchor(false);
+      setDayFrom(null);
+      setDayTo(null);
+    }
+  }, [optionalDay]);
+
   const configuredDays = useMemo(
     () => (Object.keys(daysDict) as DayOfWeek[]).sort(
       (a, b) => WEEKDAY_ORDER.indexOf(a) - WEEKDAY_ORDER.indexOf(b)
@@ -480,6 +497,7 @@ export default function CreateActivityView({ navigation, route }: any) {
             daysDict={daysDict}
             configuredDaysCount={configuredDays.length}
             isFixed={isFixed}
+            isAnchor={isAnchor}
             optionalDay={optionalDay}
             onSelectDay={handleSelect}
             isDayConfigured={isDayConfigured}

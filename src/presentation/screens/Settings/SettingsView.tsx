@@ -18,6 +18,33 @@ import {
   minutesToDate,
   formatTime,
 } from "../../utils/timeUtils";
+import {
+  saveEnergyPatternOverride,
+  getEnergyPatternOverride,
+} from "../../../infrastructure/persistence/EnergyHistoryService";
+
+const PATTERN_OPTIONS = [
+  {
+    value: null as string | null,
+    label: 'Automático',
+    desc: 'Deja que iKeep decida según tu historial de los últimos 14 días',
+  },
+  {
+    value: 'TRANSCRIPTORIO',
+    label: 'Normal',
+    desc: 'Tu energía es normal, día a día variable. Sin restricciones extra.',
+  },
+  {
+    value: 'TENDENCIA',
+    label: 'Últimamente bajo',
+    desc: 'Vienes con menos energía — el scheduler limita a 1 tarea pesada por día',
+  },
+  {
+    value: 'CRONICO',
+    label: 'Siempre bajo',
+    desc: 'Tu energía es consistentemente baja — el scheduler es más conservador con tareas difíciles',
+  },
+];
 
 const SettingsView = () => {
   const {
@@ -26,13 +53,10 @@ const SettingsView = () => {
     setStartHour,
     setEndHour,
     handleGenerateSchedule,
-    rollingWeekStartDay,
-    rollingWeekTotalDays,
-    setRollingWeekStartDay,
-    setRollingWeekTotalDays,
+    customEnergyPattern,
+    setCustomEnergyPattern,
   } = useScheduleStore();
 
-  const [isEditing, setIsEditing] = useState(false);
   const [localStartTime, setLocalStartTime] = useState(
     minutesToDate(startHour)
   );
@@ -40,50 +64,49 @@ const SettingsView = () => {
 
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
-  const [localDiaInicio, setLocalDiaInicio] = useState(rollingWeekStartDay);
-  const [localDiasTotales, setLocalDiasTotales] = useState(rollingWeekTotalDays);
+  const [localPattern, setLocalPattern] = useState<string | null>(null);
+  const [showPatternOptions, setShowPatternOptions] = useState(false);
 
   useEffect(() => {
-    setLocalStartTime(minutesToDate(startHour));
-    setLocalEndTime(minutesToDate(endHour));
-    setLocalDiaInicio(rollingWeekStartDay);
-    setLocalDiasTotales(rollingWeekTotalDays);
-  }, [startHour, endHour, rollingWeekStartDay, rollingWeekTotalDays]);
+    const loadPattern = async () => {
+      const saved = await getEnergyPatternOverride();
+      setLocalPattern(saved);
+    };
+    loadPattern();
+  }, []);
 
-  const handleSave = () => {
-    const startMin = dateToMinutes(localStartTime);
-    const endMin = dateToMinutes(localEndTime);
+  useEffect(() => {
+    setLocalPattern(customEnergyPattern);
+  }, [customEnergyPattern]);
 
-    if (startMin === endMin) {
-      Alert.alert(
-        "Horario inválido",
-        "La hora de inicio y de fin no pueden ser iguales"
-      );
-      return;
-    }
+  const confirmTimeChange = (
+    newDate: Date,
+    label: string,
+    setter: (h: number) => void,
+    revert: () => void,
+    closePicker: () => void
+  ) => {
+    const newMinutes = dateToMinutes(newDate);
+    closePicker();
 
     Alert.alert(
-      "Guardar configuración",
-      "¿Estás seguro de que quieres actualizar tu horario? Esto recalculará todas tus actividades planificadas.",
+      "¿Actualizar horario?",
+      `¿Querés cambiar el ${label} a las ${formatTime(newDate)}? Esto recalculará todas tus actividades planificadas.`,
       [
         {
           text: "Cancelar",
           style: "cancel",
+          onPress: revert,
         },
         {
-          text: "Sí, guardar",
+          text: "Sí, actualizar",
           style: "default",
           onPress: async () => {
-            await setStartHour(startMin);
-            await setEndHour(endMin);
-            await setRollingWeekStartDay(localDiaInicio);
-            await setRollingWeekTotalDays(localDiasTotales);
+            setter(newMinutes);
             try {
               await handleGenerateSchedule();
-              setIsEditing(false);
-              Alert.alert("Éxito", "Configuración guardada correctamente.");
             } catch (e) {
-              console.error("Error generating schedule after settings save:", e);
+              console.error("Error regenerating schedule:", e);
             }
           },
         },
@@ -91,15 +114,29 @@ const SettingsView = () => {
     );
   };
 
-  const handleCancel = () => {
-    setLocalStartTime(minutesToDate(startHour));
-    setLocalEndTime(minutesToDate(endHour));
-    setLocalDiaInicio(rollingWeekStartDay);
-    setLocalDiasTotales(rollingWeekTotalDays);
-    setShowStartPicker(false);
-    setShowEndPicker(false);
-    setIsEditing(false);
+  const handleStartConfirm = () => {
+    confirmTimeChange(
+      localStartTime,
+      "inicio del día",
+      setStartHour,
+      () => setLocalStartTime(minutesToDate(startHour)),
+      () => setShowStartPicker(false)
+    );
   };
+
+  const handleEndConfirm = () => {
+    confirmTimeChange(
+      localEndTime,
+      "fin del día",
+      setEndHour,
+      () => setLocalEndTime(minutesToDate(endHour)),
+      () => setShowEndPicker(false)
+    );
+  };
+
+  const currentPatternLabel = PATTERN_OPTIONS.find(
+    (o) => o.value === localPattern
+  )?.label ?? 'Automático';
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -110,146 +147,155 @@ const SettingsView = () => {
       >
         <Text style={styles.pageTitle}>Configuración</Text>
 
-        <View style={styles.settingsSection}>
-          <Text style={styles.fieldLabel}>Inicio del día</Text>
+        {/* ═══════════════ HORARIO ═══════════════ */}
+        <Text style={styles.sectionHeader}>HORARIO</Text>
+        <View style={styles.section}>
           <TouchableOpacity
-            style={[styles.timeInputCard, !isEditing && { opacity: 0.6 }]}
+            style={styles.row}
             activeOpacity={0.7}
             onPress={() => setShowStartPicker((v) => !v)}
-            disabled={!isEditing}
           >
-            <Ionicons name="time-outline" size={24} color={Theme.colors.surface} />
-            <Text style={styles.timeInputText}>
-              {formatTime(localStartTime)}
-            </Text>
+            <Text style={styles.rowLabel}>Inicio del día</Text>
+            <Text style={styles.rowValue}>{formatTime(localStartTime)}</Text>
+            <Ionicons
+              name={showStartPicker ? "chevron-up" : "chevron-forward"}
+              size={18}
+              color={Theme.colors.textTertiary}
+            />
           </TouchableOpacity>
 
-          {isEditing && (showStartPicker || Platform.OS === "ios") && (
-            <View style={styles.iosPickerCard}>
-              <DateTimePicker
-                value={localStartTime}
-                mode="time"
-                display="spinner"
-                themeVariant="dark"
-                textColor={Theme.colors.surface}
-                onChange={(_, selectedDate) => {
-                  if (selectedDate) setLocalStartTime(selectedDate);
-                  if (Platform.OS !== "ios") setShowStartPicker(false);
-                }}
-                style={styles.iosPicker}
-              />
-            </View>
+          {showStartPicker && (
+            <>
+              <View style={styles.pickerContainer}>
+                <DateTimePicker
+                  value={localStartTime}
+                  mode="time"
+                  display="spinner"
+                  themeVariant="dark"
+                  textColor={Theme.colors.surface}
+                  onChange={(_, selectedDate) => {
+                    if (selectedDate) setLocalStartTime(selectedDate);
+                    if (Platform.OS !== "ios") handleStartConfirm();
+                  }}
+                  style={styles.picker}
+                />
+              </View>
+              {Platform.OS === "ios" && (
+                <TouchableOpacity
+                  style={styles.applyButton}
+                  activeOpacity={0.8}
+                  onPress={handleStartConfirm}
+                >
+                  <Text style={styles.applyButtonText}>Aplicar</Text>
+                </TouchableOpacity>
+              )}
+            </>
           )}
-        </View>
 
-        <View style={styles.settingsSection}>
-          <Text style={styles.fieldLabel}>Fin del día</Text>
+          <View style={styles.separator} />
+
           <TouchableOpacity
-            style={[styles.timeInputCard, !isEditing && { opacity: 0.6 }]}
+            style={styles.row}
             activeOpacity={0.7}
             onPress={() => setShowEndPicker((v) => !v)}
-            disabled={!isEditing}
           >
-            <Ionicons name="time-outline" size={24} color={Theme.colors.surface} />
-            <Text style={styles.timeInputText}>{formatTime(localEndTime)}</Text>
+            <Text style={styles.rowLabel}>Fin del día</Text>
+            <Text style={styles.rowValue}>{formatTime(localEndTime)}</Text>
+            <Ionicons
+              name={showEndPicker ? "chevron-up" : "chevron-forward"}
+              size={18}
+              color={Theme.colors.textTertiary}
+            />
           </TouchableOpacity>
 
-          {isEditing && (showEndPicker || Platform.OS === "ios") && (
-            <View style={styles.iosPickerCard}>
-              <DateTimePicker
-                value={localEndTime}
-                mode="time"
-                display="spinner"
-                themeVariant="dark"
-                textColor={Theme.colors.surface}
-                onChange={(_, selectedDate) => {
-                  if (selectedDate) setLocalEndTime(selectedDate);
-                  if (Platform.OS !== "ios") setShowEndPicker(false);
-                }}
-                style={styles.iosPicker}
-              />
+          {showEndPicker && (
+            <>
+              <View style={styles.pickerContainer}>
+                <DateTimePicker
+                  value={localEndTime}
+                  mode="time"
+                  display="spinner"
+                  themeVariant="dark"
+                  textColor={Theme.colors.surface}
+                  onChange={(_, selectedDate) => {
+                    if (selectedDate) setLocalEndTime(selectedDate);
+                    if (Platform.OS !== "ios") handleEndConfirm();
+                  }}
+                  style={styles.picker}
+                />
+              </View>
+              {Platform.OS === "ios" && (
+                <TouchableOpacity
+                  style={styles.applyButton}
+                  activeOpacity={0.8}
+                  onPress={handleEndConfirm}
+                >
+                  <Text style={styles.applyButtonText}>Aplicar</Text>
+                </TouchableOpacity>
+              )}
+            </>
+          )}
+        </View>
+        <Text style={styles.sectionFooter}>
+          Define el rango de horas disponibles para tus actividades.
+        </Text>
+
+        {/* ═══════════════ ENERGÍA ═══════════════ */}
+        <Text style={styles.sectionHeader}>ENERGÍA</Text>
+        <View style={styles.section}>
+          <TouchableOpacity
+            style={styles.row}
+            activeOpacity={0.7}
+            onPress={() => setShowPatternOptions((v) => !v)}
+          >
+            <Text style={styles.rowLabel}>Patrón de energía</Text>
+            <Text style={styles.rowValue}>{currentPatternLabel}</Text>
+            <Ionicons
+              name={showPatternOptions ? "chevron-up" : "chevron-forward"}
+              size={18}
+              color={Theme.colors.textTertiary}
+            />
+          </TouchableOpacity>
+
+          {showPatternOptions && (
+            <View style={styles.patternList}>
+              {PATTERN_OPTIONS.map((opt) => (
+                <TouchableOpacity
+                  key={opt.value ?? 'auto'}
+                  style={[
+                    styles.patternRow,
+                    localPattern === opt.value && styles.patternRowActive,
+                  ]}
+                  activeOpacity={0.7}
+                  onPress={async () => {
+                    setLocalPattern(opt.value);
+                    await saveEnergyPatternOverride(opt.value);
+                    await setCustomEnergyPattern(opt.value);
+                    setShowPatternOptions(false);
+                  }}
+                >
+                  <Ionicons
+                    name={localPattern === opt.value ? 'checkmark-circle' : 'ellipse-outline'}
+                    size={20}
+                    color={localPattern === opt.value ? Theme.comfyColors.green : Theme.colors.textTertiary}
+                  />
+                  <View style={styles.patternTextCol}>
+                    <Text style={[
+                      styles.patternLabel,
+                      localPattern === opt.value && styles.patternLabelActive,
+                    ]}>
+                      {opt.label}
+                    </Text>
+                    <Text style={styles.patternDesc}>{opt.desc}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
             </View>
           )}
         </View>
-
-        <View style={styles.divider} />
-
-        <Text style={styles.sectionTitle}>Semana móvil</Text>
-        <Text style={styles.fieldLabel}>Día de inicio de la semana</Text>
-        <View style={styles.dayPickerRow}>
-          {['Lu','Ma','Mi','Ju','Vi','Sá','Do'].map((label, idx) => (
-            <TouchableOpacity
-              key={idx}
-              style={[
-                styles.dayPickerButton,
-                localDiaInicio === idx && styles.dayPickerButtonActive,
-                !isEditing && { opacity: 0.6 },
-              ]}
-              disabled={!isEditing}
-              onPress={() => setLocalDiaInicio(idx)}
-            >
-              <Text style={[
-                styles.dayPickerText,
-                localDiaInicio === idx && styles.dayPickerTextActive,
-              ]}>{label}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        <Text style={styles.fieldLabel}>Duración de la semana (días)</Text>
-        <View style={styles.durationRow}>
-          <TouchableOpacity
-            style={[styles.durationBtn, !isEditing && { opacity: 0.6 }]}
-            disabled={!isEditing}
-            onPress={() => setLocalDiasTotales(Math.max(1, localDiasTotales - 1))}
-          >
-            <Ionicons name="remove" size={24} color={Theme.colors.surface} />
-          </TouchableOpacity>
-          <Text style={styles.durationValue}>{localDiasTotales}</Text>
-          <TouchableOpacity
-            style={[styles.durationBtn, !isEditing && { opacity: 0.6 }]}
-            disabled={!isEditing}
-            onPress={() => setLocalDiasTotales(Math.min(7, localDiasTotales + 1))}
-          >
-            <Ionicons name="add" size={24} color={Theme.colors.surface} />
-          </TouchableOpacity>
-        </View>
-
         <Text style={styles.sectionFooter}>
-          Define el rango de horas en el que se generarán tus bloques de actividad.
+          El scheduler usa tu nivel de energía para distribuir tareas pesadas sin saturarte.
         </Text>
-
-        {!isEditing ? (
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity
-              style={styles.editButton}
-              activeOpacity={0.8}
-              onPress={() => setIsEditing(true)}
-            >
-              <Ionicons name="create-outline" size={20} color={Theme.colors.surface} />
-              <Text style={styles.editButtonText}>Editar</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <View style={styles.buttonContainerEditing}>
-            <TouchableOpacity
-              style={styles.saveButton}
-              activeOpacity={0.8}
-              onPress={handleSave}
-            >
-              <Ionicons name="save-outline" size={20} color={Theme.comfyFontColors.green} />
-              <Text style={styles.saveButtonText}>Guardar</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.cancelButton}
-              activeOpacity={0.8}
-              onPress={handleCancel}
-            >
-              <Ionicons name="close-circle-outline" size={20} color={Theme.colors.surface} />
-              <Text style={styles.cancelButtonText}>Cancelar</Text>
-            </TouchableOpacity>
-          </View>
-        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -267,174 +313,132 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 48,
     paddingHorizontal: 20,
-    gap: 20,
   },
   pageTitle: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: "900",
     color: Theme.colors.surface,
+    marginBottom: 24,
+  },
+
+  /* ─── Section headers & footers ─── */
+  sectionHeader: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: Theme.colors.textTertiary,
+    letterSpacing: 0.8,
     marginBottom: 8,
+    marginLeft: 4,
+    textTransform: "uppercase",
   },
-  settingsSection: {
-    gap: 10,
-    width: "100%",
+  sectionFooter: {
+    fontSize: 12,
+    color: Theme.colors.textTertiary,
+    lineHeight: 16,
+    marginTop: 6,
+    marginBottom: 24,
+    marginLeft: 4,
+    paddingHorizontal: 2,
   },
-  fieldLabel: {
-    color: Theme.colors.iconPrimary,
-    fontSize: 16,
-    fontWeight: "900",
-  },
-  timeInputCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 12,
-    minHeight: 54,
-    borderRadius: 18,
-    backgroundColor: "#4d506c",
+
+  /* ─── Grouped section container ─── */
+  section: {
+    backgroundColor: Theme.colors.cardBackground,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: Theme.colors.cardBorder,
-    paddingHorizontal: 20,
-  },
-  timeInputText: {
-    color: Theme.colors.surface,
-    fontSize: 20,
-    fontWeight: "900",
-  },
-  iosPickerCard: {
-    borderRadius: 18,
     overflow: "hidden",
+  },
+
+  /* ─── Row ─── */
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    minHeight: 48,
+  },
+  rowLabel: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: "600",
+    color: Theme.colors.surface,
+  },
+  rowValue: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: Theme.colors.textSecondary,
+    marginRight: 8,
+  },
+
+  /* ─── Separator ─── */
+  separator: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: Theme.colors.cardBorder,
+    marginLeft: 16,
+  },
+
+  /* ─── Inline picker ─── */
+  pickerContainer: {
     backgroundColor: "#3b3e54",
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 8,
-    borderWidth: 1,
-    borderColor: Theme.colors.cardBorder,
+    paddingVertical: 4,
   },
-  iosPicker: {
+  picker: {
     height: 120,
     width: "100%",
   },
-  sectionTitle: {
-    color: Theme.colors.surface,
-    fontSize: 18,
-    fontWeight: "900",
-    marginTop: 4,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: Theme.colors.cardBorder,
-  },
-  dayPickerRow: {
-    flexDirection: "row",
-    gap: 6,
-  },
-  dayPickerButton: {
-    flex: 1,
-    height: 44,
-    borderRadius: 12,
+
+  /* ─── Apply button (iOS) ─── */
+  applyButton: {
     backgroundColor: "#4d506c",
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Theme.colors.cardBorder,
+    paddingVertical: 12,
     alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "transparent",
   },
-  dayPickerButtonActive: {
-    backgroundColor: Theme.comfyColors.green,
-    borderColor: "rgba(141,255,104,0.3)",
-  },
-  dayPickerText: {
-    color: Theme.colors.textTertiary,
-    fontSize: 14,
+  applyButtonText: {
+    color: Theme.comfyColors.skyBlue,
+    fontSize: 15,
     fontWeight: "800",
   },
-  dayPickerTextActive: {
-    color: Theme.comfyFontColors.green,
+
+  /* ─── Pattern options ─── */
+  patternList: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Theme.colors.cardBorder,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
   },
-  durationRow: {
+  patternRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: 16,
-  },
-  durationBtn: {
-    width: 52,
-    height: 52,
-    borderRadius: 14,
-    backgroundColor: "#4d506c",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: Theme.colors.cardBorder,
-  },
-  durationValue: {
-    color: Theme.colors.surface,
-    fontSize: 28,
-    fontWeight: "900",
-    minWidth: 48,
-    textAlign: "center",
-  },
-  sectionFooter: {
-    fontSize: 14,
-    color: Theme.colors.textSecondary,
-    lineHeight: 20,
-    marginTop: 8,
-    marginBottom: 16,
-  },
-  buttonContainer: {
-    width: "100%",
-    marginTop: 8,
-  },
-  buttonContainerEditing: {
-    width: "100%",
-    marginTop: 8,
     gap: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+    borderRadius: 10,
+    marginBottom: 6,
   },
-  editButton: {
-    backgroundColor: "#4d506c",
-    borderColor: Theme.colors.cardBorder,
-    borderWidth: 1,
-    borderRadius: 18,
-    height: 52,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
+  patternRowActive: {
+    backgroundColor: "rgba(141,255,104,0.08)",
   },
-  editButtonText: {
+  patternTextCol: {
+    flex: 1,
+  },
+  patternLabel: {
+    fontSize: 15,
+    fontWeight: "700",
     color: Theme.colors.surface,
-    fontSize: 16,
-    fontWeight: "900",
+    marginBottom: 2,
   },
-  saveButton: {
-    backgroundColor: Theme.comfyColors.green,
-    borderRadius: 18,
-    height: 52,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
+  patternLabelActive: {
+    color: Theme.comfyColors.green,
   },
-  saveButtonText: {
-    color: Theme.comfyFontColors.green,
-    fontSize: 16,
-    fontWeight: "900",
-  },
-  cancelButton: {
-    backgroundColor: "transparent",
-    borderColor: Theme.colors.cardBorder,
-    borderWidth: 1,
-    borderRadius: 18,
-    height: 52,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-  },
-  cancelButtonText: {
-    color: Theme.colors.surface,
-    fontSize: 16,
-    fontWeight: "900",
+  patternDesc: {
+    fontSize: 12,
+    color: Theme.colors.textTertiary,
+    lineHeight: 16,
   },
 });
 

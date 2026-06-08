@@ -1,10 +1,13 @@
 import { View, StyleSheet } from 'react-native';
 import { HourLabel } from '../../atoms/Schedule/HourLabel';
-import { HOUR_HEIGHT, START_HOUR } from '../../../utils/scheduleUtils';
 
-export function HourRow({ hour }: { hour: number }) {
+export function HourRow({ hour, displayStart = 0, hourHeight = 56 }: { 
+  hour: number;
+  displayStart?: number;
+  hourHeight?: number;
+}) {
   return (
-    <View style={[s.row, { top: (hour - START_HOUR) * HOUR_HEIGHT }]}>
+    <View style={[s.row, { top: (hour - displayStart) * hourHeight }]}>
       <HourLabel hour={hour} />
       <View style={s.line} />
     </View>

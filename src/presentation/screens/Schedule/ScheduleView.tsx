@@ -145,6 +145,8 @@ export default function ScheduleView() {
     schedule,
     selectedDay,
     setSelectedDay,
+    startHour,
+    endHour,
   } = useScheduleStore();
 
   const [showEnergyPicker, setShowEnergyPicker] = useState(false);
@@ -260,12 +262,14 @@ export default function ScheduleView() {
         {DAYS_ORDER.map((day) => {
           const dayItems = schedule.getItemsByDay(day as any);
           return (
-            <View key={day} style={{ width: SCREEN_WIDTH }}>
+            <View key={day} style={{ width: SCREEN_WIDTH, flex: 1 }}>
               {viewMode === 'grid' ? (
                 <ScheduleGrid 
                   activities={dayItems} 
                   isToday={day === JS_DAY_TO_DAYOFWEEK[new Date().getDay()]} 
                   onActivityPress={setSelectedActivity}
+                  startHour={startHour}
+                  endHour={endHour}
                 />
               ) : (
                 <ChronologicalAgendaList

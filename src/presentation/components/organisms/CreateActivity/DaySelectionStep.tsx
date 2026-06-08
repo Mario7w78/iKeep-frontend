@@ -11,6 +11,7 @@ type DaySelectionStepProps = {
   daysDict: Partial<Record<DayOfWeek, DayConfig>>;
   configuredDaysCount: number;
   isFixed: boolean;
+  isAnchor: boolean;
   optionalDay: boolean;
   onSelectDay: (day: DayOfWeek) => void;
   isDayConfigured: (day: DayOfWeek) => boolean;
@@ -29,6 +30,7 @@ export default function DaySelectionStep({
   daysDict,
   configuredDaysCount,
   isFixed,
+  isAnchor,
   optionalDay,
   onSelectDay,
   isDayConfigured,
@@ -76,8 +78,11 @@ export default function DaySelectionStep({
         />
       </View>
       <Text style={styles.heroTitle}>Días</Text>
-      {!optionalDay && (
+      {!optionalDay && !isAnchor && (
         <Text style={styles.heroSubtitle}>Selecciona los días para la actividad</Text>
+      )}
+      {isAnchor && (
+        <Text style={styles.heroSubtitle}>Elige el día fijo para esta actividad</Text>
       )}
 
       {!optionalDay && !showDayRange && (
@@ -105,7 +110,7 @@ export default function DaySelectionStep({
         </View>
       )}
 
-      {!isFixed && onToggleOptionalDay && (
+      {!isFixed && !isAnchor && onToggleOptionalDay && (
         <TouchableOpacity
           style={[styles.optionalDayToggle, optionalDay && styles.optionalDayToggleActive]}
           activeOpacity={0.7}
@@ -127,7 +132,7 @@ export default function DaySelectionStep({
         </TouchableOpacity>
       )}
 
-      {!isFixed && !optionalDay && onSetDayFrom && onSetDayTo && (
+      {!isFixed && !isAnchor && !optionalDay && onSetDayFrom && onSetDayTo && (
         <>
           <TouchableOpacity
             style={[styles.optionalDayToggle, showDayRange && styles.optionalDayToggleActive]}

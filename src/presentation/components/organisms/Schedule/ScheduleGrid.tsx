@@ -1,51 +1,68 @@
-import { useRef, useEffect } from 'react';
-import { ScrollView, View, StyleSheet } from 'react-native';
+import { useState, useRef, useEffect } from 'react';
+import { View, StyleSheet } from 'react-native';
 import { ScheduledActivity } from '../../../../domain/entities/Schedule';
 import { HourRow } from '../../molecules/Schedule/HourRow';
 import { ActivityBlock } from '../../molecules/Schedule/ActivityBlock';
 import { NowIndicator } from '../../atoms/Schedule/NowIndicator';
-import { START_HOUR, END_HOUR, HOUR_HEIGHT, minutesToTop } from '../../../utils/scheduleUtils';
-
-const HOURS = Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, i) => START_HOUR + i);
+import { minutesToTop } from '../../../utils/scheduleUtils';
 
 export function ScheduleGrid({ 
   activities, 
   isToday, 
-  onActivityPress 
+  onActivityPress,
+  startHour = 0,
+  endHour = 1440,
 }: { 
   activities: ScheduledActivity[]; 
   isToday: boolean; 
   onActivityPress?: (item: ScheduledActivity) => void;
+  startHour?: number;
+  endHour?: number;
 }) {
-  const ref = useRef<ScrollView>(null);
+  const [height, setHeight] = useState(0);
   const now = new Date();
   const nowMin = now.getHours() * 60 + now.getMinutes();
-  const nowTop = minutesToTop(nowMin);
-  const showNow = isToday && nowMin >= START_HOUR * 60 && nowMin <= END_HOUR * 60;
 
-  useEffect(() => {
-    if (isToday) {
-      setTimeout(() => ref.current?.scrollTo({ y: Math.max(0, nowTop - 120), animated: true }), 400);
-    } else {
-      ref.current?.scrollTo({ y: 0, animated: false });
-    }
-  }, [isToday, nowTop]);
+  const displayStart = Math.floor(startHour / 60);
+  const displayEnd = Math.ceil(endHour / 60);
+  const hourCount = displayEnd - displayStart;
+  const hourHeight = height > 0 ? height / hourCount : 50;
+
+  const showNow = isToday && nowMin >= startHour && nowMin <= endHour;
+  const nowTop = ((nowMin - startHour) / 60) * hourHeight;
+
+  const HOURS = Array.from({ length: hourCount + 1 }, (_, i) => displayStart + i);
 
   return (
-    <ScrollView ref={ref} showsVerticalScrollIndicator={false}>
-      <View style={{ height: (END_HOUR - START_HOUR) * HOUR_HEIGHT, position: 'relative', marginVertical: 10 }}>
-        {HOURS.map(h => <HourRow key={h} hour={h} />)}
-        <View style={StyleSheet.absoluteFillObject}>
-          {activities.map((act) => (
-            <ActivityBlock 
-              key={`${act.activity?.id ?? act.tipo ?? 'unknown'}-${act.day}-${act.assignedStartTime}`} 
-              item={act} 
-              onPress={onActivityPress}
-            />
+    <View
+      style={styles.container}
+      onLayout={(e) => setHeight(e.nativeEvent.layout.height)}
+    >
+      {height > 0 && (
+        <View style={{ height, position: 'relative' }}>
+          {HOURS.map(h => (
+            <HourRow key={h} hour={h} displayStart={displayStart} hourHeight={hourHeight} />
           ))}
+          <View style={StyleSheet.absoluteFillObject}>
+            {activities.map((act) => (
+              <ActivityBlock 
+                key={`${act.activity?.id ?? act.tipo ?? 'unknown'}-${act.day}-${act.assignedStartTime}`} 
+                item={act}
+                displayStart={displayStart}
+                hourHeight={hourHeight}
+                onPress={onActivityPress}
+              />
+            ))}
+          </View>
+          {showNow && <NowIndicator top={nowTop} />}
         </View>
-        {showNow && <NowIndicator top={nowTop} />}
-      </View>
-    </ScrollView>
+      )}
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+});

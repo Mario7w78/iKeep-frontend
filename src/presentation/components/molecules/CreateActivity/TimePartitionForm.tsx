@@ -184,89 +184,91 @@ export default function TimePartitionForm({
             </View>
 
             {isFixed ? (
-              <View style={styles.timeInputsContainer}>
-                <View style={styles.timeInputCol}>
-                  <Text style={styles.cardFieldLabel}>Hora de inicio</Text>
-                  <TouchableOpacity
-                    style={styles.timeInputCard}
-                    onPress={() => {
-                      onSetActivePartition(index);
-                      setShowStartPickerIndex(index);
-                      setShowEndPickerIndex(null);
-                      setShowCustomTravelPickerIndex(null);
-                    }}
-                  >
-                    <Ionicons name="time-outline" size={22} color={Theme.colors.surface} />
-                    <Text style={styles.timeInputText}>{formatTime(partition.startHour)}</Text>
-                  </TouchableOpacity>
+              <View>
+                <View style={styles.timeInputsContainer}>
+                  <View style={styles.timeInputCol}>
+                    <Text style={styles.cardFieldLabel}>Hora de inicio</Text>
+                    <TouchableOpacity
+                      style={styles.timeInputCard}
+                      onPress={() => {
+                        onSetActivePartition(index);
+                        setShowStartPickerIndex(index);
+                        setShowEndPickerIndex(null);
+                        setShowCustomTravelPickerIndex(null);
+                      }}
+                    >
+                      <Ionicons name="time-outline" size={22} color={Theme.colors.surface} />
+                      <Text style={styles.timeInputText}>{formatTime(partition.startHour)}</Text>
+                    </TouchableOpacity>
+                  </View>
 
-                  {showStartPickerIndex === index && (
-                    <View style={styles.iosPickerCard}>
-                      <DateTimePicker
-                        value={partition.startHour}
-                        mode="time"
-                        display="spinner"
-                        themeVariant="dark"
-                        minuteInterval={5}
-                        textColor={Theme.colors.surface}
-                        onChange={(_, selectedDate) => {
-                          if (selectedDate) onSetStartTime(selectedDate);
-                          if (Platform.OS !== "ios") setShowStartPickerIndex(null);
-                        }}
-                        style={styles.iosPicker}
-                      />
-                      {Platform.OS === "ios" && (
-                        <TouchableOpacity
-                          style={styles.doneBtn}
-                          onPress={() => setShowStartPickerIndex(null)}
-                        >
-                          <Text style={styles.doneText}>Aceptar</Text>
-                        </TouchableOpacity>
-                      )}
-                    </View>
-                  )}
+                  <View style={styles.timeInputCol}>
+                    <Text style={styles.cardFieldLabel}>Hora de fin</Text>
+                    <TouchableOpacity
+                      style={styles.timeInputCard}
+                      onPress={() => {
+                        onSetActivePartition(index);
+                        setShowEndPickerIndex(index);
+                        setShowStartPickerIndex(null);
+                        setShowCustomTravelPickerIndex(null);
+                      }}
+                    >
+                      <Ionicons name="time-outline" size={22} color={Theme.colors.surface} />
+                      <Text style={styles.timeInputText}>{formatTime(partition.endHour)}</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
 
-                <View style={styles.timeInputCol}>
-                  <Text style={styles.cardFieldLabel}>Hora de fin</Text>
-                  <TouchableOpacity
-                    style={styles.timeInputCard}
-                    onPress={() => {
-                      onSetActivePartition(index);
-                      setShowEndPickerIndex(index);
-                      setShowStartPickerIndex(null);
-                      setShowCustomTravelPickerIndex(null);
-                    }}
-                  >
-                    <Ionicons name="time-outline" size={22} color={Theme.colors.surface} />
-                    <Text style={styles.timeInputText}>{formatTime(partition.endHour)}</Text>
-                  </TouchableOpacity>
+                {showStartPickerIndex === index && (
+                  <View style={styles.fullWidthPicker}>
+                    <DateTimePicker
+                      value={partition.startHour}
+                      mode="time"
+                      display="spinner"
+                      themeVariant="dark"
+                      minuteInterval={5}
+                      textColor={Theme.colors.surface}
+                      onChange={(_, selectedDate) => {
+                        if (selectedDate) onSetStartTime(selectedDate);
+                        if (Platform.OS !== "ios") setShowStartPickerIndex(null);
+                      }}
+                      style={styles.fullWidthPickerInner}
+                    />
+                    {Platform.OS === "ios" && (
+                      <TouchableOpacity
+                        style={styles.doneBtn}
+                        onPress={() => setShowStartPickerIndex(null)}
+                      >
+                        <Text style={styles.doneText}>Aceptar</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                )}
 
-                  {showEndPickerIndex === index && (
-                    <View style={styles.iosPickerCard}>
-                      <DateTimePicker
-                        value={partition.endHour}
-                        mode="time"
-                        display="spinner"
-                        themeVariant="dark"
-                        textColor={Theme.colors.surface}
-                        onChange={(_, selectedDate) => {
-                          if (selectedDate) onSetEndTime(selectedDate);
-                          if (Platform.OS !== "ios") setShowEndPickerIndex(null);
-                        }}
-                        style={styles.iosPicker}
-                      />
-                      {Platform.OS === "ios" && (
-                        <TouchableOpacity
-                          style={styles.doneBtn}
-                          onPress={() => setShowEndPickerIndex(null)}
-                        >
-                          <Text style={styles.doneText}>Aceptar</Text>
-                        </TouchableOpacity>
-                      )}
-                    </View>
-                  )}
-                </View>
+                {showEndPickerIndex === index && (
+                  <View style={styles.fullWidthPicker}>
+                    <DateTimePicker
+                      value={partition.endHour}
+                      mode="time"
+                      display="spinner"
+                      themeVariant="dark"
+                      textColor={Theme.colors.surface}
+                      onChange={(_, selectedDate) => {
+                        if (selectedDate) onSetEndTime(selectedDate);
+                        if (Platform.OS !== "ios") setShowEndPickerIndex(null);
+                      }}
+                      style={styles.fullWidthPickerInner}
+                    />
+                    {Platform.OS === "ios" && (
+                      <TouchableOpacity
+                        style={styles.doneBtn}
+                        onPress={() => setShowEndPickerIndex(null)}
+                      >
+                        <Text style={styles.doneText}>Aceptar</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                )}
               </View>
             ) : (
               <View style={styles.durationInputContainer}>
@@ -613,17 +615,17 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    minHeight: 48,
+    minHeight: 56,
     borderRadius: 18,
     backgroundColor: "#545875",
-    paddingHorizontal: 12,
+    paddingHorizontal: 20,
   },
   timeInputText: {
     color: Theme.colors.surface,
     fontSize: 18,
     fontWeight: "900",
   },
-  iosPickerCard: {
+  fullWidthPicker: {
     borderRadius: 18,
     overflow: "hidden",
     backgroundColor: "#454866",
@@ -631,7 +633,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginTop: 6,
   },
-  iosPicker: {
+  fullWidthPickerInner: {
     height: 128,
     width: "100%",
   },

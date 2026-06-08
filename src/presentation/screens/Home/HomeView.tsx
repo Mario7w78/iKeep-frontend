@@ -25,8 +25,6 @@ import {
   saveEnergyRecord,
   makeEnergyRecord,
   getEnergyHistory,
-  saveEnergyPatternOverride,
-  getEnergyPatternOverride,
 } from "../../../infrastructure/persistence/EnergyHistoryService";
 
 const ENERGY_LEVELS = [
@@ -64,7 +62,15 @@ function toMinutes(time: string) {
   return hours * 60 + minutes;
 }
 
-
+const DAY_DISPLAY_NAMES: Record<string, string> = {
+  'Lunes': 'Lunes',
+  'Martes': 'Martes',
+  'Miercoles': 'Miércoles',
+  'Jueves': 'Jueves',
+  'Viernes': 'Viernes',
+  'Sabado': 'Sábado',
+  'Domingo': 'Domingo',
+};
 
 export default function HomeView() {
   const navigation = useNavigation<any>();
@@ -72,14 +78,11 @@ export default function HomeView() {
   const schedule = useScheduleStore((s) => s.schedule);
   const isLoadedFromStorage = useScheduleStore((s) => s.isLoadedFromStorage);
   const handleGenerateSchedule = useScheduleStore((s) => s.handleGenerateSchedule);
-  const customEnergyPattern = useScheduleStore((s) => s.customEnergyPattern);
-  const setCustomEnergyPattern = useScheduleStore((s) => s.setCustomEnergyPattern);
   const activities = useActivityStore((s) => s.activities);
   const loadActivities = useActivityStore((s) => s.loadActivities);
   const [energyIndex, setEnergyIndex] = useState(0);
   const [savedEnergyIndex, setSavedEnergyIndex] = useState(0);
   const [selectedActivity, setSelectedActivity] = useState<ScheduledActivity | null>(null);
-  const [localPattern, setLocalPattern] = useState<string | null>(null);
 
   // Initialize energy level from local storage history on mount
   useEffect(() => {
@@ -97,18 +100,12 @@ export default function HomeView() {
           setEnergyIndex(1); // Default to stable (index 1)
           setSavedEnergyIndex(1);
         }
-        const savedPattern = await getEnergyPatternOverride();
-        if (savedPattern) setLocalPattern(savedPattern);
       } catch (e) {
         console.error("Error loading energy history:", e);
       }
     };
     initEnergy();
   }, []);
-
-  useEffect(() => {
-    setLocalPattern(customEnergyPattern);
-  }, [customEnergyPattern]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -157,10 +154,37 @@ export default function HomeView() {
 
   const firstNext = nextActivities[0];
 
+  const nextDayWithItems = useMemo(() => {
+    if (!schedule) return null;
+    const today = new Date().getDay();
+    for (let offset = 1; offset <= 7; offset++) {
+      const dayIndex = (today + offset) % 7;
+      const dayOfWeek = JS_DAY_TO_DAYOFWEEK[dayIndex];
+      const items = schedule.getItemsByDay(dayOfWeek);
+      if (items.length > 0) {
+        return { day: dayOfWeek, items };
+      }
+    }
+    return null;
+  }, [schedule]);
+
   const minutesLeft = useMemo(() => {
     if (!currentActivity) return null;
     return Math.max(toMinutes(currentActivity.assignedEndTime) - currentMinutes, 0);
   }, [currentActivity, currentMinutes]);
+
+  const freeTimeMinutes = useMemo(() => {
+    // Only in "free" state: no current activity AND no upcoming activities
+    if (currentActivity || nextActivities.length > 0 || !schedule) return null;
+    if (todayItems.length === 0) {
+      // No activities scheduled today → free from now to midnight
+      return Math.max(24 * 60 - currentMinutes, 0);
+    }
+    // All today's activities are done → free from last end to midnight
+    const lastItem = todayItems[todayItems.length - 1];
+    const lastEnd = toMinutes(lastItem.assignedEndTime);
+    return Math.max(24 * 60 - Math.max(lastEnd, currentMinutes), 0);
+  }, [todayItems, currentMinutes, currentActivity, nextActivities, schedule]);
 
   const selectedEnergy = ENERGY_LEVELS[energyIndex];
 
@@ -340,40 +364,6 @@ export default function HomeView() {
           )}
         </LinearGradient>
 
-        {/* Energy pattern override */}
-        <View style={[styles.card, styles.patternCard]}>
-          <Text style={styles.patternTitle}>Patrón de energía</Text>
-          <Text style={styles.patternSubtitle}>
-            Opcional: indica tu patrón si querés que el scheduler lo tenga en cuenta
-          </Text>
-          <View style={styles.patternRow}>
-            {[
-              { value: null as string | null, label: 'Automático' },
-              { value: 'TRANSCRIPTORIO', label: 'Transcrito' },
-              { value: 'TENDENCIA', label: 'Tendencia' },
-              { value: 'CRONICO', label: 'Crónico' },
-            ].map((opt) => (
-              <TouchableOpacity
-                key={opt.value ?? 'auto'}
-                style={[
-                  styles.patternChip,
-                  localPattern === opt.value && styles.patternChipActive,
-                ]}
-                onPress={async () => {
-                  setLocalPattern(opt.value);
-                  await saveEnergyPatternOverride(opt.value);
-                  await setCustomEnergyPattern(opt.value);
-                }}
-              >
-                <Text style={[
-                  styles.patternChipText,
-                  localPattern === opt.value && styles.patternChipTextActive,
-                ]}>{opt.label}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
         {/* INFACTIBLE info card */}
         {schedule?.estado === 'INFACTIBLE' && (
           <View style={[styles.card, styles.infactibleCard]}>
@@ -447,6 +437,15 @@ export default function HomeView() {
               </Text>
               <Text style={styles.timerLabel}>hora de inicio</Text>
             </View>
+          ) : freeTimeMinutes !== null ? (
+            <View style={styles.timerRow}>
+              <Text style={[styles.timerText, { color: Theme.comfyColors.green }]}>
+                {formatMinutesRemaining(freeTimeMinutes)}
+              </Text>
+              <Text style={styles.timerLabel}>
+                {todayItems.length > 0 ? "hasta fin del día" : "libres hoy"}
+              </Text>
+            </View>
           ) : (
             <View style={styles.timerRow}>
               <Text style={[styles.timerText, { color: Theme.comfyColors.green }]}>
@@ -480,45 +479,67 @@ export default function HomeView() {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.scheduleSection}>
-          <Text style={styles.sectionTitle}>PRÓXIMO EN TU HORARIO</Text>
-          <View style={styles.timeline}>
-            {nextActivities.length > 0 ? (
-              nextActivities.slice(0, 3).map((item, index) => (
-                <TouchableOpacity 
-                  key={`${item.activity?.id ?? item.tipo ?? index}-${index}`} 
-                  style={styles.nextCard}
-                  activeOpacity={0.75}
-                  onPress={() => item.activity && setSelectedActivity(item)}
-                >
+        {schedule && (nextActivities.length > 0 || nextDayWithItems || todayItems.length > 0) && (
+          <View style={styles.scheduleSection}>
+            <Text style={styles.sectionTitle}>PRÓXIMO EN TU HORARIO</Text>
+            <View style={styles.timeline}>
+              {nextActivities.length > 0 ? (
+                nextActivities.slice(0, 3).map((item, index) => (
+                  <TouchableOpacity 
+                    key={`${item.activity?.id ?? item.tipo ?? index}-${index}`} 
+                    style={styles.nextCard}
+                    activeOpacity={0.75}
+                    onPress={() => item.activity && setSelectedActivity(item)}
+                  >
+                    <View>
+                      <Text style={styles.nextTime}>
+                        {item.assignedStartTime} - {item.assignedEndTime}
+                      </Text>
+                      <Text style={styles.nextTitle}>{item.activity?.title ?? (item.tipo === 'viaje' ? 'Viaje' : 'Actividad')}</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={20} color={Theme.colors.iconSecondary} />
+                  </TouchableOpacity>
+                ))
+              ) : nextDayWithItems ? (
+                <>
+                  <Text style={styles.nextDayLabel}>{DAY_DISPLAY_NAMES[nextDayWithItems.day]}</Text>
+                  {nextDayWithItems.items.slice(0, 3).map((item, index) => (
+                    <TouchableOpacity 
+                      key={`nextday-${item.activity?.id ?? item.tipo ?? index}-${index}`} 
+                      style={styles.nextCard}
+                      activeOpacity={0.75}
+                      onPress={() => item.activity && setSelectedActivity(item)}
+                    >
+                      <View>
+                        <Text style={styles.nextTime}>
+                          {item.assignedStartTime} - {item.assignedEndTime}
+                        </Text>
+                        <Text style={styles.nextTitle}>{item.activity?.title ?? (item.tipo === 'viaje' ? 'Viaje' : 'Actividad')}</Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={20} color={Theme.colors.iconSecondary} />
+                    </TouchableOpacity>
+                  ))}
+                </>
+              ) : (
+                <View style={styles.nextCard}>
                   <View>
                     <Text style={styles.nextTime}>
-                      {item.assignedStartTime} - {item.assignedEndTime}
+                      {todayItems.length > 0 ? "Día completado" : "Sin bloques programados"}
                     </Text>
-                    <Text style={styles.nextTitle}>{item.activity?.title ?? (item.tipo === 'viaje' ? 'Viaje' : 'Actividad')}</Text>
+                    <Text style={styles.nextTitle}>
+                      {todayItems.length > 0 ? "¡Terminaste por hoy!" : "Genera tu horario"}
+                    </Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={20} color={Theme.colors.iconSecondary} />
-                </TouchableOpacity>
-              ))
-            ) : (
-              <View style={styles.nextCard}>
-                <View>
-                  <Text style={styles.nextTime}>
-                    {todayItems.length > 0 ? "Día completado" : "Sin bloques programados"}
-                  </Text>
-                  <Text style={styles.nextTitle}>
-                    {todayItems.length > 0 ? "¡Terminaste por hoy!" : "Genera tu horario"}
-                  </Text>
+                  <Ionicons
+                    name={todayItems.length > 0 ? "checkmark-circle-outline" : "calendar-outline"}
+                    size={22}
+                    color={todayItems.length > 0 ? Theme.comfyColors.green : Theme.colors.iconSecondary}
+                  />
                 </View>
-                <Ionicons
-                  name={todayItems.length > 0 ? "checkmark-circle-outline" : "calendar-outline"}
-                  size={22}
-                  color={todayItems.length > 0 ? Theme.comfyColors.green : Theme.colors.iconSecondary}
-                />
-              </View>
-            )}
+              )}
+            </View>
           </View>
-        </View>
+        )}
         <ActivityDetailModal
           visible={selectedActivity !== null}
           activityItem={selectedActivity}
@@ -790,6 +811,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
+  nextDayLabel: {
+    color: Theme.comfyColors.skyBlue,
+    fontSize: 13,
+    fontWeight: "900",
+    marginBottom: 4,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
   nextTime: {
     color: Theme.colors.textTertiary,
     fontSize: 12,
@@ -858,47 +887,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     flex: 1,
-  },
-  patternCard: {
-    borderLeftWidth: 3,
-    borderLeftColor: Theme.comfyColors.skyBlue,
-  },
-  patternTitle: {
-    color: Theme.colors.surface,
-    fontSize: 16,
-    fontWeight: "900",
-    marginBottom: 4,
-  },
-  patternSubtitle: {
-    color: Theme.colors.textTertiary,
-    fontSize: 13,
-    fontWeight: "600",
-    marginBottom: 14,
-    lineHeight: 18,
-  },
-  patternRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  patternChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    backgroundColor: "#4d506c",
-    borderWidth: 1,
-    borderColor: Theme.colors.cardBorder,
-  },
-  patternChipActive: {
-    backgroundColor: "rgba(141,255,104,0.15)",
-    borderColor: Theme.comfyColors.green,
-  },
-  patternChipText: {
-    color: Theme.colors.textTertiary,
-    fontSize: 13,
-    fontWeight: "800",
-  },
-  patternChipTextActive: {
-    color: Theme.comfyColors.green,
   },
 });

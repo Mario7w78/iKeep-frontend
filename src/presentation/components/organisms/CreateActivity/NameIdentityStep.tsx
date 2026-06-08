@@ -456,6 +456,11 @@ export default function NameIdentityStep({
                   </Text>
                 </View>
               </TouchableOpacity>
+              {isAnchor && (
+                <Text style={[styles.subtitle, { marginTop: 8, paddingLeft: 4 }]}>
+                  En el próximo paso elige el día fijo
+                </Text>
+              )}
             </>
           )}
         </>

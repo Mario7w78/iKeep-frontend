@@ -43,6 +43,14 @@ export function ActivityConfigDetailModal({
     }
   };
 
+  const getIdentityColor = (identity: string) => {
+    switch (identity) {
+      case "clase": return Theme.comfyColors.skyBlue;
+      case "trabajo": return Theme.comfyColors.orange;
+      default: return Theme.comfyColors.green;
+    }
+  };
+
   const getIdentityText = (val: string) => {
     switch (val) {
       case "clase":
@@ -104,53 +112,21 @@ export function ActivityConfigDetailModal({
     });
   };
 
-  const formatMinutesToHHMM = (totalMinutes: number | null | undefined) => {
-    if (totalMinutes === null || totalMinutes === undefined) return "";
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-    const pad = (n: number) => n.toString().padStart(2, "0");
-    return `${pad(hours)}:${pad(minutes)}`;
-  };
-
-  const formatTimeSummary = (minutes: number) => {
-    if (minutes === 0) return "0 min";
-    if (minutes < 60) return `${minutes} min`;
-
-    const hrs = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-
-    if (mins === 0) {
-      return hrs === 1 ? "1 hora" : `${hrs} horas`;
-    }
-
-    const hrsStr = hrs === 1 ? "1 hora" : `${hrs} horas`;
-    return `${hrsStr} y ${mins} min`;
-  };
-
   const formatTime = (date: Date) =>
     new Date(date).toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
     });
 
-  const formatMinutes = (minutes: number) => {
-    if (minutes < 60) {
-      return `${minutes} min`;
-    }
-    const h = Math.floor(minutes / 60);
-    const m = minutes % 60;
-    return m === 0 ? `${h} h` : `${h}h ${m}min`;
-  };
-
   const getGroupsForActivity = (act: Activity) => {
     const groups: Record<number, { days: DayOfWeek[]; config: DayConfig }> = {};
-    (Object.entries(act.daysConfig) as [DayOfWeek, DayConfig][]).forEach(
+    (Object.entries(act.daysConfig) as [string, DayConfig][]).forEach(
       ([day, cfg]) => {
         if (cfg) {
           if (!groups[cfg.groupId]) {
             groups[cfg.groupId] = { days: [], config: cfg };
           }
-          groups[cfg.groupId].days.push(day);
+          groups[cfg.groupId].days.push(day as DayOfWeek);
         }
       }
     );
@@ -159,28 +135,7 @@ export function ActivityConfigDetailModal({
 
   const groups = getGroupsForActivity(activity);
 
-  let totalActivityMinutes = 0;
-  let totalTravelMinutes = 0;
-
-  Object.values(groups).forEach(({ days, config }) => {
-    const daysCount = days.length;
-    const dailyDuration = config.partitions.reduce(
-      (sum, p) => sum + p.durationTime,
-      0
-    );
-    const dailyTravel = config.partitions.reduce(
-      (sum, p) => sum + p.travelTime,
-      0
-    );
-
-    totalActivityMinutes += dailyDuration * daysCount;
-    totalTravelMinutes += dailyTravel * daysCount;
-  });
-
-  const showPreferredHours =
-    !activity.isFixed() &&
-    activity.preferredStartTime !== null &&
-    activity.preferredEndTime !== null;
+  const configuredDays = activity.daysEnabled.length;
 
   return (
     <Modal
@@ -190,17 +145,17 @@ export function ActivityConfigDetailModal({
       onRequestClose={onClose}
     >
       <View style={styles.overlayContainer}>
-        <Pressable style={styles.backdrop} onPress={onClose} />
+        <Pressable style={styles.closeArea} onPress={onClose} />
         <View style={styles.sheet}>
           <View style={styles.indicator} />
 
           <View style={styles.header}>
             <View style={styles.headerTitleRow}>
-              <View style={styles.iconContainer}>
+              <View style={[styles.iconContainer, { backgroundColor: getIdentityColor(activity.identity) + '20' }]}>
                 <Ionicons
                   name={getIdentityIcon(activity.identity)}
                   size={24}
-                  color={Theme.comfyFontColors.green}
+                  color={getIdentityColor(activity.identity)}
                 />
               </View>
               <View style={styles.titleWrapper}>
@@ -314,167 +269,61 @@ export function ActivityConfigDetailModal({
               </View>
             </View>
 
-            {showPreferredHours && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>
-                  HORARIO PREFERIDO (OPTIMIZADOR)
-                </Text>
-                <View style={styles.timeCard}>
-                  <Ionicons
-                    name="time-outline"
-                    size={24}
-                    color={Theme.comfyColors.skyBlue}
-                  />
-                  <View>
-                    <Text style={styles.timeText}>
-                      {formatMinutesToHHMM(activity.preferredStartTime)} -{" "}
-                      {formatMinutesToHHMM(activity.preferredEndTime)}
-                    </Text>
-                    <Text style={styles.dayText}>Rango de horas preferidas</Text>
-                  </View>
-                </View>
-              </View>
-            )}
-
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>
-                TIEMPO SEMANAL CONFIGURADO
-              </Text>
-              <View style={styles.summaryCard}>
-                <View style={styles.timeBreakdownRow}>
-                  <Text style={styles.timeBreakdownText}>Actividad:</Text>
-                  <Text style={styles.timeBreakdownValue}>
-                    {formatTimeSummary(totalActivityMinutes)}
-                  </Text>
-                </View>
-
-                {totalTravelMinutes > 0 && (
-                  <View style={styles.timeBreakdownRow}>
-                    <Text style={styles.timeBreakdownText}>Traslado:</Text>
-                    <Text style={styles.timeBreakdownValue}>
-                      {formatTimeSummary(totalTravelMinutes)}
-                    </Text>
-                  </View>
-                )}
-
-                <View
-                  style={[
-                    styles.sectionDivider,
-                    { backgroundColor: Theme.colors.cardBorder },
-                  ]}
-                />
-
-                <View style={styles.timeBreakdownRow}>
-                  <Text style={styles.totalLabel}>Total:</Text>
-                  <Text style={styles.totalValue}>
-                    {formatTimeSummary(
-                      totalActivityMinutes + totalTravelMinutes
-                    )}
-                  </Text>
-                </View>
+              <Text style={styles.sectionTitle}>DÍAS CONFIGURADOS</Text>
+              <View style={styles.daysSummaryCard}>
+                <Ionicons name="calendar-outline" size={22} color={Theme.comfyColors.skyBlue} />
+                <Text style={styles.daysSummaryText}>
+                  {configuredDays} día{configuredDays !== 1 ? 's' : ''} configurado{configuredDays !== 1 ? 's' : ''}
+                </Text>
               </View>
             </View>
 
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>DÍAS CONFIGURADOS</Text>
+              <Text style={styles.sectionTitle}>GRUPOS Y HORARIOS</Text>
               <View style={styles.groupsContainer}>
                 {Object.entries(groups).map(([gidStr, { days, config }]) => {
                   const gid = Number(gidStr);
-                  const color =
-                    Theme.groupColors[gid % Theme.groupColors.length];
+                  const color = Theme.groupColors[gid % Theme.groupColors.length];
 
                   return (
-                    <View
-                      key={gid}
-                      style={[
-                        styles.groupTag,
-                        { backgroundColor: color.bg, borderColor: color.text },
-                      ]}
-                    >
-                      <View style={styles.tagHeader}>
-                        <View style={styles.daysContainer}>
-                          {days.map((day) => (
-                            <View
-                              key={day}
-                              style={[
-                                styles.dayBadge,
-                                { backgroundColor: color.text + "15" },
-                              ]}
-                            >
-                              <Text
-                                style={[
-                                  styles.dayBadgeText,
-                                  { color: color.text },
-                                ]}
-                              >
-                                {day.substring(0, 3)}
+                    <View key={gid} style={styles.groupTag}>
+                      <View style={styles.daysRow}>
+                        <Ionicons name="calendar" size={14} color={color.bg} />
+                        {days.map((day) => (
+                          <View key={day} style={[styles.dayBadge, { backgroundColor: color.bg + '30' }]}>
+                            <Text style={[styles.dayBadgeText, { color: color.bg }]}>
+                              {day.substring(0, 3)}
+                            </Text>
+                          </View>
+                        ))}
+                      </View>
+                      {config.partitions.map((partition, idx) => {
+                        const timeRange = activity.isFixed()
+                          ? `${formatTime(partition.startHour)} - ${formatTime(partition.endHour)}`
+                          : 'Horario optimizable';
+                        const durMinutes = partition.durationTime;
+                        const durStr = durMinutes < 60 ? `${durMinutes}min` : `${Math.floor(durMinutes / 60)}h ${durMinutes % 60}min`;
+
+                        return (
+                          <View key={idx} style={styles.partitionItem}>
+                            <View style={styles.partitionRow}>
+                              <Ionicons name="time-outline" size={14} color={color.bg} />
+                              <Text style={[styles.partitionText, { color: color.bg }]}>
+                                {timeRange} ({durStr})
                               </Text>
                             </View>
-                          ))}
-                        </View>
-                      </View>
-
-                      <View
-                        style={[
-                          styles.tagDivider,
-                          { backgroundColor: color.text + "20" },
-                        ]}
-                      />
-
-                      <View style={styles.partitionsList}>
-                        {config.partitions.map((partition, index) => {
-                          const timeRangeOrStatus = activity.isFixed()
-                            ? `${formatTime(partition.startHour)} - ${formatTime(
-                                partition.endHour
-                              )}`
-                            : `Horario optimizable`;
-
-                          const durationStr = formatMinutes(
-                            partition.durationTime
-                          );
-
-                          return (
-                            <View key={index} style={styles.partitionItem}>
-                              <View style={styles.partitionTimeRow}>
-                                <Ionicons
-                                  name="layers-outline"
-                                  size={14}
-                                  color={color.text}
-                                  style={styles.icon}
-                                />
-                                <Text
-                                  style={[
-                                    styles.tagInfo,
-                                    { color: color.text },
-                                  ]}
-                                >
-                                  {timeRangeOrStatus}{" "}
-                                  {!activity.isFixed() && `(${durationStr})`}
+                            {partition.travelTime > 0 && (
+                              <View style={styles.travelRow}>
+                                <Ionicons name="walk-outline" size={13} color={color.bg} />
+                                <Text style={[styles.travelText, { color: color.bg }]}>
+                                  +{partition.travelTime}min traslado
                                 </Text>
                               </View>
-                              {partition.travelTime > 0 && (
-                                <View style={styles.partitionTravelRow}>
-                                  <Ionicons
-                                    name="walk-outline"
-                                    size={14}
-                                    color={color.text}
-                                    style={styles.icon}
-                                  />
-                                  <Text
-                                    style={[
-                                      styles.tagSubInfo,
-                                      { color: color.text },
-                                    ]}
-                                  >
-                                    +{formatMinutes(partition.travelTime)} de
-                                    traslado
-                                  </Text>
-                                </View>
-                              )}
-                            </View>
-                          );
-                        })}
-                      </View>
+                            )}
+                          </View>
+                        );
+                      })}
                     </View>
                   );
                 })}
@@ -511,11 +360,10 @@ export function ActivityConfigDetailModal({
 const styles = StyleSheet.create({
   overlayContainer: {
     flex: 1,
-    justifyContent: "flex-end",
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(10, 11, 18, 0.75)",
+  },
+  closeArea: {
+    flex: 1,
   },
   sheet: {
     backgroundColor: Theme.colors.screenBackground,
@@ -536,7 +384,6 @@ const styles = StyleSheet.create({
     borderRadius: 2.5,
     backgroundColor: Theme.colors.cardBorder,
     alignSelf: "center",
-    marginBottom: 8,
   },
   header: {
     flexDirection: "row",
@@ -553,7 +400,6 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 16,
-    backgroundColor: "rgba(141, 255, 104, 0.1)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -585,7 +431,7 @@ const styles = StyleSheet.create({
     backgroundColor: Theme.colors.cardBorder,
   },
   scroll: {
-    flex: 1,
+    flexGrow: 1,
   },
   scrollContent: {
     gap: 20,
@@ -630,128 +476,70 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "800",
   },
-  timeCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 16,
+  daysSummaryCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
     backgroundColor: Theme.colors.cardBackground,
     borderColor: Theme.colors.cardBorder,
     borderWidth: 1,
     borderRadius: 20,
     padding: 16,
   },
-  timeText: {
+  daysSummaryText: {
     color: Theme.colors.surface,
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "800",
-  },
-  dayText: {
-    color: Theme.colors.textSecondary,
-    fontSize: 13,
-    fontWeight: "700",
-  },
-  summaryCard: {
-    backgroundColor: Theme.colors.cardBackground,
-    borderRadius: 20,
-    padding: 16,
-    gap: 8,
-    borderColor: Theme.colors.cardBorder,
-    borderWidth: 1,
-  },
-  timeBreakdownRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  timeBreakdownText: {
-    color: Theme.colors.textSecondary,
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  timeBreakdownValue: {
-    color: Theme.colors.surface,
-    fontSize: 14,
-    fontWeight: "800",
-  },
-  sectionDivider: {
-    height: 1,
-    width: "100%",
-  },
-  totalLabel: {
-    color: Theme.colors.surface,
-    fontSize: 15,
-    fontWeight: "800",
-  },
-  totalValue: {
-    color: Theme.comfyColors.green,
-    fontSize: 15,
-    fontWeight: "900",
   },
   groupsContainer: {
     gap: 10,
   },
   groupTag: {
-    borderRadius: 20,
+    backgroundColor: Theme.colors.cardBackground,
+    borderColor: Theme.colors.cardBorder,
     borderWidth: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    gap: 12,
+    borderRadius: 20,
+    padding: 16,
+    gap: 10,
   },
-  tagHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 8,
-  },
-  daysContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
+  daysRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 6,
-    flex: 1,
+    flexWrap: 'wrap',
   },
   dayBadge: {
     paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
+    paddingVertical: 3,
+    borderRadius: 6,
   },
   dayBadgeText: {
-    fontSize: 12,
-    fontWeight: "900",
-    textTransform: "uppercase",
-  },
-  tagDivider: {
-    height: 1,
-    width: "100%",
-  },
-  partitionsList: {
-    gap: 8,
+    fontSize: 11,
+    fontWeight: '900',
+    textTransform: 'uppercase',
   },
   partitionItem: {
-    gap: 2,
+    gap: 4,
+    paddingLeft: 4,
   },
-  partitionTimeRow: {
-    flexDirection: "row",
-    alignItems: "center",
+  partitionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 6,
   },
-  partitionTravelRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
+  partitionText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  travelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
     paddingLeft: 20,
   },
-  icon: {
-    opacity: 0.8,
-  },
-  tagInfo: {
-    fontSize: 13,
-    fontWeight: "800",
-  },
-  tagSubInfo: {
+  travelText: {
     fontSize: 12,
-    fontWeight: "700",
+    fontWeight: '600',
     opacity: 0.8,
   },
   actionButton: {
@@ -759,17 +547,15 @@ const styles = StyleSheet.create({
     height: 52,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 8,
   },
   actionButtonText: {
-    color: Theme.comfyFontColors.green,
+    color: Theme.colors.surface,
     fontSize: 16,
     fontWeight: "900",
   },
   buttonRow: {
     flexDirection: "row",
     gap: 12,
-    marginTop: 8,
   },
   editButtonSecondary: {
     flex: 1,

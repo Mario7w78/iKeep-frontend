@@ -45,6 +45,24 @@ export default function ManageActivitiesView({ navigation }: any) {
     );
   };
 
+  const getIdentityIcon = (val: string) => {
+    switch (val) {
+      case "clase": return "school-outline";
+      case "trabajo": return "briefcase-outline";
+      case "tarea": return "document-text-outline";
+      default: return "document-text-outline";
+    }
+  };
+
+  const getIdentityColor = (val: string) => {
+    switch (val) {
+      case "clase": return Theme.comfyColors.skyBlue;
+      case "trabajo": return Theme.comfyColors.orange;
+      case "tarea": return Theme.comfyColors.green;
+      default: return Theme.comfyColors.green;
+    }
+  };
+
   const getIdentityLabel = (val: string) => {
     switch (val) {
       case "clase": return "Clase";
@@ -75,13 +93,24 @@ export default function ManageActivitiesView({ navigation }: any) {
               activeOpacity={0.7}
               onPress={() => setSelectedActivity(item)}
             >
-              <Text style={styles.activityTitle}>{item.title}</Text>
-              <View style={styles.badgeRow}>
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>{getIdentityLabel(item.identity)}</Text>
+              <View style={styles.cardInfoRow}>
+                <View style={[styles.cardIcon, { backgroundColor: getIdentityColor(item.identity) + '20' }]}>
+                  <Ionicons
+                    name={getIdentityIcon(item.identity)}
+                    size={20}
+                    color={getIdentityColor(item.identity)}
+                  />
                 </View>
-                <View style={[styles.badge, styles.difficultyBadge]}>
-                  <Text style={styles.badgeText}>Dificultad: {item.difficulty}</Text>
+                <View style={styles.cardInfoText}>
+                  <Text style={styles.activityTitle}>{item.title}</Text>
+                  <View style={styles.badgeRow}>
+                    <View style={styles.badge}>
+                      <Text style={styles.badgeText}>{getIdentityLabel(item.identity)}</Text>
+                    </View>
+                    <View style={[styles.badge, styles.difficultyBadge]}>
+                      <Text style={styles.badgeText}>Dificultad: {item.difficulty}</Text>
+                    </View>
+                  </View>
                 </View>
               </View>
             </TouchableOpacity>
@@ -161,7 +190,22 @@ const styles = StyleSheet.create({
   },
   cardInfo: {
     flex: 1,
-    gap: 8,
+  },
+  cardInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  cardIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardInfoText: {
+    flex: 1,
+    gap: 6,
   },
   activityTitle: {
     color: Theme.colors.surface,

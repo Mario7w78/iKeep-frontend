@@ -28,15 +28,17 @@ export default function DayButton({
       style={[
         styles.button,
         configured && styles.buttonConfigured,
-        configuredColor ? { backgroundColor: configuredColor } : null,
-        selected && styles.buttonSelected,
+        configured && configuredColor
+          ? { backgroundColor: configuredColor }
+          : selected && styles.buttonSelected,
       ]}
     >
       <Text
         style={[
           styles.letter,
-          configuredTextColor ? { color: configuredTextColor } : null,
-          selected && styles.textSelected,
+          configured && configuredTextColor
+            ? { color: configuredTextColor }
+            : selected && styles.textSelected,
         ]}
       >
         {letter}
@@ -44,8 +46,9 @@ export default function DayButton({
       <Text
         style={[
           styles.name,
-          configuredTextColor ? { color: configuredTextColor } : null,
-          selected && styles.textSelected,
+          configured && configuredTextColor
+            ? { color: configuredTextColor }
+            : selected && styles.textSelected,
         ]}
       >
         {day.substring(0, 3)}

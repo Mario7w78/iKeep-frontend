@@ -65,6 +65,14 @@ export function ActivityDetailModal({ visible, activityItem, onClose }: Activity
     }
   };
 
+  const getIdentityColor = (identity: string) => {
+    switch (identity) {
+      case 'clase': return Theme.comfyColors.skyBlue;
+      case 'trabajo': return Theme.comfyColors.orange;
+      default: return Theme.comfyColors.green;
+    }
+  };
+
   const getIdentityLabel = (identity: string) => {
     switch (identity) {
       case 'clase': return 'Clase';
@@ -121,8 +129,8 @@ export function ActivityDetailModal({ visible, activityItem, onClose }: Activity
           
           <View style={styles.header}>
             <View style={styles.headerTitleRow}>
-              <View style={styles.iconContainer}>
-                <Ionicons name={getIdentityIcon(activity.identity)} size={24} color={Theme.comfyFontColors.green} />
+              <View style={[styles.iconContainer, { backgroundColor: getIdentityColor(activity.identity) + '20' }]}>
+                <Ionicons name={getIdentityIcon(activity.identity)} size={24} color={getIdentityColor(activity.identity)} />
               </View>
               <View style={styles.titleWrapper}>
                 <Text style={styles.title} numberOfLines={2}>{activity.title}</Text>
@@ -252,7 +260,6 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 16,
-    backgroundColor: 'rgba(141, 255, 104, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
   },

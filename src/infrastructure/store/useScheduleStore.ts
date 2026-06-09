@@ -3,6 +3,7 @@ import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Schedule, ScheduleProps } from '../../domain/entities/Schedule';
 import { Activity, DayOfWeek } from '../../domain/entities/Activity';
+import { ActivityRepository } from '../../application/ports/out/ActivityRepository';
 import { JS_DAY_TO_DAYOFWEEK } from '../../presentation/utils/scheduleUtils';
 import { GenerateSchedulePort, GenerateScheduleOptions } from '../../application/ports/in/GenerateSchedulePort';
 import { ReschedulePort } from '../../application/ports/in/ReschedulePort';
@@ -62,6 +63,7 @@ export type ScheduleStore = UseBoundStore<StoreApi<ScheduleStoreState>>;
 export function createScheduleStore(
   generateScheduleUseCase: GenerateSchedulePort,
   dayLimitPersistence: DayLimitPersistence,
+  activityRepository: ActivityRepository,
   rescheduleUseCase?: ReschedulePort,
   suggestTaskUseCase?: SuggestTaskPort
 ): ScheduleStore {
@@ -196,6 +198,12 @@ export function createScheduleStore(
     },
 
     handleGenerateSchedule: async (energyData) => {
+      const existingActivities = await activityRepository.getAll();
+      if (existingActivities.length === 0) {
+        set({ schedule: null });
+        return;
+      }
+
       await get().loadDayLimits();
       const { startHour, endHour, rollingWeekStartDay, rollingWeekTotalDays, customEnergyPattern, perDayStartHours, perDayEndHours } = get();
       set({ isLoading: true });

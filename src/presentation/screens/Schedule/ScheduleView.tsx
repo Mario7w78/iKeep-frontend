@@ -76,6 +76,14 @@ function ChronologicalAgendaList({
     }
   };
 
+  const getIdentityColor = (identity: string | undefined) => {
+    switch (identity) {
+      case 'clase': return Theme.comfyColors.skyBlue;
+      case 'trabajo': return Theme.comfyColors.orange;
+      default: return Theme.comfyColors.green;
+    }
+  };
+
   return (
     <ScrollView 
       style={{ flex: 1 }}
@@ -91,9 +99,9 @@ function ChronologicalAgendaList({
           activeOpacity={0.7}
           onPress={() => onActivityPress(act)}
         >
-          <View style={s.listItemHeader}>
-            <View style={s.listItemIconWrapper}>
-              <Ionicons name={getIdentityIcon(actActivity?.identity)} size={18} color={Theme.comfyFontColors.green} />
+            <View style={s.listItemHeader}>
+            <View style={[s.listItemIconWrapper, { backgroundColor: getIdentityColor(actActivity?.identity) + '20' }]}>
+              <Ionicons name={getIdentityIcon(actActivity?.identity)} size={18} color={getIdentityColor(actActivity?.identity)} />
             </View>
             <Text style={s.listItemTitle} numberOfLines={1}>
               {actActivity?.title ?? (act.tipo === 'viaje' ? 'Viaje' : 'Actividad')}
@@ -160,14 +168,14 @@ export default function ScheduleView() {
     scrollX.current = e.nativeEvent.contentOffset.x;
   };
 
-  const handleHorizontalScrollEnd = (e: any) => {
+  const handlePageChange = useCallback((e: any) => {
     const contentOffset = e.nativeEvent.contentOffset.x;
     const index = Math.round(contentOffset / SCREEN_WIDTH);
     const newDay = DAYS_ORDER[index];
     if (newDay && newDay !== selectedDay) {
       setSelectedDay(newDay as any);
     }
-  };
+  }, [selectedDay]);
 
   useFocusEffect(
     useCallback(() => {
@@ -206,90 +214,89 @@ export default function ScheduleView() {
     [handleGenerateSchedule],
   );
 
-  if (isLoading) return (
-    <View style={s.center}>
-      <ActivityIndicator size="large" color={Theme.colors.iconPrimary} />
-    </View>
-  );
-
-  if (!schedule) return (
-    <View style={s.center}>
-      <View style={s.emptyIcon}>
-        <Ionicons name="calendar-outline" size={54} color={Theme.comfyColors.yellow} />
-      </View>
-      <Text style={s.emptyTitle}>Sin horario generado aún</Text>
-      <Text style={s.emptyText}>
-        Generá tu horario para acomodar y organizar tus actividades según tu energía.
-      </Text>
-      <TouchableOpacity
-        style={s.btn}
-        activeOpacity={0.8}
-        onPress={() => setShowEnergyPicker(true)}
-      >
-        <Ionicons name="sparkles" size={18} color={Theme.comfyFontColors.green} />
-        <Text style={s.btnText}>Generar horario</Text>
-      </TouchableOpacity>
-
-      <EnergyPicker
-        visible={showEnergyPicker}
-        onSelect={onGenerateWithEnergy}
-        onCancel={() => setShowEnergyPicker(false)}
-      />
-    </View>
-  );
+  const showEmptyState = !schedule || schedule.getAllItems().length === 0;
 
   return (
     <View style={s.container}>
-      <ScheduleHeader
-        selectedDay={selectedDay}
-        activityCount={items.length}
-        onSelectDay={setSelectedDay}
-        onRefresh={() => setShowEnergyPicker(true)}
-        viewMode={viewMode}
-        onToggleViewMode={() => setViewMode(prev => prev === 'grid' ? 'list' : 'grid')}
-      />
-      
-      <ScrollView
-        ref={horizontalScrollRef}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
-        onMomentumScrollEnd={handleHorizontalScrollEnd}
-        style={{ flex: 1 }}
-      >
-        {DAYS_ORDER.map((day) => {
-          const dayItems = schedule.getItemsByDay(day as any);
-          return (
-            <View key={day} style={{ width: SCREEN_WIDTH, flex: 1 }}>
-              {viewMode === 'grid' ? (
-                <ScheduleGrid 
-                  activities={dayItems} 
-                  isToday={day === JS_DAY_TO_DAYOFWEEK[new Date().getDay()]} 
-                  onActivityPress={setSelectedActivity}
-                  startHour={startHour}
-                  endHour={endHour}
-                />
-              ) : (
-                <ChronologicalAgendaList
-                  activities={dayItems}
-                  onActivityPress={setSelectedActivity}
-                />
-              )}
-            </View>
-          );
-        })}
-      </ScrollView>
+      {showEmptyState ? (
+        <View style={s.center}>
+          <View style={s.emptyIcon}>
+            <Ionicons name="calendar-outline" size={54} color={Theme.comfyColors.yellow} />
+          </View>
+          <Text style={s.emptyTitle}>Sin horario generado aún</Text>
+          <Text style={s.emptyText}>
+            Generá tu horario para acomodar y organizar tus actividades según tu energía.
+          </Text>
+          <TouchableOpacity
+            style={s.btn}
+            activeOpacity={0.8}
+            onPress={() => setShowEnergyPicker(true)}
+          >
+            <Ionicons name="sparkles" size={18} color={Theme.comfyFontColors.green} />
+            <Text style={s.btnText}>Generar horario</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <View style={s.container}>
+          <ScheduleHeader
+            selectedDay={selectedDay}
+            activityCount={items.length}
+            onSelectDay={setSelectedDay}
+            onRefresh={() => setShowEnergyPicker(true)}
+            viewMode={viewMode}
+            onToggleViewMode={() => setViewMode(prev => prev === 'grid' ? 'list' : 'grid')}
+          />
+          
+          <ScrollView
+            ref={horizontalScrollRef}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
+            onMomentumScrollEnd={handlePageChange}
+            onScrollEndDrag={handlePageChange}
+            style={{ flex: 1 }}
+          >
+            {DAYS_ORDER.map((day) => {
+              const dayItems = schedule.getItemsByDay(day as any);
+              return (
+                <View key={day} style={{ width: SCREEN_WIDTH, flex: 1, paddingVertical: 8, paddingHorizontal: 4 }}>
+                  {viewMode === 'grid' ? (
+                    <ScheduleGrid 
+                      activities={dayItems} 
+                      isToday={day === JS_DAY_TO_DAYOFWEEK[new Date().getDay()]} 
+                      onActivityPress={setSelectedActivity}
+                      startHour={startHour}
+                      endHour={endHour}
+                    />
+                  ) : (
+                    <ChronologicalAgendaList
+                      activities={dayItems}
+                      onActivityPress={setSelectedActivity}
+                    />
+                  )}
+                </View>
+              );
+            })}
+          </ScrollView>
 
-      {/* FAB to create activity */}
-      <TouchableOpacity
-        style={s.fabCreateBtn}
-        activeOpacity={0.8}
-        onPress={() => navigation.navigate("CreateActivityModal")}
-      >
-        <Ionicons name="add" size={32} color={Theme.comfyFontColors.green} />
-      </TouchableOpacity>
+          <TouchableOpacity
+            style={s.fabCreateBtn}
+            activeOpacity={0.8}
+            onPress={() => navigation.navigate("CreateActivityModal")}
+          >
+            <Ionicons name="add" size={32} color={Theme.comfyFontColors.green} />
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {isLoading && (
+        <View style={s.loadingOverlay}>
+          <ActivityIndicator size="large" color={Theme.colors.iconPrimary} />
+          <Text style={s.loadingText}>Generando horario...</Text>
+        </View>
+      )}
 
       <EnergyPicker
         visible={showEnergyPicker}
@@ -355,6 +362,19 @@ const s = StyleSheet.create({
     fontSize: 16,
     fontWeight: "900",
   },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(10, 11, 18, 0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+    zIndex: 999,
+  },
+  loadingText: {
+    color: Theme.colors.surface,
+    fontSize: 15,
+    fontWeight: '700',
+  },
   fabCreateBtn: {
     position: "absolute",
     bottom: 16,
@@ -393,7 +413,6 @@ const s = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: 'rgba(141, 255, 104, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
   },

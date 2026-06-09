@@ -220,7 +220,7 @@ export default function TimePartitionForm({
                 </View>
 
                 {showStartPickerIndex === index && (
-                  <View style={styles.fullWidthPicker}>
+                  <View style={styles.pickerContainer}>
                     <DateTimePicker
                       value={partition.startHour}
                       mode="time"
@@ -232,7 +232,7 @@ export default function TimePartitionForm({
                         if (selectedDate) onSetStartTime(selectedDate);
                         if (Platform.OS !== "ios") setShowStartPickerIndex(null);
                       }}
-                      style={styles.fullWidthPickerInner}
+                      style={styles.pickerInner}
                     />
                     {Platform.OS === "ios" && (
                       <TouchableOpacity
@@ -246,7 +246,7 @@ export default function TimePartitionForm({
                 )}
 
                 {showEndPickerIndex === index && (
-                  <View style={styles.fullWidthPicker}>
+                  <View style={styles.pickerContainer}>
                     <DateTimePicker
                       value={partition.endHour}
                       mode="time"
@@ -257,7 +257,7 @@ export default function TimePartitionForm({
                         if (selectedDate) onSetEndTime(selectedDate);
                         if (Platform.OS !== "ios") setShowEndPickerIndex(null);
                       }}
-                      style={styles.fullWidthPickerInner}
+                      style={styles.pickerInner}
                     />
                     {Platform.OS === "ios" && (
                       <TouchableOpacity
@@ -312,38 +312,38 @@ export default function TimePartitionForm({
             <View style={styles.trasladoContainer}>
               <Text style={styles.cardFieldLabel}>Traslado (Ida o vuelta)</Text>
               <View style={styles.chipsRow}>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsScroll}>
-                  {chips.map((chip) => {
-                    const isSelected = travelVal === chip.value;
-                    return (
-                      <TouchableOpacity
-                        key={chip.value}
-                        style={[styles.quickChip, isSelected && styles.quickChipSelected]}
-                        onPress={() => {
-                          onSetActivePartition(index);
-                          onSetTravelTime(chip.value);
-                        }}
-                      >
-                        <Text style={[styles.quickChipText, isSelected && styles.quickChipTextSelected]}>
-                          {chip.label}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                  <TouchableOpacity
-                    style={[styles.quickChip, !isQuickValue && styles.quickChipSelected]}
-                    onPress={() => {
-                      onSetActivePartition(index);
-                      setShowCustomTravelPickerIndex(index);
-                      setShowStartPickerIndex(null);
-                      setShowEndPickerIndex(null);
-                    }}
-                  >
-                    <Text style={[styles.quickChipText, !isQuickValue && styles.quickChipTextSelected]}>
-                      {!isQuickValue ? `${travelVal} min` : "Personalizar..."}
-                    </Text>
-                  </TouchableOpacity>
-                </ScrollView>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsScroll}>
+                    <TouchableOpacity
+                      style={[styles.quickChip, !isQuickValue && styles.quickChipSelected]}
+                      onPress={() => {
+                        onSetActivePartition(index);
+                        setShowCustomTravelPickerIndex(index);
+                        setShowStartPickerIndex(null);
+                        setShowEndPickerIndex(null);
+                      }}
+                    >
+                      <Text style={[styles.quickChipText, !isQuickValue && styles.quickChipTextSelected]}>
+                        {!isQuickValue ? `${travelVal} min` : "Personalizar..."}
+                      </Text>
+                    </TouchableOpacity>
+                    {chips.map((chip) => {
+                      const isSelected = travelVal === chip.value;
+                      return (
+                        <TouchableOpacity
+                          key={chip.value}
+                          style={[styles.quickChip, isSelected && styles.quickChipSelected]}
+                          onPress={() => {
+                            onSetActivePartition(index);
+                            onSetTravelTime(chip.value);
+                          }}
+                        >
+                          <Text style={[styles.quickChipText, isSelected && styles.quickChipTextSelected]}>
+                            {chip.label}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
               </View>
 
               {showCustomTravelPickerIndex === index && (
@@ -625,15 +625,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "900",
   },
-  fullWidthPicker: {
-    borderRadius: 18,
-    overflow: "hidden",
-    backgroundColor: "#454866",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 6,
-  },
-  fullWidthPickerInner: {
+  pickerInner: {
     height: 128,
     width: "100%",
   },
@@ -764,7 +756,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingVertical: 6,
     paddingHorizontal: 12,
-    marginTop: 8,
+    marginBottom: 6,
+    marginRight: 4,
   },
   doneText: {
     color: Theme.comfyFontColors.green,

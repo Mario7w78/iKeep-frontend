@@ -123,9 +123,8 @@ export default function AppNavigator() {
         name="CreateActivityModal"
         component={CreateActivityScreen}
         options={{
-          presentation: "transparentModal",
-          animation: "none",
-          contentStyle: { backgroundColor: "transparent" },
+          presentation: 'containedTransparentModal',
+          animation: 'fade',
         }}
       />
     </Stack.Navigator>

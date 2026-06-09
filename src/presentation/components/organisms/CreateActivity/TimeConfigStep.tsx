@@ -1,5 +1,5 @@
-import React from "react";
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from "react-native";
+import React, { useEffect, useRef } from "react";
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, Animated } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { DayOfWeek } from "../../../../domain/entities/Activity";
 import { PartitionConfig, DayConfig } from "../../../../domain/entities/activity.types";
@@ -86,6 +86,33 @@ export default function TimeConfigStep({
     0
   );
 
+  const visitedGroups = useRef<Set<number>>(new Set([activeGroupId ?? -1])).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 0.4,
+          duration: 700,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 700,
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [pulseAnim]);
+
+  const handleTabPress = (id: number) => {
+    visitedGroups.add(id);
+    onSwitchGroup(id);
+  };
+
   return (
     <ScrollView
       style={styles.scroll}
@@ -95,6 +122,14 @@ export default function TimeConfigStep({
     >
       <Text style={styles.stepTitle}>Configuración detallada</Text>
       <Text style={styles.stepSubtitle}>Ajusta los parámetros de horario</Text>
+
+      <View style={styles.dayConfigHeader}>
+        <View style={styles.dayConfigTextBlock}>
+          <Text style={styles.dayConfigSubtitle}>
+            Duración total: {totalGroupMinutes} min
+          </Text>
+        </View>
+      </View>
 
       {/* Group Tabs Selection */}
       {Object.keys(groups).length > 1 && (
@@ -108,42 +143,50 @@ export default function TimeConfigStep({
             {Object.entries(groups).map(([idStr, gp]) => {
               const id = Number(idStr);
               const isActive = id === activeGroupId;
+              const isVisited = visitedGroups.has(id);
               const daysLabel = gp.days.map(getDayAbbreviation).join(", ");
+              const groupColor = Theme.groupColors[id % Theme.groupColors.length];
+
               return (
                 <TouchableOpacity
                   key={id}
-                  style={[styles.tabButton, isActive && styles.tabButtonActive]}
-                  onPress={() => onSwitchGroup(id)}
+                  style={[
+                    styles.tabButton,
+                    isActive
+                      ? styles.tabButtonActive
+                      : { backgroundColor: groupColor.bg, borderColor: groupColor.text + '40' },
+                  ]}
+                  onPress={() => handleTabPress(id)}
                 >
-                  <Text style={[styles.tabButtonText, isActive && styles.tabButtonTextActive]}>
-                    {daysLabel}
-                  </Text>
+                  {!isVisited && !isActive ? (
+                    <Animated.View style={{ opacity: pulseAnim }}>
+                      <Text
+                        style={[
+                          styles.tabButtonText,
+                          { color: groupColor.text },
+                        ]}
+                      >
+                        {daysLabel}
+                      </Text>
+                    </Animated.View>
+                  ) : (
+                    <Text
+                      style={[
+                        styles.tabButtonText,
+                        isActive
+                          ? styles.tabButtonTextActive
+                          : { color: groupColor.text },
+                      ]}
+                    >
+                      {daysLabel}
+                    </Text>
+                  )}
                 </TouchableOpacity>
               );
             })}
           </ScrollView>
         </View>
       )}
-
-      <View style={styles.dayConfigHeader}>
-        <View style={styles.dayConfigTextBlock}>
-          <Text style={styles.headerContextLabel}>Día:</Text>
-          <View style={styles.chipsRow}>
-            {displayDays.map((day) => {
-              return (
-                <View key={day} style={styles.dayChipContainer}>
-                  <View style={styles.dayChip}>
-                    <Text style={styles.dayChipText}>{getDayAbbreviation(day)}</Text>
-                  </View>
-                </View>
-              );
-            })}
-          </View>
-          <Text style={styles.dayConfigSubtitle}>
-            Duración total: {totalGroupMinutes} min
-          </Text>
-        </View>
-      </View>
 
       {otherConfiguredDays.length > 0 && (
         <View style={styles.copyConfigSection}>
@@ -157,7 +200,16 @@ export default function TimeConfigStep({
               <TouchableOpacity
                 key={day}
                 style={styles.copyDayButton}
-                onPress={() => onCopyConfig(day)}
+                onPress={() =>
+                  Alert.alert(
+                    "Copiar horario",
+                    `¿Quieres copiar la configuración del día ${getDayAbbreviation(day)} a ${displayDays.map(getDayAbbreviation).join(', ')}?`,
+                    [
+                      { text: "Cancelar", style: "cancel" },
+                      { text: "Copiar", onPress: () => onCopyConfig(day) },
+                    ]
+                  )
+                }
               >
                 <Ionicons name="copy-outline" size={14} color="#8dccff" style={{ marginRight: 4 }} />
                 <Text style={styles.copyDayButtonText}>{getDayAbbreviation(day)}</Text>
@@ -236,6 +288,11 @@ const styles = StyleSheet.create({
     backgroundColor: Theme.colors.cardBackground,
     borderWidth: 2,
     borderColor: Theme.colors.cardBorder,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
   },
   tabButtonActive: {
     backgroundColor: "#5665dc",
@@ -266,40 +323,8 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "800",
   },
-  headerContextLabel: {
-    color: Theme.colors.iconPrimary,
-    fontSize: 14,
-    fontWeight: "800",
-    marginBottom: 8,
-  },
-  chipsRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-    marginBottom: 10,
-  },
-  dayChipContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(86, 101, 220, 0.12)",
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: "rgba(86, 101, 220, 0.25)",
-    gap: 6,
-  },
-  dayChip: {
-    backgroundColor: "transparent",
-  },
-  dayChipText: {
-    color: "#8dccff",
-    fontSize: 13,
-    fontWeight: "900",
-    textTransform: "uppercase",
-  },
   copyConfigSection: {
-    marginVertical: 4,
+    marginBottom: 4,
   },
   copyConfigTitle: {
     color: Theme.colors.iconPrimary,

@@ -446,7 +446,7 @@ export default function CreateActivityView({ navigation, route }: any) {
         daysDict,
         selectedDays,
       });
-      navigation.navigate("MainTabs", { screen: "Schedule" });
+      closeSheet();
     } catch (e) {
       console.error("Error saving activity:", e);
       showAlert("Hubo un error al guardar la actividad. Por favor intenta de nuevo.");

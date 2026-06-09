@@ -17,7 +17,7 @@ export const DAYS_ORDER: DayOfWeek[] = [
 
 export const DAYS_SHORT: Record<DayOfWeek | 'Diario', string> = {
   'Diario': 'Di', 'Lunes': 'Lu', 'Martes': 'Ma', 'Miercoles': 'Mi',
-  'Jueves': 'Ju', 'Viernes': 'Vi', 'Sabado': 'Sá', 'Domingo': 'Do',
+  'Jueves': 'Ju', 'Viernes': 'Vi', 'Sabado': 'Sï¿½', 'Domingo': 'Do',
 };
 
 export function minutesToTop(minutes: number): number {
@@ -41,6 +41,6 @@ export function formatDisplayTime(hhmm: string): string {
 }
 
 export function formatHour(h: number): string {
-  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
-  return `${h12}${h < 12 ? 'AM' : 'PM'}`;
+  if (h === 24) return '24:00';
+  return `${h.toString().padStart(2, '0')}:00`;
 }

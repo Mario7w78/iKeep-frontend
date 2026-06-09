@@ -128,7 +128,7 @@ const SettingsView = () => {
     confirmTimeChange(
       localEndTime,
       "fin del día",
-      setEndHour,
+      (minutes) => setEndHour(minutes === 0 ? 1440 : minutes),
       () => setLocalEndTime(minutesToDate(endHour)),
       () => setShowEndPicker(false)
     );

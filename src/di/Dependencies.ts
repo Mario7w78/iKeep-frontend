@@ -66,6 +66,7 @@ export const useActivityStore: ActivityStore = createActivityStore(
 export const useScheduleStore: ScheduleStore = createScheduleStore(
   generateScheduleUseCase,
   asyncStorageDayLimitPersistence,
+  activityRepository,
   rescheduleUseCase,
   suggestTaskUseCase
 );

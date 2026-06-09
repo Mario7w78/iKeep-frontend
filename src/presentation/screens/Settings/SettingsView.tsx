@@ -60,7 +60,13 @@ const SettingsView = () => {
   const [localStartTime, setLocalStartTime] = useState(
     minutesToDate(startHour)
   );
-  const [localEndTime, setLocalEndTime] = useState(minutesToDate(endHour));
+  const [localEndTime, setLocalEndTime] = useState(
+    minutesToDate(endHour)
+  );
+  useEffect(() => {
+    setLocalStartTime(minutesToDate(startHour));
+    setLocalEndTime(minutesToDate(endHour));
+  }, [startHour, endHour]);
 
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
@@ -79,30 +85,31 @@ const SettingsView = () => {
     setLocalPattern(customEnergyPattern);
   }, [customEnergyPattern]);
 
-  const confirmTimeChange = (
-    newDate: Date,
-    label: string,
-    setter: (h: number) => void,
-    revert: () => void,
-    closePicker: () => void
-  ) => {
-    const newMinutes = dateToMinutes(newDate);
-    closePicker();
+  const handleApplyChanges = () => {
+    setShowStartPicker(false);
+    setShowEndPicker(false);
+    const newStart = dateToMinutes(localStartTime);
+    const newEndRaw = dateToMinutes(localEndTime);
+    const newEnd = newEndRaw === 0 ? 1440 : newEndRaw;
 
     Alert.alert(
       "¿Actualizar horario?",
-      `¿Querés cambiar el ${label} a las ${formatTime(newDate)}? Esto recalculará todas tus actividades planificadas.`,
+      `¿Querés cambiar el horario del día a ${formatTime(localStartTime)} - ${formatTime(localEndTime)}? Esto recalculará todas tus actividades planificadas.`,
       [
         {
           text: "Cancelar",
           style: "cancel",
-          onPress: revert,
+          onPress: () => {
+            setLocalStartTime(minutesToDate(startHour));
+            setLocalEndTime(minutesToDate(endHour));
+          },
         },
         {
-          text: "Sí, actualizar",
+          text: "Sí, aplicar",
           style: "default",
           onPress: async () => {
-            setter(newMinutes);
+            await setStartHour(newStart);
+            await setEndHour(newEnd);
             try {
               await handleGenerateSchedule();
             } catch (e) {
@@ -114,25 +121,12 @@ const SettingsView = () => {
     );
   };
 
-  const handleStartConfirm = () => {
-    confirmTimeChange(
-      localStartTime,
-      "inicio del día",
-      setStartHour,
-      () => setLocalStartTime(minutesToDate(startHour)),
-      () => setShowStartPicker(false)
-    );
+  const getMinutesForStart = () => dateToMinutes(localStartTime);
+  const getMinutesForEnd = () => {
+    const mins = dateToMinutes(localEndTime);
+    return mins === 0 ? 1440 : mins;
   };
-
-  const handleEndConfirm = () => {
-    confirmTimeChange(
-      localEndTime,
-      "fin del día",
-      (minutes) => setEndHour(minutes === 0 ? 1440 : minutes),
-      () => setLocalEndTime(minutesToDate(endHour)),
-      () => setShowEndPicker(false)
-    );
-  };
+  const hasPendingChanges = getMinutesForStart() !== startHour || getMinutesForEnd() !== endHour;
 
   const currentPatternLabel = PATTERN_OPTIONS.find(
     (o) => o.value === localPattern
@@ -150,10 +144,14 @@ const SettingsView = () => {
         {/* ═══════════════ HORARIO ═══════════════ */}
         <Text style={styles.sectionHeader}>HORARIO</Text>
         <View style={styles.section}>
+          {/* Inicio picker */}
           <TouchableOpacity
             style={styles.row}
             activeOpacity={0.7}
-            onPress={() => setShowStartPicker((v) => !v)}
+            onPress={() => {
+              setShowStartPicker((v) => !v);
+              setShowEndPicker(false);
+            }}
           >
             <Text style={styles.rowLabel}>Inicio del día</Text>
             <Text style={styles.rowValue}>{formatTime(localStartTime)}</Text>
@@ -165,39 +163,31 @@ const SettingsView = () => {
           </TouchableOpacity>
 
           {showStartPicker && (
-            <>
-              <View style={styles.pickerContainer}>
-                <DateTimePicker
-                  value={localStartTime}
-                  mode="time"
-                  display="spinner"
-                  themeVariant="dark"
-                  textColor={Theme.colors.surface}
-                  onChange={(_, selectedDate) => {
-                    if (selectedDate) setLocalStartTime(selectedDate);
-                    if (Platform.OS !== "ios") handleStartConfirm();
-                  }}
-                  style={styles.picker}
-                />
-              </View>
-              {Platform.OS === "ios" && (
-                <TouchableOpacity
-                  style={styles.applyButton}
-                  activeOpacity={0.8}
-                  onPress={handleStartConfirm}
-                >
-                  <Text style={styles.applyButtonText}>Aplicar</Text>
-                </TouchableOpacity>
-              )}
-            </>
+            <View style={styles.pickerContainer}>
+              <DateTimePicker
+                value={localStartTime}
+                mode="time"
+                display="spinner"
+                themeVariant="dark"
+                textColor={Theme.colors.surface}
+                onChange={(_, selectedDate) => {
+                  if (selectedDate) setLocalStartTime(selectedDate);
+                }}
+                style={styles.picker}
+              />
+            </View>
           )}
 
           <View style={styles.separator} />
 
+          {/* Fin picker */}
           <TouchableOpacity
             style={styles.row}
             activeOpacity={0.7}
-            onPress={() => setShowEndPicker((v) => !v)}
+            onPress={() => {
+              setShowEndPicker((v) => !v);
+              setShowStartPicker(false);
+            }}
           >
             <Text style={styles.rowLabel}>Fin del día</Text>
             <Text style={styles.rowValue}>{formatTime(localEndTime)}</Text>
@@ -209,35 +199,36 @@ const SettingsView = () => {
           </TouchableOpacity>
 
           {showEndPicker && (
+            <View style={styles.pickerContainer}>
+              <DateTimePicker
+                value={localEndTime}
+                mode="time"
+                display="spinner"
+                themeVariant="dark"
+                textColor={Theme.colors.surface}
+                onChange={(_, selectedDate) => {
+                  if (selectedDate) setLocalEndTime(selectedDate);
+                }}
+                style={styles.picker}
+              />
+            </View>
+          )}
+
+          {hasPendingChanges && (
             <>
-              <View style={styles.pickerContainer}>
-                <DateTimePicker
-                  value={localEndTime}
-                  mode="time"
-                  display="spinner"
-                  themeVariant="dark"
-                  textColor={Theme.colors.surface}
-                  onChange={(_, selectedDate) => {
-                    if (selectedDate) setLocalEndTime(selectedDate);
-                    if (Platform.OS !== "ios") handleEndConfirm();
-                  }}
-                  style={styles.picker}
-                />
-              </View>
-              {Platform.OS === "ios" && (
-                <TouchableOpacity
-                  style={styles.applyButton}
-                  activeOpacity={0.8}
-                  onPress={handleEndConfirm}
-                >
-                  <Text style={styles.applyButtonText}>Aplicar</Text>
-                </TouchableOpacity>
-              )}
+              <View style={styles.separator} />
+              <TouchableOpacity
+                style={styles.globalApplyButton}
+                activeOpacity={0.8}
+                onPress={handleApplyChanges}
+              >
+                <Text style={styles.globalApplyButtonText}>Aplicar cambios</Text>
+              </TouchableOpacity>
             </>
           )}
         </View>
         <Text style={styles.sectionFooter}>
-          Define el rango de horas disponibles para tus actividades.
+          Configurá el rango de horas disponible para tu día. Aplica a todos los días de la semana.
         </Text>
 
         {/* ═══════════════ ENERGÍA ═══════════════ */}
@@ -401,6 +392,17 @@ const styles = StyleSheet.create({
   applyButtonText: {
     color: Theme.comfyColors.skyBlue,
     fontSize: 15,
+    fontWeight: "800",
+  },
+  globalApplyButton: {
+    backgroundColor: "rgba(141, 255, 104, 0.08)",
+    paddingVertical: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  globalApplyButtonText: {
+    color: Theme.comfyColors.green,
+    fontSize: 16,
     fontWeight: "800",
   },
 

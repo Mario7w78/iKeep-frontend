@@ -11,6 +11,7 @@ import {
   Alert,
   Platform,
   TextInput,
+  KeyboardAvoidingView,
 } from "react-native";
 import { NavigationProp, useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
@@ -195,7 +196,10 @@ export default function OnBoardingView() {
   const isLast = activeIndex === SLIDES.length - 1;
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
       <FlatList
         ref={flatListRef}
         data={SLIDES}
@@ -344,7 +348,7 @@ export default function OnBoardingView() {
           <Text style={styles.nextText}>{isLast ? "Empezar" : "Siguiente"}</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

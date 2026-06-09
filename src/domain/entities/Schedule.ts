@@ -45,10 +45,15 @@ export class Schedule {
         return [...this.items];
     }
 
-    getItemsByDay(day: DayOfWeek): ScheduledActivity[] {
+    getItemsByDay(day: DayOfWeek, startHour: number = 0): ScheduledActivity[] {
+        const timeToVal = (timeStr: string) => {
+            const [h, m] = timeStr.split(':').map(Number);
+            const mins = h * 60 + m;
+            return mins < startHour ? mins + 1440 : mins;
+        };
         return this.items
             .filter(item => item.day === day)
-            .sort((a, b) => a.assignedStartTime.localeCompare(b.assignedStartTime));
+            .sort((a, b) => timeToVal(a.assignedStartTime) - timeToVal(b.assignedStartTime));
     }
 
     getTotalActiveMinutes(): number {

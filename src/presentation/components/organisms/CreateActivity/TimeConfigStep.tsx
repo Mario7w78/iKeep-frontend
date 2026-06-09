@@ -19,8 +19,15 @@ const getDayAbbreviation = (day: string) => {
   }
 };
 
+const getTotalMinutes = (config: DayConfig | undefined): number => {
+  if (!config) return 0;
+  return config.partitions.reduce(
+    (sum, p) => sum + p.durationTime + p.travelTime,
+    0
+  );
+};
+
 type TimeConfigStepProps = {
-  selectedDays: DayOfWeek[];
   configuredDays: DayOfWeek[];
   partitions: PartitionConfig[];
   activePartitionIndex: number;
@@ -41,14 +48,14 @@ type TimeConfigStepProps = {
   onSetPreferredStartTime: (val: number | null) => void;
   onSetPreferredEndTime: (val: number | null) => void;
 
-  groups: Record<number, { days: DayOfWeek[]; config: DayConfig }>;
-  activeGroupId: number | null;
-  onSwitchGroup: (groupId: number) => void;
+  activeDay: DayOfWeek | null;
+  onSwitchDay: (day: DayOfWeek) => void;
   onCopyConfig: (fromDay: DayOfWeek) => void;
+  onCopyToAll: () => void;
+  daysDict: Partial<Record<DayOfWeek, DayConfig>>;
 };
 
 export default function TimeConfigStep({
-  selectedDays,
   configuredDays,
   partitions,
   activePartitionIndex,
@@ -69,25 +76,27 @@ export default function TimeConfigStep({
   onSetPreferredStartTime,
   onSetPreferredEndTime,
   
-  groups,
-  activeGroupId,
-  onSwitchGroup,
+  activeDay,
+  onSwitchDay,
   onCopyConfig,
+  onCopyToAll,
+  daysDict,
 }: TimeConfigStepProps) {
-  const activeGroup = groups[activeGroupId ?? -1];
-  const displayDays = activeGroup ? activeGroup.days : [];
-
-  const otherConfiguredDays = configuredDays.filter(
-    (day) => !displayDays.includes(day)
-  );
-
-  const totalGroupMinutes = partitions.reduce(
+  const totalActiveMinutes = partitions.reduce(
     (sum, p) => sum + p.durationTime + p.travelTime,
     0
   );
 
-  const visitedGroups = useRef<Set<number>>(new Set([activeGroupId ?? -1])).current;
+  const otherConfiguredDays = configuredDays.filter(
+    (day) => day !== activeDay
+  );
+
+  const visitedTabs = useRef<Set<DayOfWeek>>(new Set(activeDay ? [activeDay] : [])).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (activeDay) visitedTabs.add(activeDay);
+  }, [activeDay, visitedTabs]);
 
   useEffect(() => {
     const animation = Animated.loop(
@@ -108,11 +117,6 @@ export default function TimeConfigStep({
     return () => animation.stop();
   }, [pulseAnim]);
 
-  const handleTabPress = (id: number) => {
-    visitedGroups.add(id);
-    onSwitchGroup(id);
-  };
-
   return (
     <ScrollView
       style={styles.scroll}
@@ -121,18 +125,10 @@ export default function TimeConfigStep({
       showsVerticalScrollIndicator={false}
     >
       <Text style={styles.stepTitle}>Configuración detallada</Text>
-      <Text style={styles.stepSubtitle}>Ajusta los parámetros de horario</Text>
+      <Text style={styles.stepSubtitle}>Ajustá los parámetros de horario para cada día</Text>
 
-      <View style={styles.dayConfigHeader}>
-        <View style={styles.dayConfigTextBlock}>
-          <Text style={styles.dayConfigSubtitle}>
-            Duración total: {totalGroupMinutes} min
-          </Text>
-        </View>
-      </View>
-
-      {/* Group Tabs Selection */}
-      {Object.keys(groups).length > 1 && (
+      {/* Day tabs */}
+      {configuredDays.length > 1 && (
         <View style={styles.tabsWrapper}>
           <ScrollView
             horizontal
@@ -140,46 +136,48 @@ export default function TimeConfigStep({
             style={styles.tabsContainer}
             contentContainerStyle={styles.tabsContent}
           >
-            {Object.entries(groups).map(([idStr, gp]) => {
-              const id = Number(idStr);
-              const isActive = id === activeGroupId;
-              const isVisited = visitedGroups.has(id);
-              const daysLabel = gp.days.map(getDayAbbreviation).join(", ");
-              const groupColor = Theme.groupColors[id % Theme.groupColors.length];
+            {configuredDays.map((day) => {
+              const isActive = day === activeDay;
+              const isVisited = visitedTabs.has(day);
+              const totalMin = getTotalMinutes(daysDict[day]);
 
               return (
                 <TouchableOpacity
-                  key={id}
+                  key={day}
                   style={[
                     styles.tabButton,
-                    isActive
-                      ? styles.tabButtonActive
-                      : { backgroundColor: groupColor.bg, borderColor: groupColor.text + '40' },
+                    isActive ? styles.tabButtonActive : styles.tabButtonInactive,
                   ]}
-                  onPress={() => handleTabPress(id)}
+                  onPress={() => onSwitchDay(day)}
                 >
                   {!isVisited && !isActive ? (
                     <Animated.View style={{ opacity: pulseAnim }}>
-                      <Text
-                        style={[
-                          styles.tabButtonText,
-                          { color: groupColor.text },
-                        ]}
-                      >
-                        {daysLabel}
+                      <Text style={styles.tabButtonText}>
+                        {getDayAbbreviation(day)}
+                      </Text>
+                      <Text style={styles.tabButtonMinutes}>
+                        {totalMin} min
                       </Text>
                     </Animated.View>
                   ) : (
-                    <Text
-                      style={[
-                        styles.tabButtonText,
-                        isActive
-                          ? styles.tabButtonTextActive
-                          : { color: groupColor.text },
-                      ]}
-                    >
-                      {daysLabel}
-                    </Text>
+                    <>
+                      <Text
+                        style={[
+                          styles.tabButtonText,
+                          isActive && styles.tabButtonTextActive,
+                        ]}
+                      >
+                        {getDayAbbreviation(day)}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.tabButtonMinutes,
+                          isActive && styles.tabButtonMinutesActive,
+                        ]}
+                      >
+                        {totalMin} min
+                      </Text>
+                    </>
                   )}
                 </TouchableOpacity>
               );
@@ -188,14 +186,44 @@ export default function TimeConfigStep({
         </View>
       )}
 
+      <View style={styles.dayConfigHeader}>
+        <View style={styles.dayConfigTextBlock}>
+          {isFixed && (
+            <Text style={styles.dayConfigTitle}>
+              {activeDay ? getDayAbbreviation(activeDay) : '—'}
+            </Text>
+          )}
+          <Text style={styles.dayConfigSubtitle}>
+            Duración total: {totalActiveMinutes} min
+          </Text>
+        </View>
+      </View>
+
+      {/* Copy tools */}
       {otherConfiguredDays.length > 0 && (
         <View style={styles.copyConfigSection}>
-          <Text style={styles.copyConfigTitle}>Copiar horario de:</Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.copyConfigRow}
           >
+            <TouchableOpacity
+              style={styles.copyAllButton}
+              onPress={() =>
+                Alert.alert(
+                  "Aplicar a todos",
+                  `¿Querés aplicar la configuración de ${activeDay ?? 'este día'} a TODOS los demás días?`,
+                  [
+                    { text: "Cancelar", style: "cancel" },
+                    { text: "Aplicar", onPress: onCopyToAll },
+                  ]
+                )
+              }
+            >
+              <Ionicons name="arrow-forward-circle-outline" size={14} color={Theme.comfyColors.green} style={{ marginRight: 4 }} />
+              <Text style={styles.copyAllButtonText}>Aplicar a todos</Text>
+            </TouchableOpacity>
+
             {otherConfiguredDays.map((day) => (
               <TouchableOpacity
                 key={day}
@@ -203,7 +231,7 @@ export default function TimeConfigStep({
                 onPress={() =>
                   Alert.alert(
                     "Copiar horario",
-                    `¿Quieres copiar la configuración del día ${getDayAbbreviation(day)} a ${displayDays.map(getDayAbbreviation).join(', ')}?`,
+                    `¿Querés copiar la configuración de ${day} a ${activeDay ?? 'este día'}?`,
                     [
                       { text: "Cancelar", style: "cancel" },
                       { text: "Copiar", onPress: () => onCopyConfig(day) },
@@ -211,7 +239,7 @@ export default function TimeConfigStep({
                   )
                 }
               >
-                <Ionicons name="copy-outline" size={14} color="#8dccff" style={{ marginRight: 4 }} />
+                <Ionicons name="download-outline" size={14} color="#8dccff" style={{ marginRight: 4 }} />
                 <Text style={styles.copyDayButtonText}>{getDayAbbreviation(day)}</Text>
               </TouchableOpacity>
             ))}
@@ -268,12 +296,6 @@ const styles = StyleSheet.create({
   tabsWrapper: {
     marginVertical: 4,
   },
-  tabsLabel: {
-    color: Theme.colors.iconPrimary,
-    fontSize: 14,
-    fontWeight: "800",
-    marginBottom: 8,
-  },
   tabsContainer: {
     flexDirection: "row",
   },
@@ -284,19 +306,18 @@ const styles = StyleSheet.create({
   tabButton: {
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderRadius: 20,
-    backgroundColor: Theme.colors.cardBackground,
+    borderRadius: 14,
     borderWidth: 2,
-    borderColor: Theme.colors.cardBorder,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 4,
+    alignItems: "center",
+    minWidth: 64,
   },
   tabButtonActive: {
     backgroundColor: "#5665dc",
     borderColor: "#8dccff",
+  },
+  tabButtonInactive: {
+    backgroundColor: Theme.colors.cardBackground,
+    borderColor: Theme.colors.cardBorder,
   },
   tabButtonText: {
     color: Theme.colors.iconPrimary,
@@ -307,6 +328,15 @@ const styles = StyleSheet.create({
     color: Theme.colors.surface,
     fontWeight: "900",
   },
+  tabButtonMinutes: {
+    color: Theme.colors.textTertiary,
+    fontSize: 11,
+    fontWeight: "600",
+    marginTop: 2,
+  },
+  tabButtonMinutesActive: {
+    color: "#b0c4ff",
+  },
   dayConfigHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -315,6 +345,11 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 16,
   },
+  dayConfigTitle: {
+    color: Theme.colors.surface,
+    fontSize: 18,
+    fontWeight: "900",
+  },
   dayConfigTextBlock: {
     flex: 1,
   },
@@ -322,20 +357,30 @@ const styles = StyleSheet.create({
     color: Theme.colors.textSecondary,
     fontSize: 15,
     fontWeight: "800",
+    marginTop: 2,
   },
   copyConfigSection: {
     marginBottom: 4,
-  },
-  copyConfigTitle: {
-    color: Theme.colors.iconPrimary,
-    fontSize: 14,
-    fontWeight: "800",
-    marginBottom: 8,
   },
   copyConfigRow: {
     flexDirection: "row",
     gap: 8,
     paddingBottom: 4,
+  },
+  copyAllButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 16,
+    backgroundColor: "rgba(141,255,104,0.12)",
+    borderWidth: 2,
+    borderColor: Theme.comfyColors.green,
+  },
+  copyAllButtonText: {
+    color: Theme.comfyColors.green,
+    fontSize: 13,
+    fontWeight: "800",
   },
   copyDayButton: {
     flexDirection: "row",

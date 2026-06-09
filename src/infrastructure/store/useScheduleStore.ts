@@ -89,6 +89,9 @@ export function createScheduleStore(
             daysEnabled: item.activity.daysEnabled,
             daysConfig: item.activity.daysConfig,
             optionalDay: item.activity.optionalDay,
+            dayFrom: item.activity.dayFrom,
+            dayTo: item.activity.dayTo,
+            isAnchor: item.activity.isAnchor,
           } : null,
           assignedStartTime: item.assignedStartTime,
           assignedEndTime: item.assignedEndTime,
@@ -117,8 +120,10 @@ export function createScheduleStore(
     perDayEndHours: null,
 
     activitiesForDay: () => {
-      const { schedule, selectedDay } = get();
-      return schedule ? schedule.getItemsByDay(selectedDay) : [];
+      const { schedule, selectedDay, startHour, perDayStartHours } = get();
+      const dayIndex = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo'].indexOf(selectedDay);
+      const displayStart = perDayStartHours?.[dayIndex] ?? startHour;
+      return schedule ? schedule.getItemsByDay(selectedDay, displayStart) : [];
     },
 
     loadDayLimits: async () => {
@@ -167,10 +172,13 @@ export function createScheduleStore(
               priority: item.activity.priority,
               difficulty: item.activity.difficulty,
               deadline: item.activity.deadline,
-            daysEnabled: item.activity.daysEnabled,
-            daysConfig: item.activity.daysConfig,
-            optionalDay: item.activity.optionalDay ?? false,
-          }) : undefined,
+              daysEnabled: item.activity.daysEnabled,
+              daysConfig: item.activity.daysConfig,
+              optionalDay: item.activity.optionalDay ?? false,
+              dayFrom: item.activity.dayFrom !== undefined ? item.activity.dayFrom : undefined,
+              dayTo: item.activity.dayTo !== undefined ? item.activity.dayTo : undefined,
+              isAnchor: item.activity.isAnchor ?? false,
+            }) : undefined,
             assignedStartTime: item.assignedStartTime,
             assignedEndTime: item.assignedEndTime,
             day: item.day,
@@ -204,7 +212,6 @@ export function createScheduleStore(
         return;
       }
 
-      await get().loadDayLimits();
       const { startHour, endHour, rollingWeekStartDay, rollingWeekTotalDays, customEnergyPattern, perDayStartHours, perDayEndHours } = get();
       set({ isLoading: true });
       try {

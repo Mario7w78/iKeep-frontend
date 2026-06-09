@@ -41,6 +41,6 @@ export function formatDisplayTime(hhmm: string): string {
 }
 
 export function formatHour(h: number): string {
-  if (h === 24) return '24:00';
-  return `${h.toString().padStart(2, '0')}:00`;
+  const wrapped = h % 24;
+  return `${wrapped.toString().padStart(2, '0')}:00`;
 }

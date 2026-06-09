@@ -8,6 +8,7 @@ import GroupList from "../../molecules/CreateActivity/GroupList";
 type SummaryStepProps = {
   activityName: string;
   isFixed: boolean;
+  isAnchor: boolean;
   identity: "clase" | "trabajo" | "tarea";
   priority: "baja" | "media" | "alta";
   difficulty: "baja" | "media" | "alta";
@@ -27,6 +28,7 @@ type SummaryStepProps = {
 export default function SummaryStep({
   activityName,
   isFixed,
+  isAnchor,
   identity,
   priority,
   difficulty,
@@ -42,7 +44,7 @@ export default function SummaryStep({
   let totalTravelMinutes = 0;
 
   Object.values(groups).forEach(({ days, config }) => {
-    const daysCount = days.length;
+    const daysCount = (isFixed || isAnchor) ? days.length : 1;
     const dailyDuration = config.partitions.reduce((sum, p) => sum + p.durationTime, 0);
     const dailyTravel = config.partitions.reduce((sum, p) => sum + p.travelTime, 0);
 
@@ -148,8 +150,14 @@ export default function SummaryStep({
           </Text>
         </View>
         <View style={styles.summaryCardHalf}>
-          <Text style={styles.summaryLabel}>Días configurados</Text>
-          <Text style={styles.summaryValue}>{configuredDays.length} día(s)</Text>
+          <Text style={styles.summaryLabel}>
+            {isFixed || isAnchor ? "Días programados" : "Días permitidos"}
+          </Text>
+          <Text style={styles.summaryValue}>
+            {!isFixed && !isAnchor && configuredDays.length === 7
+              ? "Cualquier día"
+              : `${configuredDays.length} día(s)`}
+          </Text>
         </View>
       </View>
 
@@ -180,6 +188,7 @@ export default function SummaryStep({
         groups={groups}
         editingGroupId={editingGroupId}
         isFixed={isFixed}
+        isAnchor={isAnchor}
         onEditGroup={onEditGroup}
         onDiscardGroup={onDiscardGroup}
       />

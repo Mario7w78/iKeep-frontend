@@ -1,5 +1,5 @@
 // screens/schedule/ScheduleView.tsx
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { View, ActivityIndicator, TouchableOpacity, Text, StyleSheet, ScrollView, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -104,7 +104,7 @@ function ChronologicalAgendaList({
               <Ionicons name={getIdentityIcon(actActivity?.identity)} size={18} color={getIdentityColor(actActivity?.identity)} />
             </View>
             <Text style={s.listItemTitle} numberOfLines={1}>
-              {actActivity?.title ?? (act.tipo === 'viaje' ? 'Viaje' : 'Actividad')}
+              {actActivity?.title ?? (act.tipo === 'trabajo' || act.tipo === 'viaje' ? '🚗 Viaje' : 'Actividad')}
             </Text>
           </View>
 
@@ -155,7 +155,20 @@ export default function ScheduleView() {
     setSelectedDay,
     startHour,
     endHour,
+    perDayStartHours,
+    perDayEndHours,
   } = useScheduleStore();
+
+  // Effective display hours for the selected day (per-day or global fallback)
+  const dayIndex = DAYS_ORDER.indexOf(selectedDay);
+  const displayStartHour = useMemo(
+    () => (perDayStartHours?.[dayIndex] ?? startHour),
+    [perDayStartHours, dayIndex, startHour]
+  );
+  const displayEndHour = useMemo(
+    () => (perDayEndHours?.[dayIndex] ?? endHour),
+    [perDayEndHours, dayIndex, endHour]
+  );
 
   const [showEnergyPicker, setShowEnergyPicker] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState<ScheduledActivity | null>(null);
@@ -163,34 +176,49 @@ export default function ScheduleView() {
 
   const horizontalScrollRef = useRef<ScrollView>(null);
   const scrollX = useRef(0);
+  const isProgrammaticScroll = useRef(false);
 
   const handleScroll = (e: any) => {
     scrollX.current = e.nativeEvent.contentOffset.x;
   };
 
+  const changeSelectedDayProgrammatically = useCallback((day: any) => {
+    isProgrammaticScroll.current = true;
+    setSelectedDay(day);
+  }, [setSelectedDay]);
+
   const handlePageChange = useCallback((e: any) => {
+    if (isProgrammaticScroll.current) {
+      isProgrammaticScroll.current = false;
+      return;
+    }
     const contentOffset = e.nativeEvent.contentOffset.x;
     const index = Math.round(contentOffset / SCREEN_WIDTH);
     const newDay = DAYS_ORDER[index];
     if (newDay && newDay !== selectedDay) {
       setSelectedDay(newDay as any);
     }
-  }, [selectedDay]);
+  }, [selectedDay, setSelectedDay]);
 
   useFocusEffect(
     useCallback(() => {
       const today = JS_DAY_TO_DAYOFWEEK[new Date().getDay()];
-      setSelectedDay(today);
-    }, [setSelectedDay])
+      changeSelectedDayProgrammatically(today);
+    }, [changeSelectedDayProgrammatically])
   );
 
   // Sync scroll position when selectedDay changes (e.g. from header tabs)
   useEffect(() => {
+    if (!isProgrammaticScroll.current) {
+      return;
+    }
     const pageIndex = DAYS_ORDER.indexOf(selectedDay);
     if (pageIndex !== -1) {
       const targetX = pageIndex * SCREEN_WIDTH;
       if (Math.abs(scrollX.current - targetX) > 10) {
         horizontalScrollRef.current?.scrollTo({ x: targetX, animated: true });
+      } else {
+        isProgrammaticScroll.current = false;
       }
     }
   }, [selectedDay]);
@@ -241,7 +269,7 @@ export default function ScheduleView() {
           <ScheduleHeader
             selectedDay={selectedDay}
             activityCount={items.length}
-            onSelectDay={setSelectedDay}
+            onSelectDay={changeSelectedDayProgrammatically}
             onRefresh={() => setShowEnergyPicker(true)}
             viewMode={viewMode}
             onToggleViewMode={() => setViewMode(prev => prev === 'grid' ? 'list' : 'grid')}
@@ -255,11 +283,12 @@ export default function ScheduleView() {
             onScroll={handleScroll}
             scrollEventThrottle={16}
             onMomentumScrollEnd={handlePageChange}
-            onScrollEndDrag={handlePageChange}
             style={{ flex: 1 }}
           >
             {DAYS_ORDER.map((day) => {
-              const dayItems = schedule.getItemsByDay(day as any);
+              const loopDayIndex = DAYS_ORDER.indexOf(day);
+              const loopDisplayStartHour = perDayStartHours?.[loopDayIndex] ?? startHour;
+              const dayItems = schedule.getItemsByDay(day as any, loopDisplayStartHour);
               return (
                 <View key={day} style={{ width: SCREEN_WIDTH, flex: 1, paddingVertical: 8, paddingHorizontal: 4 }}>
                   {viewMode === 'grid' ? (
@@ -267,8 +296,8 @@ export default function ScheduleView() {
                       activities={dayItems} 
                       isToday={day === JS_DAY_TO_DAYOFWEEK[new Date().getDay()]} 
                       onActivityPress={setSelectedActivity}
-                      startHour={startHour}
-                      endHour={endHour}
+                      startHour={displayStartHour}
+                      endHour={displayEndHour}
                     />
                   ) : (
                     <ChronologicalAgendaList

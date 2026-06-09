@@ -310,7 +310,7 @@ export default function TimePartitionForm({
             )}
 
             <View style={styles.trasladoContainer}>
-              <Text style={styles.cardFieldLabel}>Traslado (Ida o vuelta)</Text>
+              <Text style={styles.cardFieldLabel}>Tiempo de viaje (solo ida)</Text>
               <View style={styles.chipsRow}>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsScroll}>
                     <TouchableOpacity

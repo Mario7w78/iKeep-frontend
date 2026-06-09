@@ -49,6 +49,10 @@ export class AsyncStorageActivityRepository implements ActivityRepository {
                 daysConfig: restoredDaysConfig,
                 preferredStartTime: raw.preferredStartTime !== undefined ? raw.preferredStartTime : null,
                 preferredEndTime: raw.preferredEndTime !== undefined ? raw.preferredEndTime : null,
+                optionalDay: raw.optionalDay ?? false,
+                dayFrom: raw.dayFrom !== undefined ? raw.dayFrom : undefined,
+                dayTo: raw.dayTo !== undefined ? raw.dayTo : undefined,
+                isAnchor: raw.isAnchor ?? false,
             });
         });
     }

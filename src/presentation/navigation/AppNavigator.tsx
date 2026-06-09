@@ -28,6 +28,7 @@ const DummyComponent = () => null;
 export type MainTabParamList = {
   Home: undefined;
   Schedule: undefined;
+  Activities: undefined;
   // Stats: undefined;
   Setting: undefined;
 };
@@ -38,6 +39,7 @@ const Tab = createBottomTabNavigator<MainTabParamList>();
 const TAB_ICONS: Record<keyof MainTabParamList, [string, string]> = {
   Home: ["home", "home-outline"],
   Schedule: ["calendar", "calendar-outline"],
+  Activities: ["list", "list-outline"],
   // Stats: ["bar-chart", "bar-chart-outline"],
   Setting: ["options", "options-outline"],
 };
@@ -84,6 +86,11 @@ function TabNavigator() {
         name="Schedule"
         options={{ title: "Calendario" }}
         component={ScheduleScreen}
+      />
+      <Tab.Screen
+        name="Activities"
+        options={{ title: "Actividades" }}
+        component={ManageActivitiesView}
       />
       {/* 
       <Tab.Screen

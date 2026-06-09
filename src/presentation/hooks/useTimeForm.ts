@@ -232,11 +232,14 @@ export default function useTimeForm() {
     prefEnd: number | null,
     duration: number,
   ): boolean => {
-    const schedule = useScheduleStore.getState().schedule;
+    const storeState = useScheduleStore.getState();
+    const schedule = storeState.schedule;
     if (!schedule) return true;
 
     for (const day of days) {
-      const scheduledItems = schedule.getItemsByDay(day);
+      const dayIndex = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo'].indexOf(day);
+      const loopDisplayStartHour = storeState.perDayStartHours?.[dayIndex] ?? storeState.startHour;
+      const scheduledItems = schedule.getItemsByDay(day, loopDisplayStartHour);
       const otherItems = scheduledItems.filter(
         (item) => item.activity && item.activity.id !== currentId
       );
@@ -352,12 +355,19 @@ export default function useTimeForm() {
       alta: 5,
     };
 
-    // If preferred window is set, validate length >= duration of task
-    if (preferredStartTime !== null && preferredEndTime !== null) {
-      const durationVal = durationTimeValue;
-      if (calculateDurationAcrossMidnight(preferredStartTime, preferredEndTime) < durationVal) {
-        Alert.alert("Atención", `La ventana seleccionada es más corta que la duración estimada de la actividad.`);
-        return;
+    // Validate per-day preferred windows are long enough
+    for (const day of configuredDays) {
+      const dayConfig = daysDict[day]!;
+      const prefStart = dayConfig.preferredStartTime;
+      const prefEnd = dayConfig.preferredEndTime;
+      if (prefStart != null && prefEnd != null) {
+        const partDuration = dayConfig.partitions.reduce(
+          (sum, p) => sum + p.durationTime, 0
+        );
+        if (calculateDurationAcrossMidnight(prefStart, prefEnd) < partDuration) {
+          Alert.alert("Atención", `La ventana preferida del ${day} es más corta que la duración estimada de la actividad en ese día.`);
+          return;
+        }
       }
     }
 

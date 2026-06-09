@@ -23,13 +23,19 @@ export function ScheduleGrid({
   const now = new Date();
   const nowMin = now.getHours() * 60 + now.getMinutes();
 
+  const crossing = endHour <= startHour;
   const displayStart = Math.floor(startHour / 60);
-  const displayEnd = Math.ceil(endHour / 60);
+  const displayEnd = Math.ceil((crossing ? endHour + 1440 : endHour) / 60);
   const hourCount = displayEnd - displayStart;
   const contentHeight = hourCount * HOUR_HEIGHT;
 
-  const showNow = isToday && nowMin >= startHour && nowMin <= endHour;
-  const nowTop = ((nowMin - startHour) / 60) * HOUR_HEIGHT;
+  const normEndHour = crossing ? endHour + 1440 : endHour;
+  let normNowMin = nowMin;
+  if (crossing && nowMin < startHour) {
+    normNowMin += 1440;
+  }
+  const showNow = isToday && normNowMin >= startHour && normNowMin <= normEndHour;
+  const nowTop = ((normNowMin - startHour) / 60) * HOUR_HEIGHT;
 
   const HOURS = Array.from({ length: hourCount + 1 }, (_, i) => displayStart + i);
 
@@ -54,7 +60,7 @@ export function ScheduleGrid({
         {HOURS.map(h => (
           <HourRow key={h} hour={h} displayStart={displayStart} hourHeight={HOUR_HEIGHT} />
         ))}
-        <View style={StyleSheet.absoluteFillObject}>
+        <View style={StyleSheet.absoluteFillObject} pointerEvents="box-none">
           {activities.map((act) => (
             <ActivityBlock 
               key={`${act.activity?.id ?? act.tipo ?? 'unknown'}-${act.day}-${act.assignedStartTime}`} 

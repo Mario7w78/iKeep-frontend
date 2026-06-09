@@ -7,7 +7,15 @@ const BLOCK_COLORS = [
   { bg: '#162A23', border: '#3C8D70', text: '#C8F2E2' },
   { bg: '#33240F', border: '#A86A1F', text: '#FFE3B8' },
   { bg: '#351D18', border: '#A65542', text: '#FFD5CB' },
+  { bg: '#1D2B3A', border: '#4A8DB5', text: '#C5E4F7' },
+  { bg: '#2A1D34', border: '#915EB5', text: '#E4CEF7' },
+  { bg: '#1A2D28', border: '#3E9E7A', text: '#C8F0DF' },
+  { bg: '#352713', border: '#B87A2E', text: '#FDE8C4' },
+  { bg: '#2C1A1A', border: '#B54A4A', text: '#F7CECE' },
+  { bg: '#1E2233', border: '#6674CC', text: '#D5DBF5' },
 ];
+
+const TRAVEL_COLOR = { bg: '#1A1D22', border: '#5A6A7A', text: '#8A9AAA' };
 
 interface Props {
   item: ScheduledActivity;
@@ -17,24 +25,38 @@ interface Props {
 }
 
 export function ActivityBlock({ item, onPress, displayStart = 0, hourHeight = 56 }: Props) {
-  const startMin = hhmmToMinutes(item.assignedStartTime);
-  const endMin   = hhmmToMinutes(item.assignedEndTime);
-  const top = ((startMin - displayStart * 60) / 60) * hourHeight;
-  const height = Math.max(((endMin - startMin) / 60) * hourHeight - 4, 28);
+  let normalizedStart = hhmmToMinutes(item.assignedStartTime);
+  let normalizedEnd = hhmmToMinutes(item.assignedEndTime);
 
-  // Travel blocks and items without activity render with gray style
+  // If the activity starts before the day start hour, it belongs to the post-midnight segment of the crossing day
+  if (normalizedStart < displayStart * 60) {
+    normalizedStart += 1440;
+  }
+  // If the activity crosses midnight or is scheduled in the post-midnight segment, adjust end time accordingly
+  if (normalizedEnd < normalizedStart) {
+    normalizedEnd += 1440;
+  }
+
+  const top = ((normalizedStart - displayStart * 60) / 60) * hourHeight;
+  const height = Math.max(((normalizedEnd - normalizedStart) / 60) * hourHeight - 4, 28);
+
+  // Travel blocks and items without activity
   if (!item.activity) {
+    const isTravel = item.tipo === 'trabajo' || item.tipo === 'viaje';
+    const blockColor = isTravel ? TRAVEL_COLOR : { bg: '#1A1A1A', border: '#555', text: '#999' };
+    const label = isTravel ? '🚗 Viaje' : 'Actividad';
+
     return (
       <TouchableOpacity
         activeOpacity={0.85}
         onPress={() => onPress?.(item)}
-        style={[s.block, { top, height, backgroundColor: '#1A1A1A', borderLeftColor: '#555' }]}
+        style={[s.block, { top, height, backgroundColor: blockColor.bg, borderLeftColor: blockColor.border }]}
       >
-        <Text style={[s.title, { color: '#999' }]} numberOfLines={1}>
-          {item.tipo === 'viaje' ? '🚗 Viaje' : 'Actividad'}
+        <Text style={[s.title, { color: blockColor.text }]} numberOfLines={1}>
+          {label}
         </Text>
         {height > 36 && (
-          <Text style={[s.time, { color: '#777' }]}>
+          <Text style={[s.time, { color: blockColor.text }]}>
             {formatDisplayTime(item.assignedStartTime)} – {formatDisplayTime(item.assignedEndTime)}
           </Text>
         )}

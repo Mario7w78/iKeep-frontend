@@ -75,9 +75,11 @@ export default function ManageActivitiesView({ navigation }: any) {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={Theme.colors.surface} />
-        </TouchableOpacity>
+        {navigation.canGoBack?.() && (
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={24} color={Theme.colors.surface} />
+          </TouchableOpacity>
+        )}
         <Text style={styles.title}>Mis Actividades</Text>
         <View style={{ width: 40 }} />
       </View>

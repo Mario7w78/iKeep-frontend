@@ -9,6 +9,7 @@ type GroupListProps = {
   groups: Record<number, { days: DayOfWeek[]; config: DayConfig }>;
   editingGroupId: number | null;
   isFixed: boolean;
+  isAnchor: boolean;
   onEditGroup: (group: {
     groupId: number;
     days: DayOfWeek[];
@@ -21,14 +22,17 @@ export default function GroupList({
   groups,
   editingGroupId,
   isFixed,
+  isAnchor,
   onEditGroup,
   onDiscardGroup,
 }: GroupListProps) {
   if (Object.keys(groups).length === 0) return null;
 
+  const eyebrowText = isFixed || isAnchor ? "Días programados" : "Días permitidos";
+
   return (
     <View style={styles.container}>
-      <Text style={styles.eyebrow}>Días configurados</Text>
+      <Text style={styles.eyebrow}>{eyebrowText}</Text>
       {Object.entries(groups).map(([gidStr, { days, config }]) => {
         const gid = Number(gidStr);
         const isEditing = editingGroupId === gid;

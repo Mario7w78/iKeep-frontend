@@ -25,4 +25,6 @@ export type PartitionConfig = {
 export type DayConfig = {
     partitions: PartitionConfig[];
     groupId: number;
+    preferredStartTime?: number | null;
+    preferredEndTime?: number | null;
 };

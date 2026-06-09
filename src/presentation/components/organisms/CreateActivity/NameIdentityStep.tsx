@@ -449,16 +449,16 @@ export default function NameIdentityStep({
                 />
                 <View style={styles.anchorToggleText}>
                   <Text style={[styles.anchorToggleTitle, isAnchor && styles.anchorToggleTitleActive]}>
-                    Fijar día, horario flexible
+                    Día fijo, hora flexible
                   </Text>
                   <Text style={styles.anchorToggleSubtitle}>
-                    La actividad se programa en un día fijo pero puede moverse dentro del horario
+                    La actividad se programará obligatoriamente en el día que elijas, pero el planificador elegirá la hora más óptima.
                   </Text>
                 </View>
               </TouchableOpacity>
               {isAnchor && (
                 <Text style={[styles.subtitle, { marginTop: 8, paddingLeft: 4 }]}>
-                  En el próximo paso elige el día fijo
+                  En el próximo paso elige el día específico
                 </Text>
               )}
             </>

@@ -58,8 +58,8 @@ export const domainToScheduleRequest = (
                     duracion_estimada: partition.durationTime,
                     fecha_limite: act.deadline || null,
                     dificultad: act.difficulty || ('media' as BackendDifficulty),
-                    hora_preferida_inicio: act.preferredStartTime !== undefined ? act.preferredStartTime : null,
-                    hora_preferida_fin: act.preferredEndTime !== undefined ? act.preferredEndTime : null,
+                    hora_preferida_inicio: config.preferredStartTime ?? act.preferredStartTime ?? null,
+                    hora_preferida_fin: config.preferredEndTime ?? act.preferredEndTime ?? null,
                     dias_permitidos: act.daysEnabled.map(d => DAY_TO_INT[d]),
                     es_ancla: act.isAnchor || undefined,
                 };
@@ -97,8 +97,8 @@ export const domainToScheduleRequest = (
                     duracion_estimada: partition.durationTime,
                     fecha_limite: act.deadline || null,
                     dificultad: act.difficulty || ('media' as BackendDifficulty),
-                    hora_preferida_inicio: act.preferredStartTime !== undefined ? act.preferredStartTime : null,
-                    hora_preferida_fin: act.preferredEndTime !== undefined ? act.preferredEndTime : null,
+                    hora_preferida_inicio: config.preferredStartTime ?? act.preferredStartTime ?? null,
+                    hora_preferida_fin: config.preferredEndTime ?? act.preferredEndTime ?? null,
                     dias_permitidos: act.daysEnabled.map(d => DAY_TO_INT[d]),
                     dia_desde: act.dayFrom,
                     dia_hasta: act.dayTo,
@@ -135,8 +135,8 @@ export const domainToScheduleRequest = (
                 } else {
                     actividades_optimizables.push({
                         ...baseDto,
-                        hora_preferida_inicio: act.preferredStartTime !== undefined ? act.preferredStartTime : null,
-                        hora_preferida_fin: act.preferredEndTime !== undefined ? act.preferredEndTime : null,
+                        hora_preferida_inicio: config.preferredStartTime ?? act.preferredStartTime ?? null,
+                        hora_preferida_fin: config.preferredEndTime ?? act.preferredEndTime ?? null,
                         es_ancla: act.isAnchor || undefined,
                     });
                 }

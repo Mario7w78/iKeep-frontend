@@ -14,7 +14,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 
 import { DayOfWeek } from "../../../../domain/entities/Activity";
-import { calculateEndTime, calculateDurationAcrossMidnight } from "../../../utils/timeUtils";
+import { calculateEndTime } from "../../../utils/timeUtils";
 import { Theme } from "../../../components/theme/colors";
 
 import useFrequency from "../../../hooks/useFrequency";
@@ -43,7 +43,7 @@ const WEEKDAY_ORDER: DayOfWeek[] = [
 export default function CreateActivityView({ navigation, route }: any) {
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
-  const [activeGroupId, setActiveGroupId] = useState<number | null>(null);
+  const [activeDay, setActiveDay] = useState<DayOfWeek | null>(null);
   const translateY = useRef(new Animated.Value(SHEET_HEIGHT)).current;
   
   const backdropOpacity = translateY.interpolate({
@@ -186,22 +186,16 @@ export default function CreateActivityView({ navigation, route }: any) {
     }
   }, [route.params?.activity]);
 
-  // Mutual exclusion: anchor (día fijo), optionalDay (scheduler), y dayRange no pueden coexistir
+  // Synchronize optionalDay, isAnchor, and dayRange variables based on activity type and anchor choice
   useEffect(() => {
-    if (isAnchor) {
+    setDayFrom(null);
+    setDayTo(null);
+    if (!isFixed) {
+      setOptionalDay(!isAnchor);
+    } else {
       setOptionalDay(false);
-      setDayFrom(null);
-      setDayTo(null);
     }
-  }, [isAnchor]);
-
-  useEffect(() => {
-    if (optionalDay) {
-      setIsAnchor(false);
-      setDayFrom(null);
-      setDayTo(null);
-    }
-  }, [optionalDay]);
+  }, [isAnchor, isFixed]);
 
   const configuredDays = useMemo(
     () => (Object.keys(daysDict) as DayOfWeek[]).sort(
@@ -227,80 +221,110 @@ export default function CreateActivityView({ navigation, route }: any) {
     [configuredDays, daysDict],
   );
 
-  // Sync active group's partitions in daysDict with useTimeForm's partitions state
+  // Sync partitions AND preferred times for the ACTIVE DAY only
   useEffect(() => {
-    if (step === 3 && activeGroupId !== null) {
+    if (step === 3 && activeDay !== null) {
       setDaysDict(prev => {
         const next = { ...prev };
-        const daysInActiveGroup = Object.keys(next).filter(
-          (d) => next[d as DayOfWeek]?.groupId === activeGroupId
-        ) as DayOfWeek[];
-
-        if (daysInActiveGroup.length === 0) return prev;
-
-        const firstDay = daysInActiveGroup[0];
-        const currentPartitions = next[firstDay]?.partitions;
-        if (JSON.stringify(currentPartitions) === JSON.stringify(partitions)) {
-          return prev;
-        }
-
-        daysInActiveGroup.forEach((day) => {
-          if (next[day]) {
+        if (!isFixed) {
+          // Sync to all days for flexible activities
+          (Object.keys(next) as DayOfWeek[]).forEach(day => {
             next[day] = {
               ...next[day]!,
-              partitions: partitions,
+              partitions: [...partitions],
+              preferredStartTime: preferredStartTime,
+              preferredEndTime: preferredEndTime,
+            };
+          });
+        } else {
+          // Sync only to active day for fixed activities
+          const current = next[activeDay];
+          if (current) {
+            next[activeDay] = {
+              ...current,
+              partitions: [...partitions],
+              preferredStartTime: preferredStartTime,
+              preferredEndTime: preferredEndTime,
             };
           }
-        });
+        }
         return next;
       });
     }
-  }, [partitions, activeGroupId, step]);
+  }, [partitions, preferredStartTime, preferredEndTime, activeDay, step, isFixed]);
 
   const handleContinueFromDays = () => {
-    if (selectedDays.length === 0) {
+    let currentSelected = [...selectedDays];
+    if (!isFixed && !isAnchor && currentSelected.length === 0) {
+      currentSelected = [...WEEKDAY_ORDER];
+    }
+
+    if (currentSelected.length === 0) {
       showAlert("Selecciona al menos un día para la actividad");
       return;
     }
 
+    setSelectedDays(currentSelected);
+
     const next = { ...daysDict };
     
-    // 1. Remove days not in selectedDays
+    // 1. Remove days not in currentSelected
     (Object.keys(next) as DayOfWeek[]).forEach((day) => {
-      if (!selectedDays.includes(day)) {
+      if (!currentSelected.includes(day)) {
         delete next[day];
       }
     });
 
     // 2. Add newly selected days
-    const newDays = selectedDays.filter((day) => !next[day]);
+    const newDays = currentSelected.filter((day) => !next[day]);
     let updatedNextGroupId = nextGroupId;
     if (newDays.length > 0) {
-      const defaultPartitions = [
-        {
-          startHour: new Date(),
-          endHour: calculateEndTime(new Date(), 60),
-          durationTime: 60,
-          travelTime: 0,
-        },
-      ];
+      const existingDay = (Object.keys(next) as DayOfWeek[])[0];
+      const existingConfig = existingDay ? next[existingDay] : null;
+
+      const defaultPartitions = existingConfig && !isFixed
+        ? existingConfig.partitions.map(p => ({ ...p, startHour: new Date(p.startHour), endHour: new Date(p.endHour) }))
+        : [
+            {
+              startHour: new Date(),
+              endHour: calculateEndTime(new Date(), 60),
+              durationTime: 60,
+              travelTime: 0,
+            },
+          ];
+
+      const prefStart = existingConfig && !isFixed ? existingConfig.preferredStartTime : undefined;
+      const prefEnd = existingConfig && !isFixed ? existingConfig.preferredEndTime : undefined;
+
+      const groupForNewDays = (existingConfig && !isFixed) ? existingConfig.groupId : updatedNextGroupId;
+
       newDays.forEach((day) => {
         next[day] = {
           partitions: defaultPartitions,
-          groupId: updatedNextGroupId,
+          groupId: groupForNewDays,
+          preferredStartTime: prefStart,
+          preferredEndTime: prefEnd,
         };
-        updatedNextGroupId++;
+        if (isFixed) {
+          updatedNextGroupId++;
+        }
       });
+      if (!isFixed && newDays.length > 0 && !existingConfig) {
+        updatedNextGroupId++;
+      }
       setNextGroupId(updatedNextGroupId);
     }
 
     setDaysDict(next);
 
-    // 3. Select the first group ID
-    const firstConfig = Object.values(next)[0];
-    if (firstConfig) {
-      setActiveGroupId(firstConfig.groupId);
+    // 3. Select the first day as active
+    const firstDay = (Object.keys(next) as DayOfWeek[])[0];
+    const firstConfig = firstDay ? next[firstDay] : undefined;
+    if (firstDay && firstConfig) {
+      setActiveDay(firstDay);
       setPartitions(firstConfig.partitions);
+      setPreferredStartTime(firstConfig.preferredStartTime ?? null);
+      setPreferredEndTime(firstConfig.preferredEndTime ?? null);
       setActivePartitionIndex(0);
     }
 
@@ -316,17 +340,48 @@ export default function CreateActivityView({ navigation, route }: any) {
         endHour: new Date(p.endHour),
       }));
       setPartitions(clonedPartitions);
+      setPreferredStartTime(sourceConfig.preferredStartTime ?? null);
+      setPreferredEndTime(sourceConfig.preferredEndTime ?? null);
       setActivePartitionIndex(0);
     }
   };
 
-  const handleSwitchGroup = (groupId: number) => {
-    setActiveGroupId(groupId);
-    const groupConfig = Object.values(daysDict).find((cfg) => cfg?.groupId === groupId);
-    if (groupConfig) {
-      setPartitions(groupConfig.partitions);
+  const handleSwitchDay = (day: DayOfWeek) => {
+    setActiveDay(day);
+    const config = daysDict[day];
+    if (config) {
+      setPartitions(config.partitions);
+      setPreferredStartTime(config.preferredStartTime ?? null);
+      setPreferredEndTime(config.preferredEndTime ?? null);
       setActivePartitionIndex(0);
     }
+  };
+
+  const handleCopyToAll = () => {
+    if (!activeDay) return;
+    const sourceConfig = daysDict[activeDay];
+    if (!sourceConfig) return;
+
+    const clonedPartitions = sourceConfig.partitions.map((p) => ({
+      ...p,
+      startHour: new Date(p.startHour),
+      endHour: new Date(p.endHour),
+    }));
+
+    setDaysDict(prev => {
+      const next = { ...prev };
+      (Object.keys(next) as DayOfWeek[]).forEach(day => {
+        if (day !== activeDay) {
+          next[day] = {
+            ...next[day]!,
+            partitions: [...clonedPartitions],
+            preferredStartTime: sourceConfig.preferredStartTime ?? null,
+            preferredEndTime: sourceConfig.preferredEndTime ?? null,
+          };
+        }
+      });
+      return next;
+    });
   };
 
   const handlePrimaryPress = () => {
@@ -346,11 +401,14 @@ export default function CreateActivityView({ navigation, route }: any) {
 
     if (step === 3) {
       // Validate all partitions and overlaps before leaving Step 3
-      for (const day of configuredDays) {
+      const daysToValidate = isFixed ? configuredDays : [configuredDays[0] || 'Lunes'];
+      for (const day of daysToValidate) {
         const config = daysDict[day]!;
         if (!validatePartitions(config.partitions, [day])) {
-          setActiveGroupId(config.groupId);
+          setActiveDay(day);
           setPartitions(config.partitions);
+          setPreferredStartTime(config.preferredStartTime ?? null);
+          setPreferredEndTime(config.preferredEndTime ?? null);
           return;
         }
         if (
@@ -359,13 +417,15 @@ export default function CreateActivityView({ navigation, route }: any) {
             isFixed,
             [day],
             config.partitions,
-            preferredStartTime,
-            preferredEndTime,
+            config.preferredStartTime ?? preferredStartTime,
+            config.preferredEndTime ?? preferredEndTime,
             durationTimeValue,
           )
         ) {
-          setActiveGroupId(config.groupId);
+          setActiveDay(day);
           setPartitions(config.partitions);
+          setPreferredStartTime(config.preferredStartTime ?? null);
+          setPreferredEndTime(config.preferredEndTime ?? null);
           return;
         }
       }
@@ -403,12 +463,15 @@ export default function CreateActivityView({ navigation, route }: any) {
     }
 
     // Validate partitions and overlaps
-    for (const day of configuredDays) {
+    const daysToValidate = isFixed ? configuredDays : [configuredDays[0] || 'Lunes'];
+    for (const day of daysToValidate) {
       const config = daysDict[day]!;
       if (!validatePartitions(config.partitions, [day])) {
         setStep(3);
-        setActiveGroupId(config.groupId);
+        setActiveDay(day);
         setPartitions(config.partitions);
+        setPreferredStartTime(config.preferredStartTime ?? null);
+        setPreferredEndTime(config.preferredEndTime ?? null);
         return;
       }
       if (
@@ -417,25 +480,16 @@ export default function CreateActivityView({ navigation, route }: any) {
           isFixed,
           [day],
           config.partitions,
-          preferredStartTime,
-          preferredEndTime,
+          config.preferredStartTime ?? preferredStartTime,
+          config.preferredEndTime ?? preferredEndTime,
           durationTimeValue,
         )
       ) {
         setStep(3);
-        setActiveGroupId(config.groupId);
+        setActiveDay(day);
         setPartitions(config.partitions);
-        return;
-      }
-    }
-
-    // Validate preferred window
-    if (preferredStartTime !== null && preferredEndTime !== null) {
-      if (calculateDurationAcrossMidnight(preferredStartTime, preferredEndTime) < durationTimeValue) {
-        showAlert(
-          "La ventana seleccionada es más corta que la duración estimada de la actividad."
-        );
-        setStep(3);
+        setPreferredStartTime(config.preferredStartTime ?? null);
+        setPreferredEndTime(config.preferredEndTime ?? null);
         return;
       }
     }
@@ -465,7 +519,14 @@ export default function CreateActivityView({ navigation, route }: any) {
       setPartitions,
       setActivePartitionIndex,
     });
-    setActiveGroupId(group.groupId);
+    if (group.days.length > 0) {
+      const firstConfig = daysDict[group.days[0]];
+      if (firstConfig) {
+        setPreferredStartTime(firstConfig.preferredStartTime ?? null);
+        setPreferredEndTime(firstConfig.preferredEndTime ?? null);
+      }
+      setActiveDay(group.days[0]);
+    }
     setStep(3);
   };
 
@@ -498,21 +559,14 @@ export default function CreateActivityView({ navigation, route }: any) {
             configuredDaysCount={configuredDays.length}
             isFixed={isFixed}
             isAnchor={isAnchor}
-            optionalDay={optionalDay}
             onSelectDay={handleSelect}
             isDayConfigured={isDayConfigured}
-            onToggleOptionalDay={setOptionalDay}
-            dayFrom={dayFrom}
-            dayTo={dayTo}
-            onSetDayFrom={setDayFrom}
-            onSetDayTo={setDayTo}
           />
         );
       case 3:
         return (
           <TimeConfigStep
-            selectedDays={selectedDays}
-            configuredDays={configuredDays}
+            configuredDays={isFixed ? configuredDays : [configuredDays[0] || 'Lunes']}
             partitions={partitions}
             activePartitionIndex={activePartitionIndex}
             startTime={startTime}
@@ -531,10 +585,11 @@ export default function CreateActivityView({ navigation, route }: any) {
             onSetTravelTime={setTravelTime}
             onSetPreferredStartTime={setPreferredStartTime}
             onSetPreferredEndTime={setPreferredEndTime}
-            groups={groups}
-            activeGroupId={activeGroupId}
-            onSwitchGroup={handleSwitchGroup}
+            activeDay={isFixed ? activeDay : (configuredDays[0] || 'Lunes')}
+            onSwitchDay={handleSwitchDay}
             onCopyConfig={handleCopyConfig}
+            onCopyToAll={handleCopyToAll}
+            daysDict={daysDict}
           />
         );
       default:
@@ -542,6 +597,7 @@ export default function CreateActivityView({ navigation, route }: any) {
           <SummaryStep
             activityName={activityName}
             isFixed={isFixed}
+            isAnchor={isAnchor}
             identity={identity}
             priority={priority}
             difficulty={difficulty}
@@ -555,8 +611,8 @@ export default function CreateActivityView({ navigation, route }: any) {
               const groupDays = groups[gid]?.days || [];
               handleDiscardGroup(gid);
               setSelectedDays(prev => prev.filter(d => !groupDays.includes(d)));
-              if (activeGroupId === gid) {
-                setActiveGroupId(null);
+              if (activeDay && groupDays.includes(activeDay)) {
+                setActiveDay(null);
               }
             }}
           />

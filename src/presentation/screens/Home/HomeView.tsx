@@ -78,6 +78,8 @@ export default function HomeView() {
   const schedule = useScheduleStore((s) => s.schedule);
   const isLoadedFromStorage = useScheduleStore((s) => s.isLoadedFromStorage);
   const handleGenerateSchedule = useScheduleStore((s) => s.handleGenerateSchedule);
+  const startHour = useScheduleStore((s) => s.startHour);
+  const perDayStartHours = useScheduleStore((s) => s.perDayStartHours);
   const activities = useActivityStore((s) => s.activities);
   const loadActivities = useActivityStore((s) => s.loadActivities);
   const [energyIndex, setEnergyIndex] = useState(0);
@@ -121,8 +123,10 @@ export default function HomeView() {
 
   const todayItems = useMemo(() => {
     const today = JS_DAY_TO_DAYOFWEEK[new Date().getDay()];
-    return schedule?.getItemsByDay(today) ?? [];
-  }, [schedule]);
+    const dayIndex = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo'].indexOf(today);
+    const displayStart = perDayStartHours?.[dayIndex] ?? startHour;
+    return schedule?.getItemsByDay(today, displayStart) ?? [];
+  }, [schedule, startHour, perDayStartHours]);
 
   const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -160,13 +164,15 @@ export default function HomeView() {
     for (let offset = 1; offset <= 7; offset++) {
       const dayIndex = (today + offset) % 7;
       const dayOfWeek = JS_DAY_TO_DAYOFWEEK[dayIndex];
-      const items = schedule.getItemsByDay(dayOfWeek);
+      const loopDayIndex = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo'].indexOf(dayOfWeek);
+      const displayStart = perDayStartHours?.[loopDayIndex] ?? startHour;
+      const items = schedule.getItemsByDay(dayOfWeek, displayStart);
       if (items.length > 0) {
         return { day: dayOfWeek, items };
       }
     }
     return null;
-  }, [schedule]);
+  }, [schedule, startHour, perDayStartHours]);
 
   const minutesLeft = useMemo(() => {
     if (!currentActivity) return null;
@@ -472,7 +478,7 @@ export default function HomeView() {
           <TouchableOpacity
             style={styles.actionButton}
             activeOpacity={0.75}
-            onPress={() => navigation.navigate("ManageActivities")}
+            onPress={() => navigation.navigate("Activities")}
           >
             <Ionicons name="list-outline" size={20} color={Theme.colors.surface} />
             <Text style={styles.actionText}>Ver mis actividades</Text>
@@ -495,7 +501,7 @@ export default function HomeView() {
                       <Text style={styles.nextTime}>
                         {item.assignedStartTime} - {item.assignedEndTime}
                       </Text>
-                      <Text style={styles.nextTitle}>{item.activity?.title ?? (item.tipo === 'viaje' ? 'Viaje' : 'Actividad')}</Text>
+                      <Text style={styles.nextTitle}>{item.activity?.title ?? (item.tipo === 'trabajo' || item.tipo === 'viaje' ? '🚗 Viaje' : 'Actividad')}</Text>
                     </View>
                     <Ionicons name="chevron-forward" size={20} color={Theme.colors.iconSecondary} />
                   </TouchableOpacity>
@@ -514,7 +520,7 @@ export default function HomeView() {
                         <Text style={styles.nextTime}>
                           {item.assignedStartTime} - {item.assignedEndTime}
                         </Text>
-                        <Text style={styles.nextTitle}>{item.activity?.title ?? (item.tipo === 'viaje' ? 'Viaje' : 'Actividad')}</Text>
+                        <Text style={styles.nextTitle}>{item.activity?.title ?? (item.tipo === 'trabajo' || item.tipo === 'viaje' ? '🚗 Viaje' : 'Actividad')}</Text>
                       </View>
                       <Ionicons name="chevron-forward" size={20} color={Theme.colors.iconSecondary} />
                     </TouchableOpacity>

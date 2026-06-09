@@ -15,5 +15,5 @@ export function HourRow({ hour, displayStart = 0, hourHeight = 56 }: {
 }
 const s = StyleSheet.create({
   row: { position: 'absolute', left: 0, right: 0, flexDirection: 'row', alignItems: 'flex-start' },
-  line: { flex: 1, height: 0.5, backgroundColor: 'rgba(255, 255, 255, 0.1)', marginTop: 7 },
+  line: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(255, 255, 255, 0.18)', marginTop: 7 },
 });

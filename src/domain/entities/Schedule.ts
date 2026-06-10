@@ -7,6 +7,7 @@ export interface ScheduledActivity {
     assignedEndTime: string;   // HH:mm
     day: DayOfWeek;
     tipo?: string;
+    nombre?: string;           // from backend BloqueTiempoDto.nombre (e.g. "Viaje a ITLAB")
 }
 
 export interface ScheduleProps {

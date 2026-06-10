@@ -46,7 +46,7 @@ export function ActivityBlock({ item, onPress, displayStart = 0, hourHeight = 56
     return (
       <View style={[s.block, { top, height, backgroundColor: VIAJE_COLOR.bg, borderLeftColor: VIAJE_COLOR.border }]}>
         <Text style={[s.title, { color: VIAJE_COLOR.text }]} numberOfLines={1}>
-          Viaje
+          {item.nombre ?? 'Traslado'}
         </Text>
         {height > 36 && (
           <Text style={[s.time, { color: VIAJE_COLOR.text }]}>

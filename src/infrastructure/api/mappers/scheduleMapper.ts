@@ -183,6 +183,7 @@ export const scheduleResponseToDomain = (
                 assignedEndTime: minutesToHHmm(bloque.hora_fin),
                 day: INT_TO_DAY[bloque.dia] || 'Lunes',
                 tipo: bloque.tipo,
+                nombre: bloque.nombre,
             };
         }
 
@@ -192,6 +193,7 @@ export const scheduleResponseToDomain = (
             assignedEndTime: minutesToHHmm(bloque.hora_fin),
             day: INT_TO_DAY[bloque.dia] || 'Lunes',
             tipo: bloque.tipo,
+            nombre: bloque.nombre,
         };
     });
 

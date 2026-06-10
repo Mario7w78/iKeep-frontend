@@ -254,6 +254,7 @@ export default function TimeConfigStep({
       )}
 
       <TimePartitionForm
+        key={activeDay ?? 'default'}
         partitions={partitions}
         activePartitionIndex={activePartitionIndex}
         startTime={startTime}

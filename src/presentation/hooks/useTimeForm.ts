@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { Alert } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
-import { DayOfWeek } from "../../domain/entities/Activity";
+import { DayOfWeek, ActivityType } from "../../domain/entities/Activity";
 import { calculateEndTime, areOverlapping, dateToMinutes, formatTime, calculateDurationAcrossMidnight } from "../../presentation/utils/timeUtils";
 import { timeType } from "../../domain/entities/activity.types";
 import { useActivityStore, useScheduleStore } from "../../di/Dependencies";
@@ -252,7 +252,7 @@ export default function useTimeForm() {
       const loopDisplayStartHour = storeState.perDayStartHours?.[dayIndex] ?? storeState.startHour;
       const scheduledItems = schedule.getItemsByDay(day, loopDisplayStartHour);
       const otherItems = scheduledItems.filter(
-        (item) => item.activity && item.activity.id !== currentId
+        (item) => item.activity && item.activity.id !== currentId && item.activity.type === ActivityType.FIXED
       );
 
       if (isFixedActivity) {

@@ -40,8 +40,8 @@ type TimePartitionFormProps = {
   onSetStartTime: (date: Date) => void;
   onSetEndTime: (date: Date) => void;
   onSetDurationTime: (value: number) => void;
-  onSetTravelToValue: (value: number) => void;
-  onSetTravelFromValue: (value: number) => void;
+  onSetTravelToValue: (value: number, partitionIndex?: number) => void;
+  onSetTravelFromValue: (value: number, partitionIndex?: number) => void;
   onSetPreferredStartTime: (val: number | null) => void;
   onSetPreferredEndTime: (val: number | null) => void;
 };
@@ -341,7 +341,7 @@ export default function TimePartitionForm({
                         style={[styles.quickChip, isSelected && styles.quickChipSelected]}
                         onPress={() => {
                           onSetActivePartition(index);
-                          onSetTravelToValue(chip.value);
+                          onSetTravelToValue(chip.value, index);
                         }}
                       >
                         <Text style={[styles.quickChipText, isSelected && styles.quickChipTextSelected]}>
@@ -408,7 +408,7 @@ export default function TimePartitionForm({
                         style={[styles.quickChip, isSelected && styles.quickChipSelected]}
                         onPress={() => {
                           onSetActivePartition(index);
-                          onSetTravelFromValue(chip.value);
+                          onSetTravelFromValue(chip.value, index);
                         }}
                       >
                         <Text style={[styles.quickChipText, isSelected && styles.quickChipTextSelected]}>

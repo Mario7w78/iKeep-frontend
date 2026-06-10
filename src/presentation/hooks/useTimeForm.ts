@@ -82,14 +82,15 @@ export default function useTimeForm() {
     }
   };
 
-  const updateActivePartition = (updates: Partial<PartitionConfig>) => {
+  const updateActivePartition = (updates: Partial<PartitionConfig>, index?: number) => {
+    const idx = index ?? activePartitionIndex;
     setPartitions((prev) =>
       prev.map((p, i) => {
-        if (i === activePartitionIndex) {
+        if (i === idx) {
           const updated = { ...p, ...updates };
           if (isFixed) {
             const diffMs = updated.endHour.getTime() - updated.startHour.getTime();
-            const diffMin = Math.round(diffMs / 60000);
+            const diffMin = Math.max(0, Math.round(diffMs / 60000));
             updated.durationTime = Math.max(0, diffMin);
           } else {
             if (updates.startHour || updates.durationTime !== undefined) {
@@ -111,16 +112,16 @@ export default function useTimeForm() {
     updateActivePartition({ durationTime: newValue });
   };
 
-  const setTravelToValue = (val: number | ((prev: number) => number)) => {
+  const setTravelToValue = (val: number | ((prev: number) => number), partitionIndex?: number) => {
     const current = travelToValue ?? 0;
     const newValue = typeof val === "function" ? val(current) : val;
-    updateActivePartition({ travelTo: newValue });
+    updateActivePartition({ travelTo: newValue }, partitionIndex);
   };
 
-  const setTravelFromValue = (val: number | ((prev: number) => number)) => {
+  const setTravelFromValue = (val: number | ((prev: number) => number), partitionIndex?: number) => {
     const current = travelFromValue ?? 0;
     const newValue = typeof val === "function" ? val(current) : val;
-    updateActivePartition({ travelFrom: newValue });
+    updateActivePartition({ travelFrom: newValue }, partitionIndex);
   };
 
   const setStartTime = (val: Date | ((prev: Date) => Date)) => {

@@ -386,6 +386,7 @@ export default function TimePartitionForm({
                         onPress={() => {
                           onSetActivePartition(index);
                           onSetTravelToValue(chip.value, index);
+                          setShowCustomTravelToPickerIndex(null);
                         }}
                       >
                         <Text style={[styles.quickChipText, isSelected && styles.quickChipTextSelected]}>
@@ -473,6 +474,7 @@ export default function TimePartitionForm({
                         onPress={() => {
                           onSetActivePartition(index);
                           onSetTravelFromValue(chip.value, index);
+                          setShowCustomTravelFromPickerIndex(null);
                         }}
                       >
                         <Text style={[styles.quickChipText, isSelected && styles.quickChipTextSelected]}>

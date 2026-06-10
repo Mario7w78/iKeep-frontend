@@ -76,6 +76,10 @@ export default function TimePartitionForm({
   const [showPrefEndPicker, setShowPrefEndPicker] = useState(false);
   const [durationHoursText, setDurationHoursText] = useState("");
   const [durationMinutesText, setDurationMinutesText] = useState("");
+  const [travelCustomToHoursText, setTravelCustomToHoursText] = useState("");
+  const [travelCustomToMinutesText, setTravelCustomToMinutesText] = useState("");
+  const [travelCustomFromHoursText, setTravelCustomFromHoursText] = useState("");
+  const [travelCustomFromMinutesText, setTravelCustomFromMinutesText] = useState("");
 
   useEffect(() => {
     const h = Math.floor(durationTimeValue / 60);
@@ -103,6 +107,45 @@ export default function TimePartitionForm({
     const m = Number(cleanText) || 0;
     const currentH = Number(durationHoursText) || 0;
     onSetDurationTime(currentH * 60 + m);
+  };
+
+  const handleTravelCustomHoursChange = (
+    text: string,
+    setHours: (v: string) => void,
+    setMinutes: (v: string) => void,
+    currentMinutes: string,
+    onSetValue: (v: number, idx?: number) => void,
+    partitionIndex: number,
+  ) => {
+    const cleanText = text.replace(/[^0-9]/g, "");
+    setHours(cleanText);
+    const h = Number(cleanText) || 0;
+    const m = Number(currentMinutes) || 0;
+    onSetValue(h * 60 + m, partitionIndex);
+  };
+
+  const handleTravelCustomMinutesChange = (
+    text: string,
+    setMinutes: (v: string) => void,
+    currentHours: string,
+    onSetValue: (v: number, idx?: number) => void,
+    partitionIndex: number,
+  ) => {
+    const cleanText = text.replace(/[^0-9]/g, "");
+    setMinutes(cleanText);
+    const m = Number(cleanText) || 0;
+    const h = Number(currentHours) || 0;
+    onSetValue(h * 60 + m, partitionIndex);
+  };
+
+  const initTravelCustomText = (
+    value: number | null,
+    setHours: (v: string) => void,
+    setMinutes: (v: string) => void,
+  ) => {
+    const v = value ?? 0;
+    setHours(String(Math.floor(v / 60)));
+    setMinutes(String(v % 60));
   };
 
   const handleToggleRestriction = (val: boolean) => {
@@ -327,6 +370,7 @@ export default function TimePartitionForm({
                       setShowCustomTravelFromPickerIndex(null);
                       setShowStartPickerIndex(null);
                       setShowEndPickerIndex(null);
+                      initTravelCustomText(partition.travelTo, setTravelCustomToHoursText, setTravelCustomToMinutesText);
                     }}
                   >
                     <Text style={[styles.quickChipText, partition.travelTo !== null && !travelChips.some(c => c.value === partition.travelTo) && styles.quickChipTextSelected]}>
@@ -355,28 +399,47 @@ export default function TimePartitionForm({
 
               {showCustomTravelToPickerIndex === index && (
                 <View style={styles.pickerContainer}>
-                  <DateTimePicker
-                    value={minutesToDateObject(partition.travelTo ?? 0)}
-                    mode="time"
-                    display="spinner"
-                    themeVariant="dark"
-                    textColor={Theme.colors.surface}
-                    onChange={(_, selectedDate) => {
-                      if (selectedDate) {
-                        const mins = selectedDate.getHours() * 60 + selectedDate.getMinutes();
-                        onSetTravelToValue(mins);
-                      }
-                      if (Platform.OS !== "ios") setShowCustomTravelToPickerIndex(null);
-                    }}
-                  />
-                  {Platform.OS === "ios" && (
-                    <TouchableOpacity
-                      style={styles.doneBtn}
-                      onPress={() => setShowCustomTravelToPickerIndex(null)}
-                    >
-                      <Text style={styles.doneText}>Aceptar</Text>
-                    </TouchableOpacity>
-                  )}
+                  <View style={styles.timeInputRow}>
+                    <View style={styles.timeInputColumn}>
+                      <TextInput
+                        value={travelCustomToHoursText}
+                        onChangeText={(text) =>
+                          handleTravelCustomHoursChange(
+                            text,
+                            setTravelCustomToHoursText,
+                            setTravelCustomToMinutesText,
+                            travelCustomToMinutesText,
+                            onSetTravelToValue,
+                            index,
+                          )
+                        }
+                        keyboardType="number-pad"
+                        placeholder="0"
+                        placeholderTextColor="#a8a9bb"
+                        style={styles.timeInputBox}
+                      />
+                      <Text style={styles.timeInputLabel}>Horas</Text>
+                    </View>
+                    <View style={styles.timeInputColumn}>
+                      <TextInput
+                        value={travelCustomToMinutesText}
+                        onChangeText={(text) =>
+                          handleTravelCustomMinutesChange(
+                            text,
+                            setTravelCustomToMinutesText,
+                            travelCustomToHoursText,
+                            onSetTravelToValue,
+                            index,
+                          )
+                        }
+                        keyboardType="number-pad"
+                        placeholder="0"
+                        placeholderTextColor="#a8a9bb"
+                        style={styles.timeInputBox}
+                      />
+                      <Text style={styles.timeInputLabel}>Minutos</Text>
+                    </View>
+                  </View>
                 </View>
               )}
             </View>
@@ -394,6 +457,7 @@ export default function TimePartitionForm({
                       setShowCustomTravelToPickerIndex(null);
                       setShowStartPickerIndex(null);
                       setShowEndPickerIndex(null);
+                      initTravelCustomText(partition.travelFrom, setTravelCustomFromHoursText, setTravelCustomFromMinutesText);
                     }}
                   >
                     <Text style={[styles.quickChipText, partition.travelFrom !== null && !travelChips.some(c => c.value === partition.travelFrom) && styles.quickChipTextSelected]}>
@@ -422,28 +486,47 @@ export default function TimePartitionForm({
 
               {showCustomTravelFromPickerIndex === index && (
                 <View style={styles.pickerContainer}>
-                  <DateTimePicker
-                    value={minutesToDateObject(partition.travelFrom ?? 0)}
-                    mode="time"
-                    display="spinner"
-                    themeVariant="dark"
-                    textColor={Theme.colors.surface}
-                    onChange={(_, selectedDate) => {
-                      if (selectedDate) {
-                        const mins = selectedDate.getHours() * 60 + selectedDate.getMinutes();
-                        onSetTravelFromValue(mins);
-                      }
-                      if (Platform.OS !== "ios") setShowCustomTravelFromPickerIndex(null);
-                    }}
-                  />
-                  {Platform.OS === "ios" && (
-                    <TouchableOpacity
-                      style={styles.doneBtn}
-                      onPress={() => setShowCustomTravelFromPickerIndex(null)}
-                    >
-                      <Text style={styles.doneText}>Aceptar</Text>
-                    </TouchableOpacity>
-                  )}
+                  <View style={styles.timeInputRow}>
+                    <View style={styles.timeInputColumn}>
+                      <TextInput
+                        value={travelCustomFromHoursText}
+                        onChangeText={(text) =>
+                          handleTravelCustomHoursChange(
+                            text,
+                            setTravelCustomFromHoursText,
+                            setTravelCustomFromMinutesText,
+                            travelCustomFromMinutesText,
+                            onSetTravelFromValue,
+                            index,
+                          )
+                        }
+                        keyboardType="number-pad"
+                        placeholder="0"
+                        placeholderTextColor="#a8a9bb"
+                        style={styles.timeInputBox}
+                      />
+                      <Text style={styles.timeInputLabel}>Horas</Text>
+                    </View>
+                    <View style={styles.timeInputColumn}>
+                      <TextInput
+                        value={travelCustomFromMinutesText}
+                        onChangeText={(text) =>
+                          handleTravelCustomMinutesChange(
+                            text,
+                            setTravelCustomFromMinutesText,
+                            travelCustomFromHoursText,
+                            onSetTravelFromValue,
+                            index,
+                          )
+                        }
+                        keyboardType="number-pad"
+                        placeholder="0"
+                        placeholderTextColor="#a8a9bb"
+                        style={styles.timeInputBox}
+                      />
+                      <Text style={styles.timeInputLabel}>Minutos</Text>
+                    </View>
+                  </View>
                 </View>
               )}
             </View>

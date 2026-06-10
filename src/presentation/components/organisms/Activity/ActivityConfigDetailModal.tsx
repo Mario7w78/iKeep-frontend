@@ -313,11 +313,19 @@ export function ActivityConfigDetailModal({
                                 {timeRange} ({durStr})
                               </Text>
                             </View>
-                            {partition.travelTime > 0 && (
+                            {(partition.travelTo ?? 0) > 0 && (
                               <View style={styles.travelRow}>
                                 <Ionicons name="walk-outline" size={13} color={color.bg} />
                                 <Text style={[styles.travelText, { color: color.bg }]}>
-                                  +{partition.travelTime}min traslado
+                                  +{partition.travelTo}min viaje antes
+                                </Text>
+                              </View>
+                            )}
+                            {(partition.travelFrom ?? 0) > 0 && (
+                              <View style={styles.travelRow}>
+                                <Ionicons name="walk-outline" size={13} color={color.bg} />
+                                <Text style={[styles.travelText, { color: color.bg }]}>
+                                  +{partition.travelFrom}min viaje después
                                 </Text>
                               </View>
                             )}

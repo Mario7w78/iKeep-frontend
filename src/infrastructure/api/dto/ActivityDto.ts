@@ -13,6 +13,8 @@ export interface ActividadFijaDto {
   duracion_estimada: number;
   fecha_limite: string | null;
   dificultad: BackendDifficulty;
+  travel_to?: number | null;
+  travel_from?: number | null;
 }
 
 export interface TareaPendienteDto {
@@ -33,4 +35,6 @@ export interface TareaPendienteDto {
   dia_desde?: number;
   dia_hasta?: number;
   es_ancla?: boolean;
+  travel_to?: number | null;
+  travel_from?: number | null;
 }

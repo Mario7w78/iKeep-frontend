@@ -62,6 +62,8 @@ export const domainToScheduleRequest = (
                     hora_preferida_fin: config.preferredEndTime ?? act.preferredEndTime ?? null,
                     dias_permitidos: act.daysEnabled.map(d => DAY_TO_INT[d]),
                     es_ancla: act.isAnchor || undefined,
+                    travel_to: partition.travelTo ?? undefined,
+                    travel_from: partition.travelFrom ?? undefined,
                 };
 
                 // Day range for optionalDay activities
@@ -103,6 +105,8 @@ export const domainToScheduleRequest = (
                     dia_desde: act.dayFrom,
                     dia_hasta: act.dayTo,
                     es_ancla: act.isAnchor || undefined,
+                    travel_to: partition.travelTo ?? undefined,
+                    travel_from: partition.travelFrom ?? undefined,
                 });
             });
             return; // skip per-day iteration
@@ -128,6 +132,8 @@ export const domainToScheduleRequest = (
                     duracion_estimada: partition.durationTime,
                     fecha_limite: act.deadline || null,
                     dificultad: act.difficulty || ('media' as BackendDifficulty),
+                    travel_to: partition.travelTo ?? undefined,
+                    travel_from: partition.travelFrom ?? undefined,
                 };
 
                 if (act.type === ActivityType.FIXED) {

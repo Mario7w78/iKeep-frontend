@@ -70,7 +70,7 @@ export class Activity {
             const config = this.daysConfig[day];
             if (config) {
                 for (const partition of config.partitions) {
-                    total += partition.durationTime + partition.travelTime;
+                    total += partition.durationTime + (partition.travelTo ?? 0) + (partition.travelFrom ?? 0);
                 }
             }
         }

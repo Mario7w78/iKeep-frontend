@@ -19,7 +19,8 @@ export type PartitionConfig = {
     startHour: Date;
     endHour: Date;
     durationTime: number;
-    travelTime: number;
+    travelTo: number | null;
+    travelFrom: number | null;
 };
 
 export type DayConfig = {

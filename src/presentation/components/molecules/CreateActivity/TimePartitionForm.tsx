@@ -29,7 +29,8 @@ type TimePartitionFormProps = {
   startTime: Date;
   endTime: Date;
   durationTimeValue: number;
-  travelTimeValue: number;
+  travelToValue: number | null;
+  travelFromValue: number | null;
   isFixed: boolean;
   preferredStartTime: number | null;
   preferredEndTime: number | null;
@@ -39,7 +40,8 @@ type TimePartitionFormProps = {
   onSetStartTime: (date: Date) => void;
   onSetEndTime: (date: Date) => void;
   onSetDurationTime: (value: number) => void;
-  onSetTravelTime: (value: number) => void;
+  onSetTravelToValue: (value: number) => void;
+  onSetTravelFromValue: (value: number) => void;
   onSetPreferredStartTime: (val: number | null) => void;
   onSetPreferredEndTime: (val: number | null) => void;
 };
@@ -50,7 +52,8 @@ export default function TimePartitionForm({
   startTime,
   endTime,
   durationTimeValue,
-  travelTimeValue,
+  travelToValue,
+  travelFromValue,
   isFixed,
   preferredStartTime,
   preferredEndTime,
@@ -60,13 +63,15 @@ export default function TimePartitionForm({
   onSetStartTime,
   onSetEndTime,
   onSetDurationTime,
-  onSetTravelTime,
+  onSetTravelToValue,
+  onSetTravelFromValue,
   onSetPreferredStartTime,
   onSetPreferredEndTime,
 }: TimePartitionFormProps) {
   const [showStartPickerIndex, setShowStartPickerIndex] = useState<number | null>(null);
   const [showEndPickerIndex, setShowEndPickerIndex] = useState<number | null>(null);
-  const [showCustomTravelPickerIndex, setShowCustomTravelPickerIndex] = useState<number | null>(null);
+  const [showCustomTravelToPickerIndex, setShowCustomTravelToPickerIndex] = useState<number | null>(null);
+  const [showCustomTravelFromPickerIndex, setShowCustomTravelFromPickerIndex] = useState<number | null>(null);
   const [showPrefStartPicker, setShowPrefStartPicker] = useState(false);
   const [showPrefEndPicker, setShowPrefEndPicker] = useState(false);
   const [durationHoursText, setDurationHoursText] = useState("");
@@ -155,20 +160,17 @@ export default function TimePartitionForm({
     return String(partition.durationTime % 60);
   };
 
-  const chips = [
-    { label: "Sin traslado", value: 0 },
+  const travelChips = [
+    { label: "5 min", value: 5 },
+    { label: "10 min", value: 10 },
     { label: "15 min", value: 15 },
     { label: "30 min", value: 30 },
-    { label: "45 min", value: 45 },
     { label: "1 hora", value: 60 },
   ];
 
   return (
     <View style={styles.card}>
       {partitions.map((partition, index) => {
-        const travelVal = partition.travelTime;
-        const isQuickValue = [0, 15, 30, 45, 60].includes(travelVal);
-
         return (
           <View key={index} style={styles.partitionCard}>
             <View style={styles.cardHeader}>
@@ -194,7 +196,8 @@ export default function TimePartitionForm({
                         onSetActivePartition(index);
                         setShowStartPickerIndex(index);
                         setShowEndPickerIndex(null);
-                        setShowCustomTravelPickerIndex(null);
+                        setShowCustomTravelToPickerIndex(null);
+                        setShowCustomTravelFromPickerIndex(null);
                       }}
                     >
                       <Ionicons name="time-outline" size={22} color={Theme.colors.surface} />
@@ -210,7 +213,8 @@ export default function TimePartitionForm({
                         onSetActivePartition(index);
                         setShowEndPickerIndex(index);
                         setShowStartPickerIndex(null);
-                        setShowCustomTravelPickerIndex(null);
+                        setShowCustomTravelToPickerIndex(null);
+                        setShowCustomTravelFromPickerIndex(null);
                       }}
                     >
                       <Ionicons name="time-outline" size={22} color={Theme.colors.surface} />
@@ -309,47 +313,49 @@ export default function TimePartitionForm({
               </View>
             )}
 
+            {/* Viaje antes */}
             <View style={styles.trasladoContainer}>
-              <Text style={styles.cardFieldLabel}>Tiempo de viaje (solo ida)</Text>
+              <Text style={styles.cardFieldLabel}>Viaje antes</Text>
               <View style={styles.chipsRow}>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsScroll}>
-                    <TouchableOpacity
-                      style={[styles.quickChip, !isQuickValue && styles.quickChipSelected]}
-                      onPress={() => {
-                        onSetActivePartition(index);
-                        setShowCustomTravelPickerIndex(index);
-                        setShowStartPickerIndex(null);
-                        setShowEndPickerIndex(null);
-                      }}
-                    >
-                      <Text style={[styles.quickChipText, !isQuickValue && styles.quickChipTextSelected]}>
-                        {!isQuickValue ? `${travelVal} min` : "Personalizar..."}
-                      </Text>
-                    </TouchableOpacity>
-                    {chips.map((chip) => {
-                      const isSelected = travelVal === chip.value;
-                      return (
-                        <TouchableOpacity
-                          key={chip.value}
-                          style={[styles.quickChip, isSelected && styles.quickChipSelected]}
-                          onPress={() => {
-                            onSetActivePartition(index);
-                            onSetTravelTime(chip.value);
-                          }}
-                        >
-                          <Text style={[styles.quickChipText, isSelected && styles.quickChipTextSelected]}>
-                            {chip.label}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </ScrollView>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsScroll}>
+                  <TouchableOpacity
+                    style={[styles.quickChip, partition.travelTo !== null && !travelChips.some(c => c.value === partition.travelTo) && styles.quickChipSelected]}
+                    onPress={() => {
+                      onSetActivePartition(index);
+                      setShowCustomTravelToPickerIndex(index);
+                      setShowCustomTravelFromPickerIndex(null);
+                      setShowStartPickerIndex(null);
+                      setShowEndPickerIndex(null);
+                    }}
+                  >
+                    <Text style={[styles.quickChipText, partition.travelTo !== null && !travelChips.some(c => c.value === partition.travelTo) && styles.quickChipTextSelected]}>
+                      {partition.travelTo !== null && !travelChips.some(c => c.value === partition.travelTo) ? `${partition.travelTo} min` : "Personalizar..."}
+                    </Text>
+                  </TouchableOpacity>
+                  {travelChips.map((chip) => {
+                    const isSelected = partition.travelTo === chip.value;
+                    return (
+                      <TouchableOpacity
+                        key={chip.value}
+                        style={[styles.quickChip, isSelected && styles.quickChipSelected]}
+                        onPress={() => {
+                          onSetActivePartition(index);
+                          onSetTravelToValue(chip.value);
+                        }}
+                      >
+                        <Text style={[styles.quickChipText, isSelected && styles.quickChipTextSelected]}>
+                          {chip.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
               </View>
 
-              {showCustomTravelPickerIndex === index && (
+              {showCustomTravelToPickerIndex === index && (
                 <View style={styles.pickerContainer}>
                   <DateTimePicker
-                    value={minutesToDateObject(travelVal)}
+                    value={minutesToDateObject(partition.travelTo ?? 0)}
                     mode="time"
                     display="spinner"
                     themeVariant="dark"
@@ -357,15 +363,82 @@ export default function TimePartitionForm({
                     onChange={(_, selectedDate) => {
                       if (selectedDate) {
                         const mins = selectedDate.getHours() * 60 + selectedDate.getMinutes();
-                        onSetTravelTime(mins);
+                        onSetTravelToValue(mins);
                       }
-                      if (Platform.OS !== "ios") setShowCustomTravelPickerIndex(null);
+                      if (Platform.OS !== "ios") setShowCustomTravelToPickerIndex(null);
                     }}
                   />
                   {Platform.OS === "ios" && (
                     <TouchableOpacity
                       style={styles.doneBtn}
-                      onPress={() => setShowCustomTravelPickerIndex(null)}
+                      onPress={() => setShowCustomTravelToPickerIndex(null)}
+                    >
+                      <Text style={styles.doneText}>Aceptar</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+            </View>
+
+            {/* Viaje después */}
+            <View style={styles.trasladoContainer}>
+              <Text style={styles.cardFieldLabel}>Viaje después</Text>
+              <View style={styles.chipsRow}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsScroll}>
+                  <TouchableOpacity
+                    style={[styles.quickChip, partition.travelFrom !== null && !travelChips.some(c => c.value === partition.travelFrom) && styles.quickChipSelected]}
+                    onPress={() => {
+                      onSetActivePartition(index);
+                      setShowCustomTravelFromPickerIndex(index);
+                      setShowCustomTravelToPickerIndex(null);
+                      setShowStartPickerIndex(null);
+                      setShowEndPickerIndex(null);
+                    }}
+                  >
+                    <Text style={[styles.quickChipText, partition.travelFrom !== null && !travelChips.some(c => c.value === partition.travelFrom) && styles.quickChipTextSelected]}>
+                      {partition.travelFrom !== null && !travelChips.some(c => c.value === partition.travelFrom) ? `${partition.travelFrom} min` : "Personalizar..."}
+                    </Text>
+                  </TouchableOpacity>
+                  {travelChips.map((chip) => {
+                    const isSelected = partition.travelFrom === chip.value;
+                    return (
+                      <TouchableOpacity
+                        key={chip.value}
+                        style={[styles.quickChip, isSelected && styles.quickChipSelected]}
+                        onPress={() => {
+                          onSetActivePartition(index);
+                          onSetTravelFromValue(chip.value);
+                        }}
+                      >
+                        <Text style={[styles.quickChipText, isSelected && styles.quickChipTextSelected]}>
+                          {chip.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+
+              {showCustomTravelFromPickerIndex === index && (
+                <View style={styles.pickerContainer}>
+                  <DateTimePicker
+                    value={minutesToDateObject(partition.travelFrom ?? 0)}
+                    mode="time"
+                    display="spinner"
+                    themeVariant="dark"
+                    textColor={Theme.colors.surface}
+                    onChange={(_, selectedDate) => {
+                      if (selectedDate) {
+                        const mins = selectedDate.getHours() * 60 + selectedDate.getMinutes();
+                        onSetTravelFromValue(mins);
+                      }
+                      if (Platform.OS !== "ios") setShowCustomTravelFromPickerIndex(null);
+                    }}
+                  />
+                  {Platform.OS === "ios" && (
+                    <TouchableOpacity
+                      style={styles.doneBtn}
+                      onPress={() => setShowCustomTravelFromPickerIndex(null)}
                     >
                       <Text style={styles.doneText}>Aceptar</Text>
                     </TouchableOpacity>

@@ -40,6 +40,14 @@ Improve the usability, clarity, and UX of the activity creation flow by splittin
 
 ---
 
+### 6. Travel Time Configuration
+- The activity creation flow MUST provide two separate travel time chip selectors in the time configuration step: `travelTo` (minutes before the activity) and `travelFrom` (minutes after the activity).
+- Each selector MUST offer chip options: 0, 15, 30, 45, 60 minutes.
+- The user MAY leave both selectors untouched (null).
+- For backward compatibility, when loading an activity with the legacy `travelTime` field and no `travelTo`/`travelFrom`, the system MUST set `travelTo` to the stored value and `travelFrom` to 0.
+
+---
+
 ## Scenarios
 
 ### Scenario 1: Creating an Optimizable Activity (Happy Path)
@@ -78,7 +86,30 @@ Improve the usability, clarity, and UX of the activity creation flow by splittin
 - **Then** a loading overlay MUST cover the screen to prevent further inputs
 - **And** once the save finishes, the overlay MUST disappear and navigate the user back to the Schedule view
 
-### Scenario 5: Priority lock toggles dynamically (Edge Case)
+### Scenario 6: Setting travel time before an activity
+- **Given** the user is on Step 5 (Time Configuration)
+- **When** the user taps "15" in the "Viaje antes" chip row
+- **Then** `travelTo` MUST be set to 15
+- **And** the chip "15" MUST appear visually selected in that row
+
+### Scenario 7: Setting travel time after an activity
+- **Given** the user is on Step 5 (Time Configuration)
+- **When** the user taps "30" in the "Viaje después" chip row
+- **Then** `travelFrom` MUST be set to 30
+- **And** the chip "30" MUST appear visually selected in that row
+
+### Scenario 8: Both travel times left as null
+- **Given** the user is on Step 5 (Time Configuration)
+- **When** the user does not interact with either travel chip row
+- **Then** both `travelTo` and `travelFrom` MUST be null
+- **And** the total activity time SHALL use only the activity's duration
+
+### Scenario 9: Legacy travelTime migration
+- **Given** a stored activity has `travelTime: 45` and no `travelTo` or `travelFrom` field
+- **When** the activity is loaded from AsyncStorage
+- **Then** the system MUST set `travelTo` to 45 and `travelFrom` to 0
+
+### Scenario 10: Priority lock toggles dynamically (Edge Case)
 - **Given** the user selects identity "Trabajo" on Step 1
 - **And** selects type "Optimizable" on Step 2
 - **When** the user proceeds to Step 3, the priority options (Baja, Normal, Alta) MUST be enabled and selectable

@@ -8,28 +8,34 @@ import { timeType } from "../../../../domain/entities/activity.types";
 
 interface props {
   durationTimeValue: number;
-  travelTimeValue: number;
+  travelToValue: number | null;
+  travelFromValue: number | null;
   selectedTimeTypeDuration: timeType;
   selectedTimeTypeTravel: timeType;
   setSelectedTypeDuration: React.Dispatch<React.SetStateAction<timeType>>;
   setSelectedTimeTypeTravel: React.Dispatch<React.SetStateAction<timeType>>;
   onAddDuration: () => void;
   onSubstractDuration: () => void;
-  onAddTravel: () => void;
-  onSubstractTravel: () => void;
+  onAddTravelTo: () => void;
+  onSubstractTravelTo: () => void;
+  onAddTravelFrom: () => void;
+  onSubstractTravelFrom: () => void;
 }
 
 export const TimeSection = ({
   durationTimeValue,
-  travelTimeValue,
+  travelToValue,
+  travelFromValue,
   selectedTimeTypeDuration,
   selectedTimeTypeTravel,
   setSelectedTypeDuration,
   setSelectedTimeTypeTravel,
   onAddDuration,
-  onAddTravel,
+  onAddTravelTo,
+  onSubstractTravelTo,
+  onAddTravelFrom,
+  onSubstractTravelFrom,
   onSubstractDuration,
-  onSubstractTravel,
 }: props) => {
   return (
     <View style={styles.timeSection}>
@@ -57,15 +63,32 @@ export const TimeSection = ({
             <View style={styles.iconContainer}>
               <Ionicons name="location-outline" size={16} color="white" />
             </View>
-            <Text style={styles.subLabelSmall}>Traslado</Text>
+            <Text style={styles.subLabelSmall}>Viaje antes</Text>
           </View>
 
           <NumericStepper
-            value={travelTimeValue}
+            value={travelToValue ?? 0}
             selectedTimeType={selectedTimeTypeTravel}
             onSelectType={setSelectedTimeTypeTravel}
-            onAdd={onAddTravel}
-            onSubstract={onSubstractTravel}
+            onAdd={onAddTravelTo}
+            onSubstract={onSubstractTravelTo}
+          />
+        </View>
+        <Divider orientation="vertical" color={Theme.colors.surface} />
+        <View style={styles.section}>
+          <View style={styles.inputSection}>
+            <View style={styles.iconContainer}>
+              <Ionicons name="location-outline" size={16} color="white" />
+            </View>
+            <Text style={styles.subLabelSmall}>Viaje después</Text>
+          </View>
+
+          <NumericStepper
+            value={travelFromValue ?? 0}
+            selectedTimeType={selectedTimeTypeTravel}
+            onSelectType={setSelectedTimeTypeTravel}
+            onAdd={onAddTravelFrom}
+            onSubstract={onSubstractTravelFrom}
           />
         </View>
       </View>

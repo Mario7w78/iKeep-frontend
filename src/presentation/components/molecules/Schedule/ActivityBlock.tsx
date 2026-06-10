@@ -1,4 +1,4 @@
-import { TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { TouchableOpacity, Text, View, StyleSheet } from 'react-native';
 import { ScheduledActivity } from '../../../../domain/entities/Schedule';
 import { hhmmToMinutes, formatDisplayTime, LABEL_WIDTH } from '../../../utils/scheduleUtils';
 
@@ -16,6 +16,7 @@ const BLOCK_COLORS = [
 ];
 
 const TRAVEL_COLOR = { bg: '#1A1D22', border: '#5A6A7A', text: '#8A9AAA' };
+const VIAJE_COLOR = { bg: '#161719', border: '#3D4145', text: '#6B7280' };
 
 interface Props {
   item: ScheduledActivity;
@@ -40,23 +41,35 @@ export function ActivityBlock({ item, onPress, displayStart = 0, hourHeight = 56
   const top = ((normalizedStart - displayStart * 60) / 60) * hourHeight;
   const height = Math.max(((normalizedEnd - normalizedStart) / 60) * hourHeight - 4, 28);
 
-  // Travel blocks and items without activity
-  if (!item.activity) {
-    const isTravel = item.tipo === 'trabajo' || item.tipo === 'viaje';
-    const blockColor = isTravel ? TRAVEL_COLOR : { bg: '#1A1A1A', border: '#555', text: '#999' };
-    const label = isTravel ? '🚗 Viaje' : 'Actividad';
+  // VIAJE blocks — gray, non-interactive, no onPress
+  if (!item.activity && item.tipo === 'viaje') {
+    return (
+      <View style={[s.block, { top, height, backgroundColor: VIAJE_COLOR.bg, borderLeftColor: VIAJE_COLOR.border }]}>
+        <Text style={[s.title, { color: VIAJE_COLOR.text }]} numberOfLines={1}>
+          Viaje
+        </Text>
+        {height > 36 && (
+          <Text style={[s.time, { color: VIAJE_COLOR.text }]}>
+            {formatDisplayTime(item.assignedStartTime)} – {formatDisplayTime(item.assignedEndTime)}
+          </Text>
+        )}
+      </View>
+    );
+  }
 
+  // Location-based travel blocks (existing behavior)
+  if (!item.activity) {
     return (
       <TouchableOpacity
         activeOpacity={0.85}
         onPress={() => onPress?.(item)}
-        style={[s.block, { top, height, backgroundColor: blockColor.bg, borderLeftColor: blockColor.border }]}
+        style={[s.block, { top, height, backgroundColor: TRAVEL_COLOR.bg, borderLeftColor: TRAVEL_COLOR.border }]}
       >
-        <Text style={[s.title, { color: blockColor.text }]} numberOfLines={1}>
-          {label}
+        <Text style={[s.title, { color: TRAVEL_COLOR.text }]} numberOfLines={1}>
+          Viaje (ubicación)
         </Text>
         {height > 36 && (
-          <Text style={[s.time, { color: blockColor.text }]}>
+          <Text style={[s.time, { color: TRAVEL_COLOR.text }]}>
             {formatDisplayTime(item.assignedStartTime)} – {formatDisplayTime(item.assignedEndTime)}
           </Text>
         )}

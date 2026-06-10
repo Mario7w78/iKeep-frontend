@@ -34,7 +34,8 @@ export default function useTimeForm() {
       startHour: new Date(),
       endHour: calculateEndTime(new Date(), 60),
       durationTime: 60,
-      travelTime: 0,
+      travelTo: null,
+      travelFrom: null,
     },
   ]);
   const [activePartitionIndex, setActivePartitionIndex] = useState(0);
@@ -42,7 +43,8 @@ export default function useTimeForm() {
   const activePartition = partitions[activePartitionIndex] || partitions[0];
 
   const durationTimeValue = activePartition.durationTime;
-  const travelTimeValue = activePartition.travelTime;
+  const travelToValue = activePartition.travelTo;
+  const travelFromValue = activePartition.travelFrom;
   const startTime = activePartition.startHour;
   const endTime = activePartition.endHour;
 
@@ -109,9 +111,16 @@ export default function useTimeForm() {
     updateActivePartition({ durationTime: newValue });
   };
 
-  const setTravelTime = (val: number | ((prev: number) => number)) => {
-    const newValue = typeof val === "function" ? val(travelTimeValue) : val;
-    updateActivePartition({ travelTime: newValue });
+  const setTravelToValue = (val: number | ((prev: number) => number)) => {
+    const current = travelToValue ?? 0;
+    const newValue = typeof val === "function" ? val(current) : val;
+    updateActivePartition({ travelTo: newValue });
+  };
+
+  const setTravelFromValue = (val: number | ((prev: number) => number)) => {
+    const current = travelFromValue ?? 0;
+    const newValue = typeof val === "function" ? val(current) : val;
+    updateActivePartition({ travelFrom: newValue });
   };
 
   const setStartTime = (val: Date | ((prev: Date) => Date)) => {
@@ -131,7 +140,8 @@ export default function useTimeForm() {
       startHour: newStart,
       endHour: calculateEndTime(newStart, 10),
       durationTime: 10,
-      travelTime: 0,
+      travelTo: null,
+      travelFrom: null,
     };
     setPartitions((prev) => [...prev, newPartition]);
     setActivePartitionIndex(partitions.length);
@@ -404,7 +414,8 @@ export default function useTimeForm() {
         startHour: new Date(),
         endHour: calculateEndTime(new Date(), 60),
         durationTime: 60,
-        travelTime: 0,
+        travelTo: null,
+        travelFrom: null,
       },
     ]);
     setActivePartitionIndex(0);
@@ -422,7 +433,8 @@ export default function useTimeForm() {
     selectedTimeTypeDuration,
     selectedTimeTypeTravel,
     durationTimeValue,
-    travelTimeValue,
+    travelToValue,
+    travelFromValue,
     startTime,
     endTime,
     partitions,
@@ -439,7 +451,8 @@ export default function useTimeForm() {
     setSelectedTypeDuration,
     setSelectedTimeTypeTravel,
     setDurationTime,
-    setTravelTime,
+    setTravelToValue,
+    setTravelFromValue,
     setStartTime,
     setEndTime,
     handleAddGeneric,

@@ -122,7 +122,8 @@ export default function CreateActivityView({ navigation, route }: any) {
     difficulty,
     deadline,
     durationTimeValue,
-    travelTimeValue,
+    travelToValue,
+    travelFromValue,
     startTime,
     endTime,
     partitions,
@@ -140,7 +141,8 @@ export default function CreateActivityView({ navigation, route }: any) {
     setDifficulty,
     setDeadline,
     setDurationTime,
-    setTravelTime,
+    setTravelToValue,
+    setTravelFromValue,
     validatePartitions,
     validateOverlapWithSchedule,
     handleSaveActivity,
@@ -213,7 +215,7 @@ export default function CreateActivityView({ navigation, route }: any) {
           total +
           config.partitions.reduce(
             (sum, partition) =>
-              sum + partition.durationTime + partition.travelTime,
+              sum + partition.durationTime + (partition.travelTo ?? 0) + (partition.travelFrom ?? 0),
             0,
           )
         );
@@ -226,8 +228,8 @@ export default function CreateActivityView({ navigation, route }: any) {
     if (step === 3 && activeDay !== null) {
       setDaysDict(prev => {
         const next = { ...prev };
-        if (!isFixed) {
-          // Sync to all days for flexible activities
+        if (!isFixed && !isAnchor) {
+          // Sync to all days for pure flexible activities
           (Object.keys(next) as DayOfWeek[]).forEach(day => {
             next[day] = {
               ...next[day]!,
@@ -237,7 +239,7 @@ export default function CreateActivityView({ navigation, route }: any) {
             };
           });
         } else {
-          // Sync only to active day for fixed activities
+          // Sync only to active day for fixed AND anchor activities
           const current = next[activeDay];
           if (current) {
             next[activeDay] = {
@@ -251,7 +253,7 @@ export default function CreateActivityView({ navigation, route }: any) {
         return next;
       });
     }
-  }, [partitions, preferredStartTime, preferredEndTime, activeDay, step, isFixed]);
+  }, [partitions, preferredStartTime, preferredEndTime, activeDay, step, isFixed, isAnchor]);
 
   const handleContinueFromDays = () => {
     let currentSelected = [...selectedDays];
@@ -289,27 +291,26 @@ export default function CreateActivityView({ navigation, route }: any) {
               startHour: new Date(),
               endHour: calculateEndTime(new Date(), 60),
               durationTime: 60,
-              travelTime: 0,
+              travelTo: null,
+              travelFrom: null,
             },
           ];
 
       const prefStart = existingConfig && !isFixed ? existingConfig.preferredStartTime : undefined;
       const prefEnd = existingConfig && !isFixed ? existingConfig.preferredEndTime : undefined;
 
-      const groupForNewDays = (existingConfig && !isFixed) ? existingConfig.groupId : updatedNextGroupId;
-
       newDays.forEach((day) => {
         next[day] = {
           partitions: defaultPartitions,
-          groupId: groupForNewDays,
+          groupId: (isFixed || isAnchor) ? updatedNextGroupId : (existingConfig?.groupId ?? updatedNextGroupId),
           preferredStartTime: prefStart,
           preferredEndTime: prefEnd,
         };
-        if (isFixed) {
+        if (isFixed || isAnchor) {
           updatedNextGroupId++;
         }
       });
-      if (!isFixed && newDays.length > 0 && !existingConfig) {
+      if (!isFixed && !isAnchor && newDays.length > 0 && !existingConfig) {
         updatedNextGroupId++;
       }
       setNextGroupId(updatedNextGroupId);
@@ -401,7 +402,7 @@ export default function CreateActivityView({ navigation, route }: any) {
 
     if (step === 3) {
       // Validate all partitions and overlaps before leaving Step 3
-      const daysToValidate = isFixed ? configuredDays : [configuredDays[0] || 'Lunes'];
+      const daysToValidate = (isFixed || isAnchor) ? configuredDays : [configuredDays[0] || 'Lunes'];
       for (const day of daysToValidate) {
         const config = daysDict[day]!;
         if (!validatePartitions(config.partitions, [day])) {
@@ -463,7 +464,7 @@ export default function CreateActivityView({ navigation, route }: any) {
     }
 
     // Validate partitions and overlaps
-    const daysToValidate = isFixed ? configuredDays : [configuredDays[0] || 'Lunes'];
+    const daysToValidate = (isFixed || isAnchor) ? configuredDays : [configuredDays[0] || 'Lunes'];
     for (const day of daysToValidate) {
       const config = daysDict[day]!;
       if (!validatePartitions(config.partitions, [day])) {
@@ -566,14 +567,16 @@ export default function CreateActivityView({ navigation, route }: any) {
       case 3:
         return (
           <TimeConfigStep
-            configuredDays={isFixed ? configuredDays : [configuredDays[0] || 'Lunes']}
+            configuredDays={(isFixed || isAnchor) ? configuredDays : [configuredDays[0] || 'Lunes']}
             partitions={partitions}
             activePartitionIndex={activePartitionIndex}
             startTime={startTime}
             endTime={endTime}
             durationTimeValue={durationTimeValue}
-            travelTimeValue={travelTimeValue}
+            travelToValue={travelToValue}
+            travelFromValue={travelFromValue}
             isFixed={isFixed}
+            isAnchor={isAnchor}
             preferredStartTime={preferredStartTime}
             preferredEndTime={preferredEndTime}
             onSetActivePartition={setActivePartitionIndex}
@@ -582,10 +585,11 @@ export default function CreateActivityView({ navigation, route }: any) {
             onSetStartTime={setStartTime}
             onSetEndTime={setEndTime}
             onSetDurationTime={setDurationTime}
-            onSetTravelTime={setTravelTime}
+            onSetTravelToValue={setTravelToValue}
+            onSetTravelFromValue={setTravelFromValue}
             onSetPreferredStartTime={setPreferredStartTime}
             onSetPreferredEndTime={setPreferredEndTime}
-            activeDay={isFixed ? activeDay : (configuredDays[0] || 'Lunes')}
+            activeDay={(isFixed || isAnchor) ? activeDay : (configuredDays[0] || 'Lunes')}
             onSwitchDay={handleSwitchDay}
             onCopyConfig={handleCopyConfig}
             onCopyToAll={handleCopyToAll}

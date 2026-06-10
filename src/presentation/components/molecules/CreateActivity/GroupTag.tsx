@@ -83,11 +83,19 @@ export default function GroupTag({
                   {timeRangeOrStatus} {!isFixed && `(${durationStr})`}
                 </Text>
               </View>
-              {partition.travelTime > 0 && (
+              {(partition.travelTo ?? 0) > 0 && (
                 <View style={styles.partitionTravelRow}>
                   <Ionicons name="walk-outline" size={14} color={color.text} style={styles.icon} />
                   <Text style={[styles.tagSubInfo, { color: color.text }]}>
-                    +{formatMinutes(partition.travelTime)} de traslado
+                    +{formatMinutes(partition.travelTo!)} viaje antes
+                  </Text>
+                </View>
+              )}
+              {(partition.travelFrom ?? 0) > 0 && (
+                <View style={styles.partitionTravelRow}>
+                  <Ionicons name="walk-outline" size={14} color={color.text} style={styles.icon} />
+                  <Text style={[styles.tagSubInfo, { color: color.text }]}>
+                    +{formatMinutes(partition.travelFrom!)} viaje después
                   </Text>
                 </View>
               )}

@@ -29,11 +29,20 @@ export class AsyncStorageActivityRepository implements ActivityRepository {
             Object.keys(restoredDaysConfig).forEach(day => {
                 const config = restoredDaysConfig[day];
                 if (config && config.partitions) {
-                    config.partitions = config.partitions.map((p: any) => ({
-                        ...p,
-                        startHour: new Date(p.startHour),
-                        endHour: new Date(p.endHour)
-                    }));
+                    config.partitions = config.partitions.map((p: any) => {
+                        // Migration: legacy travelTime → travelTo, travelFrom = 0
+                        const migrated = {
+                            ...p,
+                            startHour: new Date(p.startHour),
+                            endHour: new Date(p.endHour),
+                        };
+                        if ('travelTime' in p && !('travelTo' in p)) {
+                            migrated.travelTo = p.travelTime;
+                            migrated.travelFrom = 0;
+                            delete migrated.travelTime;
+                        }
+                        return migrated;
+                    });
                 }
             });
 

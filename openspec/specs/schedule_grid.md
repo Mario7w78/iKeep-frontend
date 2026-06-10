@@ -24,6 +24,14 @@ Improve grid usability and scroll stability, provide a chronological list view o
 
 ---
 
+### 4. VIAJE Block Rendering
+- The schedule grid and agenda view MUST render `VIAJE` blocks emitted by the solver.
+- Each `VIAJE` block SHALL appear immediately before (for `travelTo`) or after (for `travelFrom`) its parent activity.
+- `VIAJE` blocks MUST be visually distinct from regular activity blocks: non-interactive and rendered in a different color.
+- Existing location-based `TiempoTraslado` travel blocks MUST continue to render independently.
+
+---
+
 ## Scenarios
 
 ### Scenario 1: Toggling between Grid and Chronological view (Happy Path)
@@ -38,6 +46,33 @@ Improve grid usability and scroll stability, provide a chronological list view o
 - **Given** the user is viewing the Chronological Agenda List View on a day with no activities scheduled (e.g., "Domingo")
 - **When** that day is selected
 - **Then** the list MUST show an empty state indicating that there are no activities scheduled for that day, instead of showing a blank screen or crashing
+
+### Scenario 4: Pre-activity VIAJE block
+- **Given** the solver receives an activity with `travelTo=30` and `travelFrom=0`
+- **When** the solver response contains a `VIAJE` block of 30 minutes before the activity
+- **Then** the grid view MUST render a gray `VIAJE` block from `startTime - 30min` to `startTime`
+- **And** the block MUST NOT be draggable or tappable
+
+### Scenario 5: Post-activity VIAJE block
+- **Given** the solver receives an activity with `travelTo=0` and `travelFrom=15`
+- **When** the solver response contains a `VIAJE` block of 15 minutes after the activity
+- **Then** the grid view MUST render a gray `VIAJE` block from `endTime` to `endTime + 15min`
+
+### Scenario 6: Both pre and post VIAJE blocks
+- **Given** the solver receives an activity with `travelTo=30` and `travelFrom=30`
+- **When** the solver response contains two `VIAJE` blocks
+- **Then** the grid MUST render a pre-activity VIAJE block AND a post-activity VIAJE block
+
+### Scenario 7: No travel produces no VIAJE blocks
+- **Given** all activities have `travelTo=null` and `travelFrom=null`
+- **When** the solver returns the schedule
+- **Then** no `VIAJE` blocks SHALL appear in the response
+
+### Scenario 8: VIAJE coexists with location-based travel
+- **Given** a schedule has both a `VIAJE` block (from travelTo) and a `TiempoTraslado` block (from location constraints)
+- **When** rendered in grid view
+- **Then** both block types MUST appear independently at their own positions
+- **And** `VIAJE` SHALL use a different color from location-based travel blocks
 
 ### Scenario 3: Dynamic User Greeting on Home screen (Happy Path)
 - **Given** the user completed onboarding with username "Lucía"

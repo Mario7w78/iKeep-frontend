@@ -22,7 +22,7 @@ const getDayAbbreviation = (day: string) => {
 const getTotalMinutes = (config: DayConfig | undefined): number => {
   if (!config) return 0;
   return config.partitions.reduce(
-    (sum, p) => sum + p.durationTime + p.travelTime,
+    (sum, p) => sum + p.durationTime + (p.travelTo ?? 0) + (p.travelFrom ?? 0),
     0
   );
 };
@@ -34,8 +34,10 @@ type TimeConfigStepProps = {
   startTime: Date;
   endTime: Date;
   durationTimeValue: number;
-  travelTimeValue: number;
+  travelToValue: number | null;
+  travelFromValue: number | null;
   isFixed: boolean;
+  isAnchor: boolean;
   preferredStartTime: number | null;
   preferredEndTime: number | null;
   onSetActivePartition: (index: number) => void;
@@ -44,7 +46,8 @@ type TimeConfigStepProps = {
   onSetStartTime: (date: Date) => void;
   onSetEndTime: (date: Date) => void;
   onSetDurationTime: (value: number) => void;
-  onSetTravelTime: (value: number) => void;
+  onSetTravelToValue: (value: number) => void;
+  onSetTravelFromValue: (value: number) => void;
   onSetPreferredStartTime: (val: number | null) => void;
   onSetPreferredEndTime: (val: number | null) => void;
 
@@ -62,8 +65,10 @@ export default function TimeConfigStep({
   startTime,
   endTime,
   durationTimeValue,
-  travelTimeValue,
+  travelToValue,
+  travelFromValue,
   isFixed,
+  isAnchor,
   preferredStartTime,
   preferredEndTime,
   onSetActivePartition,
@@ -72,7 +77,8 @@ export default function TimeConfigStep({
   onSetStartTime,
   onSetEndTime,
   onSetDurationTime,
-  onSetTravelTime,
+  onSetTravelToValue,
+  onSetTravelFromValue,
   onSetPreferredStartTime,
   onSetPreferredEndTime,
   
@@ -83,7 +89,7 @@ export default function TimeConfigStep({
   daysDict,
 }: TimeConfigStepProps) {
   const totalActiveMinutes = partitions.reduce(
-    (sum, p) => sum + p.durationTime + p.travelTime,
+    (sum, p) => sum + p.durationTime + (p.travelTo ?? 0) + (p.travelFrom ?? 0),
     0
   );
 
@@ -188,7 +194,7 @@ export default function TimeConfigStep({
 
       <View style={styles.dayConfigHeader}>
         <View style={styles.dayConfigTextBlock}>
-          {isFixed && (
+          {(isFixed || isAnchor) && (
             <Text style={styles.dayConfigTitle}>
               {activeDay ? getDayAbbreviation(activeDay) : '—'}
             </Text>
@@ -253,7 +259,8 @@ export default function TimeConfigStep({
         startTime={startTime}
         endTime={endTime}
         durationTimeValue={durationTimeValue}
-        travelTimeValue={travelTimeValue}
+        travelToValue={travelToValue}
+        travelFromValue={travelFromValue}
         isFixed={isFixed}
         preferredStartTime={preferredStartTime}
         preferredEndTime={preferredEndTime}
@@ -263,7 +270,8 @@ export default function TimeConfigStep({
         onSetStartTime={onSetStartTime}
         onSetEndTime={onSetEndTime}
         onSetDurationTime={onSetDurationTime}
-        onSetTravelTime={onSetTravelTime}
+        onSetTravelToValue={onSetTravelToValue}
+        onSetTravelFromValue={onSetTravelFromValue}
         onSetPreferredStartTime={onSetPreferredStartTime}
         onSetPreferredEndTime={onSetPreferredEndTime}
       />

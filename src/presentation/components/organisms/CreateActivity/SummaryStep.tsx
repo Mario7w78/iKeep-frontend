@@ -46,7 +46,7 @@ export default function SummaryStep({
   Object.values(groups).forEach(({ days, config }) => {
     const daysCount = (isFixed || isAnchor) ? days.length : 1;
     const dailyDuration = config.partitions.reduce((sum, p) => sum + p.durationTime, 0);
-    const dailyTravel = config.partitions.reduce((sum, p) => sum + p.travelTime, 0);
+    const dailyTravel = config.partitions.reduce((sum, p) => sum + (p.travelTo ?? 0) + (p.travelFrom ?? 0), 0);
 
     totalActivityMinutes += dailyDuration * daysCount;
     totalTravelMinutes += dailyTravel * daysCount;

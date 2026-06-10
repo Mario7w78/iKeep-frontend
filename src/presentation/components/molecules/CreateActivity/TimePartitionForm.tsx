@@ -161,6 +161,7 @@ export default function TimePartitionForm({
   };
 
   const travelChips = [
+    { label: "Sin", value: 0 },
     { label: "5 min", value: 5 },
     { label: "10 min", value: 10 },
     { label: "15 min", value: 15 },

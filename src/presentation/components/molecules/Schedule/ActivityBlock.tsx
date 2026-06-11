@@ -1,4 +1,5 @@
 import { TouchableOpacity, Text, View, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { ScheduledActivity } from '../../../../domain/entities/Schedule';
 import { hhmmToMinutes, formatDisplayTime, LABEL_WIDTH } from '../../../utils/scheduleUtils';
 
@@ -16,7 +17,7 @@ const BLOCK_COLORS = [
 ];
 
 const TRAVEL_COLOR = { bg: '#1A1D22', border: '#5A6A7A', text: '#8A9AAA' };
-const VIAJE_COLOR = { bg: '#161719', border: '#3D4145', text: '#6B7280' };
+const VIAJE_COLOR = { bg: '#2D2416', border: '#C8963E', text: '#F5DEB3' };
 
 interface Props {
   item: ScheduledActivity;
@@ -42,17 +43,20 @@ export function ActivityBlock({ item, onPress, displayStart = 0, hourHeight = 56
   const height = Math.max(((normalizedEnd - normalizedStart) / 60) * hourHeight - 4, 28);
 
   // VIAJE blocks — gray, non-interactive, no onPress
-  if (!item.activity && item.tipo === 'viaje') {
+  if (item.tipo === 'viaje') {
     return (
-      <View style={[s.block, { top, height, backgroundColor: VIAJE_COLOR.bg, borderLeftColor: VIAJE_COLOR.border }]}>
-        <Text style={[s.title, { color: VIAJE_COLOR.text }]} numberOfLines={1}>
-          {item.nombre ?? 'Traslado'}
-        </Text>
-        {height > 36 && (
-          <Text style={[s.time, { color: VIAJE_COLOR.text }]}>
-            {formatDisplayTime(item.assignedStartTime)} – {formatDisplayTime(item.assignedEndTime)}
+      <View style={[s.block, { top, height, backgroundColor: VIAJE_COLOR.bg, borderLeftColor: VIAJE_COLOR.border, borderLeftWidth: 6, flexDirection: 'row', alignItems: 'center' }]}>
+        <Ionicons name="car" size={16} color={VIAJE_COLOR.border} style={{ marginRight: 6 }} />
+        <View style={{ flex: 1 }}>
+          <Text style={[s.title, { color: VIAJE_COLOR.text }]} numberOfLines={2}>
+            {item.nombre ?? 'Traslado'}
           </Text>
-        )}
+          {height > 36 && (
+            <Text style={[s.time, { color: VIAJE_COLOR.text }]}>
+              {formatDisplayTime(item.assignedStartTime)} – {formatDisplayTime(item.assignedEndTime)}
+            </Text>
+          )}
+        </View>
       </View>
     );
   }
@@ -63,16 +67,19 @@ export function ActivityBlock({ item, onPress, displayStart = 0, hourHeight = 56
       <TouchableOpacity
         activeOpacity={0.85}
         onPress={() => onPress?.(item)}
-        style={[s.block, { top, height, backgroundColor: TRAVEL_COLOR.bg, borderLeftColor: TRAVEL_COLOR.border }]}
+        style={[s.block, { top, height, backgroundColor: TRAVEL_COLOR.bg, borderLeftColor: TRAVEL_COLOR.border, borderLeftWidth: 6, flexDirection: 'row', alignItems: 'center' }]}
       >
-        <Text style={[s.title, { color: TRAVEL_COLOR.text }]} numberOfLines={1}>
-          Viaje (ubicación)
-        </Text>
-        {height > 36 && (
-          <Text style={[s.time, { color: TRAVEL_COLOR.text }]}>
-            {formatDisplayTime(item.assignedStartTime)} – {formatDisplayTime(item.assignedEndTime)}
+        <Ionicons name="car-outline" size={16} color={TRAVEL_COLOR.border} style={{ marginRight: 6 }} />
+        <View style={{ flex: 1 }}>
+          <Text style={[s.title, { color: TRAVEL_COLOR.text }]} numberOfLines={1}>
+            {item.nombre ?? 'Viaje (ubicación)'}
           </Text>
-        )}
+          {height > 36 && (
+            <Text style={[s.time, { color: TRAVEL_COLOR.text }]}>
+              {formatDisplayTime(item.assignedStartTime)} – {formatDisplayTime(item.assignedEndTime)}
+            </Text>
+          )}
+        </View>
       </TouchableOpacity>
     );
   }

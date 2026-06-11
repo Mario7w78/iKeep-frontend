@@ -8,7 +8,8 @@ export class AsyncStorageActivityRepository implements ActivityRepository {
 
     async save(activity: Activity): Promise<void> {
         const all = await this.getAll();
-        const index = all.findIndex(a => a.id === activity.id);
+        const activityIdStr = String(activity.id);
+        const index = all.findIndex(a => String(a.id) === activityIdStr);
         if (index >= 0) {
             all[index] = activity;
         } else {
@@ -22,8 +23,18 @@ export class AsyncStorageActivityRepository implements ActivityRepository {
         if (!data) return [];
 
         const rawActivities = JSON.parse(data);
+        const seenIds = new Set<string>();
+        const uniqueRawActivities: any[] = [];
+
+        for (const raw of rawActivities) {
+            const idStr = String(raw.id);
+            if (!seenIds.has(idStr)) {
+                seenIds.add(idStr);
+                uniqueRawActivities.push(raw);
+            }
+        }
         
-        return rawActivities.map((raw: any) => {
+        return uniqueRawActivities.map((raw: any) => {
             // Restore Date objects inside partitions of daysConfig
             const restoredDaysConfig = raw.daysConfig ? { ...raw.daysConfig } : {};
             Object.keys(restoredDaysConfig).forEach(day => {
@@ -47,7 +58,7 @@ export class AsyncStorageActivityRepository implements ActivityRepository {
             });
 
             return new Activity({ 
-                id: raw.id, 
+                id: String(raw.id), 
                 title: raw.title,
                 type: raw.type,
                 identity: raw.identity || "tarea",
@@ -68,7 +79,8 @@ export class AsyncStorageActivityRepository implements ActivityRepository {
 
     async delete(id: string): Promise<void> {
         const all = await this.getAll();
-        const filtered = all.filter(a => a.id !== id);
+        const idStr = String(id);
+        const filtered = all.filter(a => String(a.id) !== idStr);
         await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
     }
 }

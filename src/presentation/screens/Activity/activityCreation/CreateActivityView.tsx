@@ -10,7 +10,9 @@ import {
   Pressable,
   ActivityIndicator,
   Alert,
+  Platform,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 
 import { DayOfWeek } from "../../../../domain/entities/Activity";
@@ -41,6 +43,7 @@ const WEEKDAY_ORDER: DayOfWeek[] = [
 ];
 
 export default function CreateActivityView({ navigation, route }: any) {
+  const insets = useSafeAreaInsets();
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [activeDay, setActiveDay] = useState<DayOfWeek | null>(null);
@@ -669,7 +672,7 @@ export default function CreateActivityView({ navigation, route }: any) {
 
         {renderStep()}
 
-        <View style={styles.footer}>
+        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 24) }]}>
           {step > 1 && (
             <TouchableOpacity
               style={[

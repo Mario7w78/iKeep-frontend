@@ -90,21 +90,28 @@ function ChronologicalAgendaList({
       contentContainerStyle={s.listContent}
       showsVerticalScrollIndicator={false}
     >
-      {activities.map((act) => {
+      {activities.map((act, idx) => {
         const actActivity = act.activity;
+        const isTravel = !actActivity;
+        
+        const iconName = isTravel ? 'car-outline' : getIdentityIcon(actActivity?.identity);
+        const iconColor = isTravel ? '#8A9AAA' : getIdentityColor(actActivity?.identity);
+        const title = actActivity?.title ?? act.nombre ?? (act.tipo === 'viaje' ? 'Traslado' : 'Actividad');
+        
         return (
         <TouchableOpacity
-          key={`${actActivity?.id ?? act.tipo ?? 'unknown'}-${act.day}-${act.assignedStartTime}`}
-          style={s.listItem}
-          activeOpacity={0.7}
+          key={`${actActivity?.id ?? act.tipo ?? 'unknown'}-${act.day}-${act.assignedStartTime}-${idx}`}
+          style={[s.listItem, isTravel && { opacity: 0.75, borderLeftColor: '#8A9AAA', borderLeftWidth: 4 }]}
+          activeOpacity={isTravel ? 1 : 0.7}
+          disabled={isTravel}
           onPress={() => onActivityPress(act)}
         >
             <View style={s.listItemHeader}>
-            <View style={[s.listItemIconWrapper, { backgroundColor: getIdentityColor(actActivity?.identity) + '20' }]}>
-              <Ionicons name={getIdentityIcon(actActivity?.identity)} size={18} color={getIdentityColor(actActivity?.identity)} />
+            <View style={[s.listItemIconWrapper, { backgroundColor: iconColor + '20' }]}>
+              <Ionicons name={iconName} size={18} color={iconColor} />
             </View>
-            <Text style={s.listItemTitle} numberOfLines={1}>
-              {actActivity?.title ?? (act.tipo === 'trabajo' || act.tipo === 'viaje' ? '🚗 Viaje' : 'Actividad')}
+            <Text style={[s.listItemTitle, isTravel && { color: '#8A9AAA' }]} numberOfLines={1}>
+              {title}
             </Text>
           </View>
 
@@ -237,7 +244,7 @@ export default function ScheduleView() {
       await handleGenerateSchedule({
         nivel_energia: nivel,
         historial_energia: historial,
-      });
+      }, true);
     },
     [handleGenerateSchedule],
   );

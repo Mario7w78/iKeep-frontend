@@ -37,7 +37,7 @@ interface ScheduleStoreState {
   startHour: number;
   endHour: number;
   activitiesForDay: () => ReturnType<Schedule['getItemsByDay']>;
-  handleGenerateSchedule: (energyData?: { nivel_energia: number; historial_energia: EnergyRecord[] }) => Promise<void>;
+  handleGenerateSchedule: (energyData?: { nivel_energia: number; historial_energia: EnergyRecord[] }, showSuccessAlert?: boolean) => Promise<void>;
   loadDayLimits: () => Promise<void>;
   loadSchedule: () => Promise<void>;
   setSelectedDay: (day: DayOfWeek) => void;
@@ -67,8 +67,12 @@ export function createScheduleStore(
   rescheduleUseCase?: ReschedulePort,
   suggestTaskUseCase?: SuggestTaskPort
 ): ScheduleStore {
-  const saveScheduleToStorage = async (schedule: Schedule): Promise<void> => {
+  const saveScheduleToStorage = async (schedule: Schedule | null): Promise<void> => {
     try {
+      if (!schedule) {
+        await AsyncStorage.removeItem('@schedule');
+        return;
+      }
       const propsToSave = {
         id: schedule.id,
         userId: schedule.userId,
@@ -79,7 +83,7 @@ export function createScheduleStore(
         tareasOmitidas: schedule.tareasOmitidas,
         scheduledActivities: schedule.getAllItems().map(item => ({
           activity: item.activity ? {
-            id: item.activity.id,
+            id: String(item.activity.id),
             title: item.activity.title,
             type: item.activity.type,
             identity: item.activity.identity,
@@ -165,7 +169,7 @@ export function createScheduleStore(
           const parsed = JSON.parse(stored);
           const scheduledActivities = (parsed.scheduledActivities || []).map((item: any) => ({
             activity: item.activity ? new Activity({
-              id: item.activity.id,
+              id: String(item.activity.id),
               title: item.activity.title,
               type: item.activity.type,
               identity: item.activity.identity,
@@ -205,10 +209,11 @@ export function createScheduleStore(
       }
     },
 
-    handleGenerateSchedule: async (energyData) => {
+    handleGenerateSchedule: async (energyData, showSuccessAlert = false) => {
       const existingActivities = await activityRepository.getAll();
       if (existingActivities.length === 0) {
         set({ schedule: null });
+        await saveScheduleToStorage(null);
         return;
       }
 
@@ -229,6 +234,12 @@ export function createScheduleStore(
         const generated = await generateScheduleUseCase.execute(startHour, endHour, options);
         set({ schedule: generated });
         await saveScheduleToStorage(generated);
+        if (showSuccessAlert) {
+          Alert.alert(
+            'Horario generado',
+            '¡Tu horario ha sido generado con éxito!'
+          );
+        }
       } catch (e: any) {
         console.error('Error generando horario:', e);
         Alert.alert(

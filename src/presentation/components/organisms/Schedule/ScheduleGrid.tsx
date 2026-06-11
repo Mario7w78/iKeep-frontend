@@ -61,9 +61,9 @@ export function ScheduleGrid({
           <HourRow key={h} hour={h} displayStart={displayStart} hourHeight={HOUR_HEIGHT} />
         ))}
         <View style={StyleSheet.absoluteFillObject} pointerEvents="box-none">
-          {activities.map((act) => (
+          {activities.map((act, idx) => (
             <ActivityBlock 
-              key={`${act.activity?.id ?? act.tipo ?? 'unknown'}-${act.day}-${act.assignedStartTime}`} 
+              key={`${act.activity?.id ?? act.tipo ?? 'unknown'}-${act.day}-${act.assignedStartTime}-${idx}`} 
               item={act}
               displayStart={displayStart}
               hourHeight={HOUR_HEIGHT}

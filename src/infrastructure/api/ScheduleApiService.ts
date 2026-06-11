@@ -16,7 +16,15 @@ export const ScheduleApiService = async (
     let detail = 'Error al generar el horario';
     try {
       const err = await response.json();
-      detail = err.detail || detail;
+      if (err.message) {
+        detail = err.message;
+      } else if (typeof err.detail === 'string') {
+        detail = err.detail;
+      } else if (Array.isArray(err.detail) && err.detail[0]?.msg) {
+        detail = err.detail.map((d: any) => `${d.loc ? d.loc.join('.') + ': ' : ''}${d.msg}`).join('\n');
+      } else if (err.error) {
+        detail = `${err.error}: ${JSON.stringify(err.detail)}`;
+      }
     } catch {
       // ignore parse errors
     }

@@ -83,14 +83,14 @@ function TabNavigator() {
         component={HomeScreen}
       />
       <Tab.Screen
-        name="Schedule"
-        options={{ title: "Calendario" }}
-        component={ScheduleScreen}
-      />
-      <Tab.Screen
         name="Activities"
         options={{ title: "Actividades" }}
         component={ManageActivitiesView}
+      />
+      <Tab.Screen
+        name="Schedule"
+        options={{ title: "Calendario" }}
+        component={ScheduleScreen}
       />
       {/* 
       <Tab.Screen

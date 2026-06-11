@@ -152,7 +152,7 @@ export default function HomeView() {
   const nextActivities = useMemo(() => {
     return todayItems.filter((item) => {
       const start = toMinutes(item.assignedStartTime);
-      return start > currentMinutes;
+      return start > currentMinutes && item.activity !== undefined && item.tipo !== 'viaje';
     });
   }, [todayItems, currentMinutes]);
 
@@ -167,8 +167,9 @@ export default function HomeView() {
       const loopDayIndex = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo'].indexOf(dayOfWeek);
       const displayStart = perDayStartHours?.[loopDayIndex] ?? startHour;
       const items = schedule.getItemsByDay(dayOfWeek, displayStart);
-      if (items.length > 0) {
-        return { day: dayOfWeek, items };
+      const filteredItems = items.filter(item => item.activity !== undefined && item.tipo !== 'viaje');
+      if (filteredItems.length > 0) {
+        return { day: dayOfWeek, items: filteredItems };
       }
     }
     return null;
@@ -228,7 +229,7 @@ export default function HomeView() {
               await handleGenerateSchedule({
                 nivel_energia: nivel,
                 historial_energia: historial,
-              });
+              }, true);
             } catch (e) {
               console.error("Error updating schedule with energy:", e);
             }
@@ -248,12 +249,14 @@ export default function HomeView() {
     }
   };
 
+  const isCurrentTravel = currentActivity && (currentActivity.tipo === 'viaje' || !currentActivity.activity);
+
   const cardStatus = currentActivity
     ? {
-        pill: "En curso",
-        pillColor: Theme.comfyColors.green,
-        pillText: Theme.comfyFontColors.green,
-        label: getIdentityLabel(currentActivity.activity?.identity),
+        pill: isCurrentTravel ? "Traslado" : "En curso",
+        pillColor: isCurrentTravel ? '#C8963E' : Theme.comfyColors.green,
+        pillText: isCurrentTravel ? '#F5DEB3' : Theme.comfyFontColors.green,
+        label: isCurrentTravel ? "Viaje" : getIdentityLabel(currentActivity.activity?.identity),
       }
     : firstNext
     ? {
@@ -270,7 +273,7 @@ export default function HomeView() {
       };
 
   const currentCardTitle = currentActivity
-    ? currentActivity.activity?.title ?? 'Actividad sin nombre'
+    ? (isCurrentTravel ? (currentActivity.nombre ?? 'Traslado') : (currentActivity.activity?.title ?? 'Actividad sin nombre'))
     : firstNext
     ? firstNext.activity?.title ?? 'Actividad sin nombre'
     : "Sin actividades pendientes";

@@ -1,6 +1,6 @@
 // screens/schedule/ScheduleView.tsx
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { View, ActivityIndicator, TouchableOpacity, Text, StyleSheet, ScrollView, Dimensions } from 'react-native';
+import { View, ActivityIndicator, TouchableOpacity, Text, StyleSheet, ScrollView, Dimensions, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { ScheduleHeader } from '../../components/organisms/Schedule/ScheduleHeader';
@@ -8,7 +8,7 @@ import { ScheduleGrid } from '../../components/organisms/Schedule/ScheduleGrid';
 import { EnergyPicker } from '../../components/molecules/Energy/EnergyPicker';
 import { ActivityDetailModal } from '../../components/organisms/Schedule/ActivityDetailModal';
 import { Theme } from '../../components/theme/colors';
-import { useScheduleStore } from '../../../di/Dependencies';
+import { useScheduleStore, useActivityStore } from '../../../di/Dependencies';
 import { JS_DAY_TO_DAYOFWEEK } from '../../utils/scheduleUtils';
 import { ScheduledActivity } from '../../../domain/entities/Schedule';
 import {
@@ -166,6 +166,9 @@ export default function ScheduleView() {
     perDayEndHours,
   } = useScheduleStore();
 
+  const { activities } = useActivityStore();
+  const loadActivities = useActivityStore((s) => s.loadActivities);
+
   // Effective display hours for the selected day (per-day or global fallback)
   const dayIndex = DAYS_ORDER.indexOf(selectedDay);
   const displayStartHour = useMemo(
@@ -211,7 +214,8 @@ export default function ScheduleView() {
     useCallback(() => {
       const today = JS_DAY_TO_DAYOFWEEK[new Date().getDay()];
       changeSelectedDayProgrammatically(today);
-    }, [changeSelectedDayProgrammatically])
+      loadActivities();
+    }, [changeSelectedDayProgrammatically, loadActivities])
   );
 
   // Sync scroll position when selectedDay changes (e.g. from header tabs)
@@ -249,6 +253,17 @@ export default function ScheduleView() {
     [handleGenerateSchedule],
   );
 
+  const handleGeneratePress = useCallback(() => {
+    if (activities.length === 0) {
+      Alert.alert(
+        'Sin actividades',
+        'No hay ninguna actividad creada. Crea una actividad primero para poder generar un horario.'
+      );
+      return;
+    }
+    setShowEnergyPicker(true);
+  }, [activities.length]);
+
   const showEmptyState = !schedule || schedule.getAllItems().length === 0;
 
   return (
@@ -265,7 +280,7 @@ export default function ScheduleView() {
           <TouchableOpacity
             style={s.btn}
             activeOpacity={0.8}
-            onPress={() => setShowEnergyPicker(true)}
+            onPress={handleGeneratePress}
           >
             <Ionicons name="sparkles" size={18} color={Theme.comfyFontColors.green} />
             <Text style={s.btnText}>Generar horario</Text>
@@ -277,7 +292,7 @@ export default function ScheduleView() {
             selectedDay={selectedDay}
             activityCount={items.length}
             onSelectDay={changeSelectedDayProgrammatically}
-            onRefresh={() => setShowEnergyPicker(true)}
+            onRefresh={handleGeneratePress}
             viewMode={viewMode}
             onToggleViewMode={() => setViewMode(prev => prev === 'grid' ? 'list' : 'grid')}
           />

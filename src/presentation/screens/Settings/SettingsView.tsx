@@ -94,7 +94,7 @@ const SettingsView = () => {
 
     Alert.alert(
       "¿Actualizar horario?",
-      `¿Querés cambiar el horario del día a ${formatTime(localStartTime)} - ${formatTime(localEndTime)}? Esto recalculará todas tus actividades planificadas.`,
+      `¿Quieres cambiar el horario del día a ${formatTime(localStartTime)} - ${formatTime(localEndTime)}? Esto recalculará todas tus actividades planificadas.`,
       [
         {
           text: "Cancelar",
@@ -228,7 +228,7 @@ const SettingsView = () => {
           )}
         </View>
         <Text style={styles.sectionFooter}>
-          Configurá el rango de horas disponible para tu día. Aplica a todos los días de la semana.
+          Configura el rango de horas disponible para tu día. Aplica a todos los días de la semana.
         </Text>
 
         {/* ═══════════════ ENERGÍA ═══════════════ */}

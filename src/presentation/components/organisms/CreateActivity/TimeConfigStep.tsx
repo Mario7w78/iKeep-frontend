@@ -131,7 +131,7 @@ export default function TimeConfigStep({
       showsVerticalScrollIndicator={false}
     >
       <Text style={styles.stepTitle}>Configuración detallada</Text>
-      <Text style={styles.stepSubtitle}>Ajustá los parámetros de horario para cada día</Text>
+      <Text style={styles.stepSubtitle}>Ajusta los parámetros de horario para cada día</Text>
 
       {/* Day tabs */}
       {configuredDays.length > 1 && (
@@ -218,7 +218,7 @@ export default function TimeConfigStep({
               onPress={() =>
                 Alert.alert(
                   "Aplicar a todos",
-                  `¿Querés aplicar la configuración de ${activeDay ?? 'este día'} a TODOS los demás días?`,
+                  `¿Quieres aplicar la configuración de ${activeDay ?? 'este día'} a TODOS los demás días?`,
                   [
                     { text: "Cancelar", style: "cancel" },
                     { text: "Aplicar", onPress: onCopyToAll },
@@ -237,7 +237,7 @@ export default function TimeConfigStep({
                 onPress={() =>
                   Alert.alert(
                     "Copiar horario",
-                    `¿Querés copiar la configuración de ${day} a ${activeDay ?? 'este día'}?`,
+                    `¿Quieres copiar la configuración de ${day} a ${activeDay ?? 'este día'}?`,
                     [
                       { text: "Cancelar", style: "cancel" },
                       { text: "Copiar", onPress: () => onCopyConfig(day) },

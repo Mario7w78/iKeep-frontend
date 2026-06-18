@@ -304,8 +304,16 @@ export default function HomeView() {
             activeOpacity={0.8}
             onPress={() => navigation.navigate("CreateActivityModal")}
           >
-            <Ionicons name="add" size={22} color={Theme.comfyFontColors.green} />
-            <Text style={styles.emptyButtonText}>Crear actividad</Text>
+            <Ionicons name="add-circle-outline" size={22} color={Theme.comfyFontColors.green} />
+            <Text style={styles.emptyButtonText}>Crear actividad manualmente</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.emptyButton, styles.emptyButtonSecondary]}
+            activeOpacity={0.8}
+            onPress={() => navigation.navigate("AIChatView")}
+          >
+            <Ionicons name="chatbubbles-outline" size={22} color={Theme.comfyColors.green} />
+            <Text style={[styles.emptyButtonText, { color: Theme.comfyColors.green }]}>Crear actividad con el asistente Sapo</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -557,6 +565,7 @@ export default function HomeView() {
           visible={selectedActivity !== null}
           activityItem={selectedActivity}
           onClose={() => setSelectedActivity(null)}
+          onEdit={(activityId) => navigation.navigate("CreateActivityModal", { activityId })}
         />
       </ScrollView>
 
@@ -733,6 +742,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
     paddingHorizontal: 28,
+    width: '100%',
+  },
+  emptyButtonSecondary: {
+    backgroundColor: 'transparent',
+    borderWidth: 1.5,
+    borderColor: Theme.comfyColors.green,
+    marginTop: 12,
   },
   emptyButtonText: {
     color: Theme.comfyFontColors.green,

@@ -8,9 +8,10 @@ interface ActivityDetailModalProps {
   visible: boolean;
   activityItem: ScheduledActivity | null;
   onClose: () => void;
+  onEdit?: (activityId: string) => void;
 }
 
-export function ActivityDetailModal({ visible, activityItem, onClose }: ActivityDetailModalProps) {
+export function ActivityDetailModal({ visible, activityItem, onClose, onEdit }: ActivityDetailModalProps) {
   const translateY = useRef(new Animated.Value(0)).current;
 
   const panResponder = useRef(
@@ -207,6 +208,16 @@ export function ActivityDetailModal({ visible, activityItem, onClose }: Activity
             </View>
           </View>
 
+          {onEdit && (
+            <TouchableOpacity
+              style={styles.editButton}
+              activeOpacity={0.8}
+              onPress={() => { onEdit(activity.id); onClose(); }}
+            >
+              <Ionicons name="create-outline" size={20} color={Theme.colors.surface} />
+              <Text style={styles.editButtonText}>Editar actividad</Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity style={styles.actionButton} activeOpacity={0.8} onPress={onClose}>
             <Text style={styles.actionButtonText}>Entendido</Text>
           </TouchableOpacity>
@@ -350,6 +361,21 @@ const styles = StyleSheet.create({
     color: Theme.colors.surface,
     fontSize: 13,
     fontWeight: '800',
+  },
+  editButton: {
+    height: 54,
+    borderRadius: 27,
+    borderWidth: 1.5,
+    borderColor: Theme.colors.cardBorder,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  editButtonText: {
+    color: Theme.colors.surface,
+    fontSize: 16,
+    fontWeight: '900',
   },
   actionButton: {
     backgroundColor: Theme.comfyColors.green,

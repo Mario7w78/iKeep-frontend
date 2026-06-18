@@ -280,10 +280,18 @@ export default function ScheduleView() {
           <TouchableOpacity
             style={s.btn}
             activeOpacity={0.8}
-            onPress={handleGeneratePress}
+            onPress={() => navigation.navigate("CreateActivityModal")}
           >
-            <Ionicons name="sparkles" size={18} color={Theme.comfyFontColors.green} />
-            <Text style={s.btnText}>Generar horario</Text>
+            <Ionicons name="add-circle-outline" size={18} color={Theme.comfyFontColors.green} />
+            <Text style={s.btnText}>Crear actividad manualmente</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[s.btn, s.btnSecondary]}
+            activeOpacity={0.8}
+            onPress={() => navigation.navigate("AIChatView")}
+          >
+            <Ionicons name="chatbubbles-outline" size={18} color={Theme.comfyColors.green} />
+            <Text style={[s.btnText, { color: Theme.comfyColors.green }]}>Crear actividad con el asistente Sapo</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -369,6 +377,7 @@ export default function ScheduleView() {
         visible={selectedActivity !== null}
         activityItem={selectedActivity}
         onClose={() => setSelectedActivity(null)}
+        onEdit={(activityId) => navigation.navigate("CreateActivityModal", { activityId })}
       />
     </View>
   );
@@ -416,7 +425,14 @@ const s = StyleSheet.create({
     paddingVertical: 14,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     gap: 8,
+    width: '100%',
+  },
+  btnSecondary: {
+    backgroundColor: 'transparent',
+    borderWidth: 1.5,
+    borderColor: Theme.comfyColors.green,
   },
   btnText: {
     color: Theme.comfyFontColors.green,

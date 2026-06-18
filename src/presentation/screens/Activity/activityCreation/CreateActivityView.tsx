@@ -1,7 +1,8 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
   View,
   Text,
+  TextInput,
   TouchableOpacity,
   StyleSheet,
   Animated,
@@ -11,6 +12,7 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
+  ScrollView,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -18,6 +20,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { DayOfWeek } from "../../../../domain/entities/Activity";
 import { calculateEndTime } from "../../../utils/timeUtils";
 import { Theme } from "../../../components/theme/colors";
+import { useActivityStore } from "../../../../di/Dependencies";
 
 import useFrequency from "../../../hooks/useFrequency";
 import useTimeForm from "../../../hooks/useTimeForm";
@@ -44,6 +47,14 @@ const WEEKDAY_ORDER: DayOfWeek[] = [
 
 export default function CreateActivityView({ navigation, route }: any) {
   const insets = useSafeAreaInsets();
+  const { activities } = useActivityStore();
+  const activityIdParam = route.params?.activityId;
+
+  const existingActivity = useMemo(() => {
+    if (!activityIdParam) return null;
+    return activities.find(a => a.id === activityIdParam) || null;
+  }, [activityIdParam, activities]);
+
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [activeDay, setActiveDay] = useState<DayOfWeek | null>(null);
@@ -166,8 +177,8 @@ export default function CreateActivityView({ navigation, route }: any) {
 
   // Load existing activity for editing
   useEffect(() => {
-    if (route.params?.activity) {
-      const act = route.params.activity;
+    if (existingActivity) {
+      const act = existingActivity;
       setActivityId(act.id);
       setActivityName(act.title);
       setIsFixed(act.isFixed());
@@ -189,7 +200,7 @@ export default function CreateActivityView({ navigation, route }: any) {
       const maxGroupId = Math.max(...Object.values(act.daysConfig || {}).map((cfg: any) => cfg?.groupId ?? 0), 0);
       setNextGroupId(maxGroupId + 1);
     }
-  }, [route.params?.activity]);
+  }, [existingActivity]);
 
   // Synchronize optionalDay, isAnchor, and dayRange variables based on activity type and anchor choice
   useEffect(() => {
@@ -513,6 +524,10 @@ export default function CreateActivityView({ navigation, route }: any) {
     }
   };
 
+
+
+
+
   const handleEditGroupWrapper = (group: {
     groupId: number;
     days: DayOfWeek[];
@@ -642,6 +657,15 @@ export default function CreateActivityView({ navigation, route }: any) {
     }
   }, [step, activityId]);
 
+  const headerTitle = useMemo(() => {
+    if (activityId) return "Editar Actividad";
+    return "Nueva Actividad";
+  }, [activityId]);
+
+  const headerSubtitle = useMemo(() => {
+    return `Paso ${step} de ${TOTAL_STEPS}`;
+  }, [step]);
+
   return (
     <View style={styles.container}>
       <Animated.View style={[styles.backdrop, { opacity: backdropOpacity }]} pointerEvents="auto">
@@ -654,10 +678,8 @@ export default function CreateActivityView({ navigation, route }: any) {
 
         <View style={styles.header}>
           <View>
-            <Text style={styles.title}>{activityId ? "Editar Actividad" : "Nueva Actividad"}</Text>
-            <Text style={styles.stepText}>
-              Paso {step} de {TOTAL_STEPS}
-            </Text>
+            <Text style={styles.title}>{headerTitle}</Text>
+            {headerSubtitle && <Text style={styles.stepText}>{headerSubtitle}</Text>}
           </View>
           <TouchableOpacity style={styles.closeButton} onPress={closeSheet}>
             <Ionicons
@@ -811,4 +833,94 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     marginTop: 12,
   },
+
+  // NL Parse Section
+  nlContainer: {
+    marginBottom: 8,
+  },
+  nlInputRow: {
+    flexDirection: "row",
+    gap: 10,
+    alignItems: "flex-end",
+  },
+  nlTextInputWrapper: {
+    flex: 1,
+  },
+  nlTextInput: {
+    borderWidth: 2,
+    borderColor: Theme.colors.cardBorder,
+    borderRadius: 20,
+    backgroundColor: Theme.colors.cardBackground,
+    color: Theme.colors.surface,
+    fontSize: 15,
+    fontWeight: "700",
+    paddingHorizontal: 16,
+    minHeight: 200,
+    textAlignVertical: "center",
+  },
+  nlParseButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#5665dc",
+    borderRadius: 20,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    minHeight: 56,
+  },
+  nlParseButtonDisabled: {
+    opacity: 0.5,
+  },
+  nlParseButtonText: {
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "900",
+  },
+  nlErrorBanner: {
+    backgroundColor: "rgba(255, 107, 107, 0.12)",
+    borderWidth: 1,
+    borderColor: "#ff6b6b",
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  nlErrorContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  nlErrorText: {
+    flex: 1,
+    color: Theme.colors.surface,
+    fontSize: 13,
+    fontWeight: "700",
+    lineHeight: 18,
+  },
+  nlErrorActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    gap: 10,
+    marginTop: 10,
+  },
+  nlRetryButton: {
+    backgroundColor: "#5665dc",
+    borderRadius: 14,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+  },
+  nlRetryText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "900",
+  },
+  nlDismissButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
 });

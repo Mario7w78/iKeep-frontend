@@ -14,7 +14,7 @@ import SettingsView from "../screens/Settings/SettingsView";
 import ManageActivitiesView from "../screens/Activity/ManageActivitiesView";
 import { useAppStore } from "../../infrastructure/store/useAppStore";
 import { useScheduleStore } from "../../di/Dependencies";
-import { Theme, useTheme, applyThemeToStaticTheme } from "../components/theme/colors";
+import { Theme, useTheme, ThemeProvider, applyThemeToStaticTheme } from "../components/theme/colors";
 import AIChatView from "../screens/AIChat/AIChatView";
 
 export type RootStackParamList = {

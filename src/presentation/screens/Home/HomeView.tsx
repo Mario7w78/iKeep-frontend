@@ -597,7 +597,7 @@ export default function HomeView() {
 const createStyles = (
   colors: ReturnType<typeof useTheme>['colors'],
   comfyColors: ReturnType<typeof useTheme>['comfyColors'],
-  _comfyFontColors: ReturnType<typeof useTheme>['comfyFontColors'],
+  comfyFontColors: ReturnType<typeof useTheme>['comfyFontColors'],
 ) => StyleSheet.create({
   safe: {
     flex: 1,

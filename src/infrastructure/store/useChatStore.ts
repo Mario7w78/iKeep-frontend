@@ -40,6 +40,30 @@ const minutesToTimeStr = (minutes: number): string => {
   return `${hStr}:${mStr}`;
 };
 
+const mapErrorToUserFriendlyMessage = (error: any, fallbackMessage: string): string => {
+  const errMsg = error.message || '';
+  const errStr = errMsg.toLowerCase();
+
+  // If it's a rate limit error (429 or containing rate limit text)
+  if (errStr.includes('rate limit') || errStr.includes('limit reached') || errStr.includes('429')) {
+    return '¡Hasta acá llegué por hoy! 🐸 Me voy a tomar una siestita arriba de un camalote. Intentemos de nuevo en un ratito.';
+  }
+
+  // If it's an API connection error (like network, timeout, Groq API down)
+  if (
+    errStr.includes('groq api error') ||
+    errStr.includes('network error') ||
+    errStr.includes('failed to parse') ||
+    errStr.includes('fetch') ||
+    errStr.includes('timeout')
+  ) {
+    return '¡Glup! 🐸 Me hundí en el agua y perdí la conexión. ¿Probamos de nuevo en unos minutos?';
+  }
+
+  // Otherwise, return the specific validation message (e.g. overlap or format errors)
+  return errMsg || fallbackMessage;
+};
+
 export function createChatStore(
   activityStore: any,
   scheduleStore: any,
@@ -312,10 +336,11 @@ export function createChatStore(
         }
       } catch (error: any) {
         console.error('Error in chat store sendMessage:', error);
+        const displayMessage = mapErrorToUserFriendlyMessage(error, 'Ups, hubo un error al conectar con la IA.');
         const errorMsg: ChatMessage = {
           id: `error-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
           role: 'assistant',
-          content: error.message || 'Ups, hubo un error al conectar con la IA.',
+          content: displayMessage,
           timestamp: Date.now(),
           isError: true,
         };
@@ -465,10 +490,11 @@ export function createChatStore(
           messages: get().messages.filter((m) => m.id !== validatingMsgId),
         });
 
+        const displayMessage = mapErrorToUserFriendlyMessage(error, 'Ups, hubo un error al procesar la actividad.');
         const errorMsg: ChatMessage = {
           id: `error-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
           role: 'assistant',
-          content: error.message || 'Ups, hubo un error al procesar la actividad.',
+          content: displayMessage,
           timestamp: Date.now(),
           isError: true,
         };

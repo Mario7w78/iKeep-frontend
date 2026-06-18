@@ -72,7 +72,7 @@ describe('NLConversationStep', () => {
   it('renders header title, back button, and conversation messages correctly', async () => {
     const screen = await render(<NLConversationStep {...defaultProps} />);
 
-    expect(screen.getByText('Hablar con la IA')).toBeTruthy();
+    expect(screen.getByText('Hablar con Sapo')).toBeTruthy();
     expect(screen.getByText('← Volver')).toBeTruthy();
     expect(screen.getByText('Hola sapo')).toBeTruthy();
     expect(screen.getByText('Hola! ¿En qué te puedo ayudar hoy?')).toBeTruthy();

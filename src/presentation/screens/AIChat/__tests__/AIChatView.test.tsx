@@ -196,6 +196,6 @@ describe('AIChatView Component', () => {
   it('renders conversational screen correctly', async () => {
     const screen = await render(<AIChatView navigation={mockNavigation} />);
     expect(screen.getByTestId('ai-chat-view-container')).toBeTruthy();
-    expect(screen.getByText('Hablar con la IA')).toBeTruthy();
+    expect(screen.getByText('Hablar con Sapo')).toBeTruthy();
   });
 });

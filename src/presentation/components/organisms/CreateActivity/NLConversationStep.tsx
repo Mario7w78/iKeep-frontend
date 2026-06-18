@@ -11,6 +11,7 @@ import {
   LayoutAnimation,
   UIManager,
   Image,
+  Keyboard,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { MessageBubble, ChatMessage } from '../../molecules/CreateActivity/MessageBubble';
@@ -54,6 +55,42 @@ export const NLConversationStep: React.FC<Props> = ({
   const [showTyping, setShowTyping] = useState(false);
   const insets = useSafeAreaInsets();
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const containerRef = useRef<View>(null);
+  const [verticalOffset, setVerticalOffset] = useState(0);
+
+  const handleLayout = useCallback(() => {
+    if (verticalOffset > 0) return;
+    if (containerRef.current && typeof containerRef.current.measure === 'function') {
+      containerRef.current.measure((_x, _y, _width, _height, _pageX, pageY) => {
+        if (pageY !== undefined && pageY > 0) {
+          setVerticalOffset(pageY);
+        }
+      });
+    }
+  }, [verticalOffset]);
+
+  useEffect(() => {
+    const showSubscription = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => {
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+        setIsKeyboardVisible(true);
+      }
+    );
+    const hideSubscription = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+        setIsKeyboardVisible(false);
+      }
+    );
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, []);
 
   // Minimum 800ms typing display
   useEffect(() => {
@@ -88,16 +125,18 @@ export const NLConversationStep: React.FC<Props> = ({
 
   return (
     <KeyboardAvoidingView
+      ref={containerRef}
+      onLayout={handleLayout}
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={0}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? verticalOffset : 0}
     >
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
           <Text style={styles.backText}>← Volver</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Hablar con la IA</Text>
+        <Text style={styles.headerTitle}>Hablar con Sapo</Text>
         {onClear ? (
           <TouchableOpacity onPress={onClear} style={styles.clearButton} testID="clear-chat-button">
             <Ionicons name="trash-outline" size={24} color={colors.surface} />
@@ -142,7 +181,7 @@ export const NLConversationStep: React.FC<Props> = ({
       </ScrollView>
 
       {/* Input bar */}
-      <View style={[styles.inputBar, { paddingBottom: Math.max(insets.bottom, 10) }]}>
+      <View style={[styles.inputBar, { paddingBottom: isKeyboardVisible ? 10 : Math.max(insets.bottom, 10) }]}>
         <TextInput
           testID="chat-input"
           style={styles.textInput}

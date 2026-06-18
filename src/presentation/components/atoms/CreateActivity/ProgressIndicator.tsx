@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { View, StyleSheet } from "react-native";
-import { Theme } from "../../theme/colors";
+import { useTheme } from "../../theme/colors";
 
 type ProgressIndicatorProps = {
   totalSteps: number;
@@ -11,6 +11,9 @@ export default function ProgressIndicator({
   totalSteps,
   currentStep,
 }: ProgressIndicatorProps) {
+  const { colors, comfyColors } = useTheme();
+  const styles = useMemo(() => createStyles(colors, comfyColors), [colors]);
+
   return (
     <View style={styles.row}>
       {Array.from({ length: totalSteps }).map((_, index) => (
@@ -26,7 +29,7 @@ export default function ProgressIndicator({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors, comfyColors) => StyleSheet.create({
   row: {
     flexDirection: "row",
     gap: 16,
@@ -38,9 +41,9 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 5,
     borderRadius: 10,
-    backgroundColor: Theme.colors.cardBorder,
+    backgroundColor: colors.cardBorder,
   },
   segmentActive: {
-    backgroundColor: Theme.comfyColors.green,
+    backgroundColor: comfyColors.green,
   },
 });

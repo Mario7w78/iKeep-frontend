@@ -1,7 +1,7 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { TouchableOpacity, Text, StyleSheet } from "react-native";
 import { DayOfWeek } from "../../../../domain/entities/Activity";
-import { Theme } from "../../theme/colors";
+import { useTheme } from "../../theme/colors";
 
 type DayButtonProps = {
   day: DayOfWeek;
@@ -22,6 +22,9 @@ export default function DayButton({
   configuredTextColor,
   onPress,
 }: DayButtonProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -57,33 +60,33 @@ export default function DayButton({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   button: {
     width: 72,
     height: 72,
     borderRadius: 18,
-    backgroundColor: Theme.colors.cardBackground,
+    backgroundColor: colors.cardBackground,
     alignItems: "center",
     justifyContent: "center",
   },
   buttonConfigured: {
     borderWidth: 2,
-    borderColor: Theme.colors.iconPrimary,
+    borderColor: colors.iconPrimary,
   },
   buttonSelected: {
-    backgroundColor: "#5665dc",
+    backgroundColor: colors.secondaryAccent,
   },
   letter: {
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontSize: 22,
     fontWeight: "900",
   },
   name: {
-    color: Theme.colors.textSecondary,
+    color: colors.textSecondary,
     fontSize: 14,
     fontWeight: "700",
   },
   textSelected: {
-    color: Theme.colors.surface,
+    color: colors.secondaryAccentText,
   },
 });

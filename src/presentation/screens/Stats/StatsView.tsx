@@ -1,15 +1,18 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Theme } from "../../components/theme/colors";
+import { useTheme } from "../../components/theme/colors";
 
 export default function StatsView() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.content}>
-        <Ionicons name="bar-chart" size={42} color={Theme.colors.iconPrimary} />
+        <Ionicons name="bar-chart" size={42} color={colors.iconPrimary} />
         <Text style={styles.title}>Estadisticas</Text>
         <Text style={styles.subtitle}>
           Tus metricas apareceran aqui cuando tengas mas actividad registrada.
@@ -19,10 +22,10 @@ export default function StatsView() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: Theme.colors.screenBackground,
+    backgroundColor: colors.screenBackground,
   },
   content: {
     flex: 1,
@@ -31,13 +34,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   title: {
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontSize: 24,
     fontWeight: "800",
     marginTop: 16,
   },
   subtitle: {
-    color: Theme.colors.textSecondary,
+    color: colors.textSecondary,
     fontSize: 15,
     lineHeight: 22,
     marginTop: 8,

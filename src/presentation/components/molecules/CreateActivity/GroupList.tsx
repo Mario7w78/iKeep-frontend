@@ -1,8 +1,8 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { DayOfWeek } from "../../../../domain/entities/Activity";
 import { DayConfig } from "../../../../domain/entities/activity.types";
-import { Theme } from "../../theme/colors";
+import { useTheme } from "../../theme/colors";
 import GroupTag from "./GroupTag";
 
 type GroupListProps = {
@@ -26,6 +26,9 @@ export default function GroupList({
   onEditGroup,
   onDiscardGroup,
 }: GroupListProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   if (Object.keys(groups).length === 0) return null;
 
   const eyebrowText = isFixed || isAnchor ? "Días programados" : "Días permitidos";
@@ -54,12 +57,12 @@ export default function GroupList({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   container: {
     gap: 10,
   },
   eyebrow: {
-    color: Theme.colors.iconPrimary,
+    color: colors.iconPrimary,
     fontSize: 14,
     fontWeight: "900",
     marginBottom: 4,

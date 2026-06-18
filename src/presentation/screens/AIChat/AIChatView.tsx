@@ -11,6 +11,8 @@ export default function AIChatView({ navigation }: any) {
   const retry = useChatStore((s) => s.retry);
   const clearChat = useChatStore((s) => s.clearChat);
   const createdActivityId = useChatStore((s) => s.createdActivityId);
+  const confirmPendingActivity = useChatStore((s) => s.confirmPendingActivity);
+  const cancelPendingActivity = useChatStore((s) => s.cancelPendingActivity);
 
   const handleBack = () => {
     navigation.goBack();
@@ -36,6 +38,8 @@ export default function AIChatView({ navigation }: any) {
         onRetry={retry}
         onViewActivity={handleViewActivity}
         onClear={clearChat}
+        onConfirmPending={confirmPendingActivity}
+        onCancelPending={cancelPendingActivity}
       />
     </SafeAreaView>
   );

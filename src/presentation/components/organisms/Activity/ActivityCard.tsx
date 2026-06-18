@@ -1,9 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { MaterialIcons } from "@expo/vector-icons";
-import { Theme } from "../../theme/colors";
+import { useTheme, activityStyles, ThemeColors } from "../../theme/colors";
 import { Activity, DayOfWeek } from "../../../../domain/entities/Activity";
 
 type ActivityCardProps = {
@@ -21,9 +21,28 @@ export default function ActivityCard({
   onEdit,
   isFixed = false,
 }: ActivityCardProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [showActions, setShowActions] = useState(false);
 
-  const activityStyle = isFixed ? Theme.activity.fixed : Theme.activity.flexible;
+  const isLight = colors.screenBackground === '#F1F6F3' || colors.screenBackground === '#FFFFFF';
+  const activityStyle = useMemo(() => {
+    if (isLight) {
+      return isFixed 
+        ? {
+            gradient: ['#F3E8FF', '#E9D5FF'] as const,
+            borderColor: '#C084FC',
+            dayBoxColor: '#D8B4FE',
+          }
+        : {
+            gradient: ['#FAF5FF', '#F3E8FF'] as const,
+            borderColor: '#E9D5FF',
+            dayBoxColor: '#E9D5FF',
+          };
+    } else {
+      return isFixed ? activityStyles.fixed : activityStyles.flexible;
+    }
+  }, [isLight, isFixed]);
 
   return (
     <View style={styles.wrapper}>
@@ -58,7 +77,7 @@ export default function ActivityCard({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   wrapper: {
     marginHorizontal: 8,
     marginVertical: 8,
@@ -72,7 +91,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 30,
     borderWidth: 1,
-    borderColor: Theme.activity.flexible.borderColor,
+    borderColor: activityStyles.flexible.borderColor,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -87,7 +106,7 @@ const styles = StyleSheet.create({
   titleText: {
     fontSize: 24,
     fontWeight: "bold",
-    color: Theme.colors.surface,
+    color: colors.surface,
   },
   dayContainer: {
     flexDirection: "row",
@@ -104,14 +123,14 @@ const styles = StyleSheet.create({
   },
   dayText: {
     fontSize: 16,
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontWeight: "bold",
     textAlign: "center",
   },
   dayBox: {
     justifyContent: 'center',
     borderRadius: 50,
-    backgroundColor: Theme.activity.flexible.borderColor,
+    backgroundColor: activityStyles.flexible.borderColor,
     width: 30,
     height: 30,
   },
@@ -122,7 +141,7 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   actionText: {
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontWeight: "600",
     fontSize: 14,
   },

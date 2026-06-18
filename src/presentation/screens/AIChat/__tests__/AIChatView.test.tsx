@@ -92,7 +92,7 @@ describe('useChatStore', () => {
     expect(store.getState().messages[2].role).toBe('assistant');
   });
 
-  it('handles result response and calls store saves and schedule regeneration', async () => {
+  it('handles result response, queues activity, and calls saves on confirm', async () => {
     const store = createChatStore(mockActivityStore, mockScheduleStore, mockSendConversation);
     mockSendConversation.mockResolvedValue({
       type: 'result',
@@ -116,6 +116,20 @@ describe('useChatStore', () => {
 
     await store.getState().sendMessage('Quiero estudiar inglés el sábado de 8 a 10 am');
 
+    // It should not save immediately
+    expect(handleCreateActivityMock).not.toHaveBeenCalled();
+    expect(handleGenerateScheduleMock).not.toHaveBeenCalled();
+
+    // It should have created a confirmation message with pendingActivity
+    const messages = store.getState().messages;
+    const confirmMsg = messages[messages.length - 1];
+    expect(confirmMsg.pendingActivity).toBeTruthy();
+    expect(confirmMsg.pendingActivity.parsedState.activityName).toBe('Estudiar Inglés');
+
+    // Now confirm the pending activity
+    await store.getState().confirmPendingActivity(confirmMsg.id);
+
+    // Mocks should now be called
     expect(handleCreateActivityMock).toHaveBeenCalled();
     expect(handleGenerateScheduleMock).toHaveBeenCalled();
     expect(store.getState().createdActivityId).toBeTruthy();

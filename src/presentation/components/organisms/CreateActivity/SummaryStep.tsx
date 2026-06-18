@@ -1,8 +1,8 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { View, Text, ScrollView, StyleSheet } from "react-native";
 import { DayOfWeek } from "../../../../domain/entities/Activity";
 import { DayConfig } from "../../../../domain/entities/activity.types";
-import { Theme } from "../../theme/colors";
+import { useTheme, ThemeColors } from "../../theme/colors";
 import GroupList from "../../molecules/CreateActivity/GroupList";
 
 type SummaryStepProps = {
@@ -40,6 +40,8 @@ export default function SummaryStep({
   onEditGroup,
   onDiscardGroup,
 }: SummaryStepProps) {
+  const { colors, comfyColors, comfyFontColors } = useTheme();
+  const styles = useMemo(() => createStyles(colors, comfyColors, comfyFontColors), [colors]);
   let totalActivityMinutes = 0;
   let totalTravelMinutes = 0;
 
@@ -176,7 +178,7 @@ export default function SummaryStep({
           </View>
         )}
         
-        <View style={[styles.divider, { backgroundColor: Theme.colors.cardBorder }]} />
+        <View style={[styles.divider, { backgroundColor: colors.cardBorder }]} />
         
         <View style={styles.timeBreakdownRow}>
           <Text style={styles.totalLabel}>Total:</Text>
@@ -196,85 +198,87 @@ export default function SummaryStep({
   );
 }
 
-const styles = StyleSheet.create({
-  scroll: {
-    flex: 1,
-  },
-  content: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 24,
-    gap: 16,
-  },
-  stepTitle: {
-    color: Theme.colors.surface,
-    fontSize: 24,
-    fontWeight: "800",
-    letterSpacing: -0.5,
-  },
-  stepSubtitle: {
-    color: Theme.colors.textTertiary,
-    fontSize: 15,
-    fontWeight: "600",
-    marginTop: -10,
-  },
-  summaryCard: {
-    backgroundColor: Theme.colors.cardBackground,
-    borderRadius: 24,
-    padding: 16,
-    gap: 8,
-  },
-  summaryGrid: {
-    flexDirection: "row",
-    gap: 14,
-  },
-  summaryCardHalf: {
-    flex: 1,
-    backgroundColor: Theme.colors.cardBackground,
-    borderRadius: 24,
-    padding: 16,
-    gap: 8,
-  },
-  summaryLabel: {
-    color: Theme.colors.iconPrimary,
-    fontSize: 14,
-    fontWeight: "900",
-  },
-  summaryValue: {
-    color: Theme.colors.surface,
-    fontSize: 16,
-    fontWeight: "900",
-  },
-  capitalize: {
-    textTransform: "capitalize",
-  },
-  timeBreakdownRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  timeBreakdownText: {
-    color: Theme.colors.textSecondary,
-    fontSize: 15,
-    fontWeight: "700",
-  },
-  timeBreakdownValue: {
-    color: Theme.colors.surface,
-    fontSize: 15,
-    fontWeight: "800",
-  },
-  divider: {
-    height: 1,
-    marginVertical: 4,
-  },
-  totalLabel: {
-    color: Theme.colors.surface,
-    fontSize: 16,
-    fontWeight: "900",
-  },
-  totalValue: {
-    color: Theme.comfyColors.green,
-    fontSize: 18,
-    fontWeight: "900",
-  },
-});
+function createStyles(colors: ThemeColors, comfyColors: Record<string, string>, _comfyFontColors: Record<string, string>) {
+  return StyleSheet.create({
+    scroll: {
+      flex: 1,
+    },
+    content: {
+      paddingHorizontal: 20,
+      paddingTop: 16,
+      paddingBottom: 24,
+      gap: 16,
+    },
+    stepTitle: {
+      color: colors.surface,
+      fontSize: 24,
+      fontWeight: "800",
+      letterSpacing: -0.5,
+    },
+    stepSubtitle: {
+      color: colors.textTertiary,
+      fontSize: 15,
+      fontWeight: "600",
+      marginTop: -10,
+    },
+    summaryCard: {
+      backgroundColor: colors.cardBackground,
+      borderRadius: 24,
+      padding: 16,
+      gap: 8,
+    },
+    summaryGrid: {
+      flexDirection: "row",
+      gap: 14,
+    },
+    summaryCardHalf: {
+      flex: 1,
+      backgroundColor: colors.cardBackground,
+      borderRadius: 24,
+      padding: 16,
+      gap: 8,
+    },
+    summaryLabel: {
+      color: colors.iconPrimary,
+      fontSize: 14,
+      fontWeight: "900",
+    },
+    summaryValue: {
+      color: colors.surface,
+      fontSize: 16,
+      fontWeight: "900",
+    },
+    capitalize: {
+      textTransform: "capitalize",
+    },
+    timeBreakdownRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+    },
+    timeBreakdownText: {
+      color: colors.textSecondary,
+      fontSize: 15,
+      fontWeight: "700",
+    },
+    timeBreakdownValue: {
+      color: colors.surface,
+      fontSize: 15,
+      fontWeight: "800",
+    },
+    divider: {
+      height: 1,
+      marginVertical: 4,
+    },
+    totalLabel: {
+      color: colors.surface,
+      fontSize: 16,
+      fontWeight: "900",
+    },
+    totalValue: {
+      color: comfyColors.green,
+      fontSize: 18,
+      fontWeight: "900",
+    },
+  });
+}

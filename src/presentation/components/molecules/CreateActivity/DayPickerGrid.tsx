@@ -2,7 +2,7 @@ import React from "react";
 import { View, StyleSheet } from "react-native";
 import { DayOfWeek } from "../../../../domain/entities/Activity";
 import { DayConfig } from "../../../../domain/entities/activity.types";
-import { Theme } from "../../theme/colors";
+import { groupColors } from "../../theme/colors";
 import DayButton from "../../atoms/CreateActivity/DayButton";
 
 const DAY_LETTERS: Record<DayOfWeek, string> = {
@@ -45,10 +45,10 @@ export default function DayPickerGrid({
         const configured = isDayConfigured(day);
         const config = daysDict[day];
         const configuredColor = config
-          ? Theme.groupColors[config.groupId % Theme.groupColors.length].bg
+          ? groupColors[config.groupId % groupColors.length].bg
           : undefined;
         const configuredTextColor = config
-          ? Theme.groupColors[config.groupId % Theme.groupColors.length].text
+          ? groupColors[config.groupId % groupColors.length].text
           : undefined;
 
         return (

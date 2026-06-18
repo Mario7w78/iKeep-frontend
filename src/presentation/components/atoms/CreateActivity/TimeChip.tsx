@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { TouchableOpacity, Text, StyleSheet } from "react-native";
-import { Theme } from "../../theme/colors";
+import { useTheme } from "../../theme/colors";
 
 type TimeChipProps = {
   label: string;
@@ -9,6 +9,9 @@ type TimeChipProps = {
 };
 
 export default function TimeChip({ label, selected, onPress }: TimeChipProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <TouchableOpacity
       style={[styles.chip, selected && styles.chipActive]}
@@ -19,7 +22,7 @@ export default function TimeChip({ label, selected, onPress }: TimeChipProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   chip: {
     flex: 1,
     minHeight: 48,
@@ -29,14 +32,14 @@ const styles = StyleSheet.create({
     backgroundColor: "#51546e",
   },
   chipActive: {
-    backgroundColor: "#5665dc",
+    backgroundColor: colors.secondaryAccent,
   },
   text: {
-    color: Theme.colors.textSecondary,
+    color: colors.textSecondary,
     fontSize: 16,
     fontWeight: "900",
   },
   textActive: {
-    color: Theme.colors.surface,
+    color: colors.secondaryAccentText,
   },
 });

@@ -418,7 +418,7 @@ const createStyles = (
 
   /* ─── Inline picker ─── */
   pickerContainer: {
-    backgroundColor: "#3b3e54",
+    backgroundColor: colors.screenBackground,
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 4,
@@ -430,7 +430,7 @@ const createStyles = (
 
   /* ─── Apply button (iOS) ─── */
   applyButton: {
-    backgroundColor: "#4d506c",
+    backgroundColor: colors.cardBackground,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.cardBorder,
     paddingVertical: 12,
@@ -442,7 +442,7 @@ const createStyles = (
     fontWeight: "800",
   },
   globalApplyButton: {
-    backgroundColor: "rgba(141, 255, 104, 0.08)",
+    backgroundColor: `${comfyColors.green}14`,
     paddingVertical: 14,
     alignItems: "center",
     justifyContent: "center",
@@ -470,7 +470,7 @@ const createStyles = (
     marginBottom: 6,
   },
   patternRowActive: {
-    backgroundColor: "rgba(141,255,104,0.08)",
+    backgroundColor: `${comfyColors.green}14`,
   },
   patternTextCol: {
     flex: 1,
@@ -507,12 +507,12 @@ const createStyles = (
     paddingHorizontal: 8,
     borderRadius: 14,
     borderWidth: 2,
-    borderColor: 'transparent',
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderColor: colors.cardBorder,
+    backgroundColor: colors.screenBackground,
   },
   themeCardActive: {
     borderColor: comfyColors.green,
-    backgroundColor: 'rgba(141,255,104,0.08)',
+    backgroundColor: `${comfyColors.green}14`,
   },
   themePreview: {
     width: 64,

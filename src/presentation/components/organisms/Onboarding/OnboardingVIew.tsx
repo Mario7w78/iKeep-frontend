@@ -1,5 +1,5 @@
 // screens/Onboarding/OnBoardingView.tsx
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -18,7 +18,7 @@ import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useAppStore } from "../../../../infrastructure/store/useAppStore";
 import { RootStackParamList } from "../../../navigation/AppNavigator";
-import { Theme } from "../../theme/colors";
+import { useTheme, ThemeColors } from "../../theme/colors";
 import { useScheduleStore } from "../../../../di/Dependencies";
 import { dateToMinutes, formatTime } from "../../../utils/timeUtils";
 import { onboardingDayLimitPersistence } from "../../../../infrastructure/persistence/OnboardingDayLimitPersistence";
@@ -75,6 +75,8 @@ const SLIDES = [
 ];
 
 export default function OnBoardingView() {
+  const { colors, comfyColors, comfyFontColors } = useTheme();
+  const styles = useMemo(() => createStyles(colors, comfyColors, comfyFontColors), [colors]);
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const setHasSeenOnboarding = useAppStore((s) => s.setHasSeenOnboarding);
   const username = useAppStore((s) => s.username);
@@ -151,44 +153,44 @@ export default function OnBoardingView() {
       case "username":
         return {
           name: "person-outline",
-          color: Theme.comfyColors.green,
-          bg: "rgba(141, 255, 104, 0.15)",
+          color: comfyColors.green,
+          bg: `${comfyColors.green}26`,
         };
       case "1":
         return {
           name: "calendar-outline",
-          color: Theme.comfyColors.skyBlue,
+          color: comfyColors.skyBlue,
           bg: "rgba(165, 178, 235, 0.15)",
         };
       case "2":
         return {
           name: "time-outline",
-          color: Theme.comfyColors.yellow,
+          color: comfyColors.yellow,
           bg: "rgba(233, 200, 74, 0.15)",
         };
       case "3":
         return {
           name: "rocket-outline",
-          color: Theme.comfyColors.green,
-          bg: "rgba(141, 255, 104, 0.15)",
+          color: comfyColors.green,
+          bg: `${comfyColors.green}26`,
         };
       case "4":
         return {
           name: "sunny-outline",
-          color: Theme.comfyColors.orange,
+          color: comfyColors.orange,
           bg: "rgba(255, 174, 113, 0.15)",
         };
       case "5":
         return {
           name: "moon-outline",
-          color: Theme.comfyColors.skyBlue,
+          color: comfyColors.skyBlue,
           bg: "rgba(165, 178, 235, 0.15)",
         };
       default:
         return {
           name: "sparkles-outline",
-          color: Theme.comfyColors.green,
-          bg: "rgba(141, 255, 104, 0.15)",
+          color: comfyColors.green,
+          bg: `${comfyColors.green}26`,
         };
     }
   };
@@ -257,7 +259,7 @@ export default function OnBoardingView() {
                     <Ionicons
                       name="time-outline"
                       size={24}
-                      color={Theme.colors.surface}
+                      color={colors.surface}
                     />
                     <Text style={styles.timeInputText}>
                       {startTime ? formatTime(startTime) : "Seleccionar la hora"}
@@ -271,7 +273,7 @@ export default function OnBoardingView() {
                         mode="time"
                         display="spinner"
                         themeVariant="dark"
-                        textColor={Theme.colors.surface}
+                        textColor={colors.surface}
                         onChange={(_, selectedDate) => {
                           if (selectedDate) setStartTime(selectedDate);
                           if (Platform.OS !== "ios") setShowStartPicker(false);
@@ -293,7 +295,7 @@ export default function OnBoardingView() {
                     <Ionicons
                       name="time-outline"
                       size={24}
-                      color={Theme.colors.surface}
+                      color={colors.surface}
                     />
                     <Text style={styles.timeInputText}>
                       {endTime ? formatTime(endTime) : "Seleccionar la hora"}
@@ -307,7 +309,7 @@ export default function OnBoardingView() {
                         mode="time"
                         display="spinner"
                         themeVariant="dark"
-                        textColor={Theme.colors.surface}
+                        textColor={colors.surface}
                         onChange={(_, selectedDate) => {
                           if (selectedDate) setEndTime(selectedDate);
                           if (Platform.OS !== "ios") setShowEndPicker(false);
@@ -352,8 +354,9 @@ export default function OnBoardingView() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Theme.colors.screenBackground },
+function createStyles(colors: ThemeColors, comfyColors: Record<string, string>, comfyFontColors: Record<string, string>) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.screenBackground },
   slide: {
     width,
     flex: 1,
@@ -374,13 +377,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: "800",
-    color: Theme.colors.surface,
+    color: colors.surface,
     textAlign: "center",
     marginBottom: 12,
   },
   description: {
     fontSize: 16,
-    color: Theme.colors.textSecondary,
+    color: colors.textSecondary,
     textAlign: "center",
     lineHeight: 24,
   },
@@ -395,8 +398,8 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     backgroundColor: "#4d506c",
     borderWidth: 1,
-    borderColor: Theme.colors.cardBorder,
-    color: Theme.colors.surface,
+    borderColor: colors.cardBorder,
+    color: colors.surface,
     fontSize: 18,
     fontWeight: "600",
     textAlign: "center",
@@ -411,11 +414,11 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     backgroundColor: "#4d506c",
     borderWidth: 1,
-    borderColor: Theme.colors.cardBorder,
+    borderColor: colors.cardBorder,
     paddingHorizontal: 20,
   },
   timeInputText: {
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontSize: 20,
     fontWeight: "900",
   },
@@ -427,7 +430,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginTop: 8,
     borderWidth: 1,
-    borderColor: Theme.colors.cardBorder,
+    borderColor: colors.cardBorder,
   },
   iosPicker: {
     height: 120,
@@ -447,7 +450,7 @@ const styles = StyleSheet.create({
   },
   dotActive: {
     width: 20,
-    backgroundColor: Theme.comfyColors.green,
+    backgroundColor: comfyColors.green,
   },
   footer: {
     flexDirection: "row",
@@ -458,18 +461,19 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   skipButton: { paddingVertical: 14, paddingHorizontal: 8 },
-  skipText: { fontSize: 16, color: Theme.colors.textSecondary, fontWeight: "700" },
+  skipText: { fontSize: 16, color: colors.textSecondary, fontWeight: "700" },
   nextButton: {
     flex: 1,
-    backgroundColor: Theme.comfyColors.green,
+    backgroundColor: comfyColors.green,
     paddingVertical: 14,
     borderRadius: 14,
     alignItems: "center",
   },
   nextButtonFull: { flex: 1 },
   nextText: {
-    color: Theme.comfyFontColors.green,
+    color: comfyFontColors.green,
     fontSize: 16,
     fontWeight: "900",
   },
-});
+  });
+}

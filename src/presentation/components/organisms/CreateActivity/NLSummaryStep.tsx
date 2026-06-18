@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import {
   View,
   Text,
@@ -9,7 +9,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { DayOfWeek } from "../../../../domain/entities/Activity";
 import { DayConfig } from "../../../../domain/entities/activity.types";
-import { Theme } from "../../theme/colors";
+import { useTheme, ThemeColors } from "../../theme/colors";
 import GroupList from "../../molecules/CreateActivity/GroupList";
 
 type NLSummaryStepProps = {
@@ -54,6 +54,8 @@ export default function NLSummaryStep({
   onConfirm,
   onEdit,
 }: NLSummaryStepProps) {
+  const { colors, comfyColors, comfyFontColors } = useTheme();
+  const styles = useMemo(() => createStyles(colors, comfyColors, comfyFontColors), [colors]);
   const identityLabel = identity
     ? identity === "clase"
       ? "Clase"
@@ -147,7 +149,7 @@ export default function NLSummaryStep({
             {formatTimeSummary(totalMinutes)}
           </Text>
         </View>
-        <View style={[styles.breakdownDivider, { backgroundColor: Theme.colors.cardBorder }]} />
+        <View style={[styles.breakdownDivider, { backgroundColor: colors.cardBorder }]} />
         <View style={styles.breakdownRow}>
           <Text style={styles.totalLabel}>Total:</Text>
           <Text style={styles.totalValue}>
@@ -173,7 +175,7 @@ export default function NLSummaryStep({
           onPress={onConfirm}
           activeOpacity={0.85}
         >
-          <Ionicons name="checkmark" size={20} color="#fff" />
+          <Ionicons name="checkmark" size={20} color={colors.accentText} />
           <Text style={styles.confirmText}>Confirmar</Text>
         </TouchableOpacity>
 
@@ -182,7 +184,7 @@ export default function NLSummaryStep({
           onPress={onEdit}
           activeOpacity={0.85}
         >
-          <Ionicons name="create-outline" size={20} color="#5665dc" />
+          <Ionicons name="create-outline" size={20} color={colors.secondaryAccent} />
           <Text style={styles.editText}>Editar manualmente</Text>
         </TouchableOpacity>
       </View>
@@ -190,121 +192,123 @@ export default function NLSummaryStep({
   );
 }
 
-const styles = StyleSheet.create({
-  scroll: {
-    flex: 1,
-  },
-  content: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 24,
-    gap: 16,
-  },
-  title: {
-    color: Theme.colors.surface,
-    fontSize: 24,
-    fontWeight: "800",
-    letterSpacing: -0.5,
-  },
-  subtitle: {
-    color: Theme.colors.textTertiary,
-    fontSize: 15,
-    fontWeight: "600",
-    marginTop: -10,
-  },
-  card: {
-    backgroundColor: Theme.colors.cardBackground,
-    borderRadius: 24,
-    padding: 16,
-    gap: 8,
-  },
-  grid: {
-    flexDirection: "row",
-    gap: 14,
-  },
-  half: {
-    flex: 1,
-    backgroundColor: Theme.colors.cardBackground,
-    borderRadius: 24,
-    padding: 16,
-    gap: 8,
-  },
-  capitalize: {
-    textTransform: "capitalize",
-  },
-  label: {
-    color: Theme.colors.iconPrimary,
-    fontSize: 14,
-    fontWeight: "900",
-  },
-  value: {
-    color: Theme.colors.surface,
-    fontSize: 16,
-    fontWeight: "900",
-  },
-  breakdownRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  breakdownText: {
-    color: Theme.colors.textSecondary,
-    fontSize: 15,
-    fontWeight: "700",
-  },
-  breakdownValue: {
-    color: Theme.colors.surface,
-    fontSize: 15,
-    fontWeight: "800",
-  },
-  breakdownDivider: {
-    height: 1,
-    marginVertical: 4,
-  },
-  totalLabel: {
-    color: Theme.colors.surface,
-    fontSize: 16,
-    fontWeight: "900",
-  },
-  totalValue: {
-    color: Theme.comfyColors.green,
-    fontSize: 18,
-    fontWeight: "900",
-  },
-  actions: {
-    gap: 12,
-    paddingBottom: 24,
-  },
-  confirmButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-    backgroundColor: "#4ecdc4",
-    borderRadius: 24,
-    paddingVertical: 16,
-    minHeight: 56,
-  },
-  confirmText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "900",
-  },
-  editButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-    backgroundColor: Theme.colors.cardBackground,
-    borderRadius: 24,
-    paddingVertical: 16,
-    minHeight: 56,
-    borderWidth: 2,
-    borderColor: Theme.colors.cardBorder,
-  },
-  editText: {
-    color: "#5665dc",
-    fontSize: 16,
-    fontWeight: "900",
-  },
-});
+function createStyles(colors: ThemeColors, comfyColors: Record<string, string>, _comfyFontColors: Record<string, string>) {
+  return StyleSheet.create({
+    scroll: {
+      flex: 1,
+    },
+    content: {
+      paddingHorizontal: 20,
+      paddingTop: 16,
+      paddingBottom: 24,
+      gap: 16,
+    },
+    title: {
+      color: colors.surface,
+      fontSize: 24,
+      fontWeight: "800",
+      letterSpacing: -0.5,
+    },
+    subtitle: {
+      color: colors.textTertiary,
+      fontSize: 15,
+      fontWeight: "600",
+      marginTop: -10,
+    },
+    card: {
+      backgroundColor: colors.cardBackground,
+      borderRadius: 24,
+      padding: 16,
+      gap: 8,
+    },
+    grid: {
+      flexDirection: "row",
+      gap: 14,
+    },
+    half: {
+      flex: 1,
+      backgroundColor: colors.cardBackground,
+      borderRadius: 24,
+      padding: 16,
+      gap: 8,
+    },
+    capitalize: {
+      textTransform: "capitalize",
+    },
+    label: {
+      color: colors.iconPrimary,
+      fontSize: 14,
+      fontWeight: "900",
+    },
+    value: {
+      color: colors.surface,
+      fontSize: 16,
+      fontWeight: "900",
+    },
+    breakdownRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+    },
+    breakdownText: {
+      color: colors.textSecondary,
+      fontSize: 15,
+      fontWeight: "700",
+    },
+    breakdownValue: {
+      color: colors.surface,
+      fontSize: 15,
+      fontWeight: "800",
+    },
+    breakdownDivider: {
+      height: 1,
+      marginVertical: 4,
+    },
+    totalLabel: {
+      color: colors.surface,
+      fontSize: 16,
+      fontWeight: "900",
+    },
+    totalValue: {
+      color: comfyColors.green,
+      fontSize: 18,
+      fontWeight: "900",
+    },
+    actions: {
+      gap: 12,
+      paddingBottom: 24,
+    },
+    confirmButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 10,
+      backgroundColor: colors.accent,
+      borderRadius: 24,
+      paddingVertical: 16,
+      minHeight: 56,
+    },
+    confirmText: {
+      color: colors.accentText,
+      fontSize: 18,
+      fontWeight: "900",
+    },
+    editButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 10,
+      backgroundColor: colors.cardBackground,
+      borderRadius: 24,
+      paddingVertical: 16,
+      minHeight: 56,
+      borderWidth: 2,
+      borderColor: colors.cardBorder,
+    },
+    editText: {
+      color: colors.secondaryAccent,
+      fontSize: 16,
+      fontWeight: "900",
+    },
+  });
+}

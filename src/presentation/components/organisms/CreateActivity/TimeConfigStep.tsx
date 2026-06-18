@@ -1,9 +1,9 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useMemo } from "react";
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, Animated } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { DayOfWeek } from "../../../../domain/entities/Activity";
 import { PartitionConfig, DayConfig } from "../../../../domain/entities/activity.types";
-import { Theme } from "../../theme/colors";
+import { useTheme, ThemeColors } from "../../theme/colors";
 import TimePartitionForm from "../../molecules/CreateActivity/TimePartitionForm";
 
 const getDayAbbreviation = (day: string) => {
@@ -88,6 +88,8 @@ export default function TimeConfigStep({
   onCopyToAll,
   daysDict,
 }: TimeConfigStepProps) {
+  const { colors, comfyColors, comfyFontColors } = useTheme();
+  const styles = useMemo(() => createStyles(colors, comfyColors, comfyFontColors), [colors]);
   const totalActiveMinutes = partitions.reduce(
     (sum, p) => sum + p.durationTime + (p.travelTo ?? 0) + (p.travelFrom ?? 0),
     0
@@ -226,7 +228,7 @@ export default function TimeConfigStep({
                 )
               }
             >
-              <Ionicons name="arrow-forward-circle-outline" size={14} color={Theme.comfyColors.green} style={{ marginRight: 4 }} />
+              <Ionicons name="arrow-forward-circle-outline" size={14} color={comfyColors.green} style={{ marginRight: 4 }} />
               <Text style={styles.copyAllButtonText}>Aplicar a todos</Text>
             </TouchableOpacity>
 
@@ -245,7 +247,7 @@ export default function TimeConfigStep({
                   )
                 }
               >
-                <Ionicons name="download-outline" size={14} color="#8dccff" style={{ marginRight: 4 }} />
+                <Ionicons name="download-outline" size={14} color={colors.secondaryAccent} style={{ marginRight: 4 }} />
                 <Text style={styles.copyDayButtonText}>{getDayAbbreviation(day)}</Text>
               </TouchableOpacity>
             ))}
@@ -280,130 +282,132 @@ export default function TimeConfigStep({
   );
 }
 
-const styles = StyleSheet.create({
-  scroll: {
-    flex: 1,
-  },
-  content: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 16,
-    gap: 16,
-  },
-  stepTitle: {
-    color: Theme.colors.surface,
-    fontSize: 24,
-    fontWeight: "800",
-    letterSpacing: -0.5,
-  },
-  stepSubtitle: {
-    color: Theme.colors.textTertiary,
-    fontSize: 15,
-    fontWeight: "600",
-    marginTop: -10,
-  },
-  tabsWrapper: {
-    marginVertical: 4,
-  },
-  tabsContainer: {
-    flexDirection: "row",
-  },
-  tabsContent: {
-    gap: 8,
-    paddingBottom: 4,
-  },
-  tabButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 14,
-    borderWidth: 2,
-    alignItems: "center",
-    minWidth: 64,
-  },
-  tabButtonActive: {
-    backgroundColor: "#5665dc",
-    borderColor: "#8dccff",
-  },
-  tabButtonInactive: {
-    backgroundColor: Theme.colors.cardBackground,
-    borderColor: Theme.colors.cardBorder,
-  },
-  tabButtonText: {
-    color: Theme.colors.iconPrimary,
-    fontSize: 14,
-    fontWeight: "800",
-  },
-  tabButtonTextActive: {
-    color: Theme.colors.surface,
-    fontWeight: "900",
-  },
-  tabButtonMinutes: {
-    color: Theme.colors.textTertiary,
-    fontSize: 11,
-    fontWeight: "600",
-    marginTop: 2,
-  },
-  tabButtonMinutesActive: {
-    color: "#b0c4ff",
-  },
-  dayConfigHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: Theme.colors.cardBackground,
-    borderRadius: 24,
-    padding: 16,
-    gap: 16,
-  },
-  dayConfigTitle: {
-    color: Theme.colors.surface,
-    fontSize: 18,
-    fontWeight: "900",
-  },
-  dayConfigTextBlock: {
-    flex: 1,
-  },
-  dayConfigSubtitle: {
-    color: Theme.colors.textSecondary,
-    fontSize: 15,
-    fontWeight: "800",
-    marginTop: 2,
-  },
-  copyConfigSection: {
-    marginBottom: 4,
-  },
-  copyConfigRow: {
-    flexDirection: "row",
-    gap: 8,
-    paddingBottom: 4,
-  },
-  copyAllButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 16,
-    backgroundColor: "rgba(141,255,104,0.12)",
-    borderWidth: 2,
-    borderColor: Theme.comfyColors.green,
-  },
-  copyAllButtonText: {
-    color: Theme.comfyColors.green,
-    fontSize: 13,
-    fontWeight: "800",
-  },
-  copyDayButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 16,
-    backgroundColor: Theme.colors.cardBackground,
-    borderWidth: 2,
-    borderColor: Theme.colors.cardBorder,
-  },
-  copyDayButtonText: {
-    color: Theme.colors.surface,
-    fontSize: 13,
-    fontWeight: "800",
-  },
-});
+function createStyles(colors: ThemeColors, comfyColors: Record<string, string>, _comfyFontColors: Record<string, string>) {
+  return StyleSheet.create({
+    scroll: {
+      flex: 1,
+    },
+    content: {
+      paddingHorizontal: 20,
+      paddingTop: 16,
+      paddingBottom: 16,
+      gap: 16,
+    },
+    stepTitle: {
+      color: colors.surface,
+      fontSize: 24,
+      fontWeight: "800",
+      letterSpacing: -0.5,
+    },
+    stepSubtitle: {
+      color: colors.textTertiary,
+      fontSize: 15,
+      fontWeight: "600",
+      marginTop: -10,
+    },
+    tabsWrapper: {
+      marginVertical: 4,
+    },
+    tabsContainer: {
+      flexDirection: "row",
+    },
+    tabsContent: {
+      gap: 8,
+      paddingBottom: 4,
+    },
+    tabButton: {
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      borderRadius: 14,
+      borderWidth: 2,
+      alignItems: "center",
+      minWidth: 64,
+    },
+    tabButtonActive: {
+      backgroundColor: colors.secondaryAccent,
+      borderColor: colors.secondaryAccent,
+    },
+    tabButtonInactive: {
+      backgroundColor: colors.cardBackground,
+      borderColor: colors.cardBorder,
+    },
+    tabButtonText: {
+      color: colors.iconPrimary,
+      fontSize: 14,
+      fontWeight: "800",
+    },
+    tabButtonTextActive: {
+      color: colors.secondaryAccentText,
+      fontWeight: "900",
+    },
+    tabButtonMinutes: {
+      color: colors.textTertiary,
+      fontSize: 11,
+      fontWeight: "600",
+      marginTop: 2,
+    },
+    tabButtonMinutesActive: {
+      color: colors.secondaryAccentText,
+    },
+    dayConfigHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.cardBackground,
+      borderRadius: 24,
+      padding: 16,
+      gap: 16,
+    },
+    dayConfigTitle: {
+      color: colors.surface,
+      fontSize: 18,
+      fontWeight: "900",
+    },
+    dayConfigTextBlock: {
+      flex: 1,
+    },
+    dayConfigSubtitle: {
+      color: colors.textSecondary,
+      fontSize: 15,
+      fontWeight: "800",
+      marginTop: 2,
+    },
+    copyConfigSection: {
+      marginBottom: 4,
+    },
+    copyConfigRow: {
+      flexDirection: "row",
+      gap: 8,
+      paddingBottom: 4,
+    },
+    copyAllButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderRadius: 16,
+      backgroundColor: `${comfyColors.green}20`,
+      borderWidth: 2,
+      borderColor: comfyColors.green,
+    },
+    copyAllButtonText: {
+      color: comfyColors.green,
+      fontSize: 13,
+      fontWeight: "800",
+    },
+    copyDayButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderRadius: 16,
+      backgroundColor: colors.cardBackground,
+      borderWidth: 2,
+      borderColor: colors.cardBorder,
+    },
+    copyDayButtonText: {
+      color: colors.surface,
+      fontSize: 13,
+      fontWeight: "800",
+    },
+  });
+}

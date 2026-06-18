@@ -19,7 +19,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { DayOfWeek } from "../../../../domain/entities/Activity";
 import { calculateEndTime } from "../../../utils/timeUtils";
-import { Theme } from "../../../components/theme/colors";
+import { useTheme, ThemeColors } from "../../../components/theme/colors";
 import { useActivityStore } from "../../../../di/Dependencies";
 
 import useFrequency from "../../../hooks/useFrequency";
@@ -46,6 +46,8 @@ const WEEKDAY_ORDER: DayOfWeek[] = [
 ];
 
 export default function CreateActivityView({ navigation, route }: any) {
+  const { colors, comfyColors, comfyFontColors } = useTheme();
+  const styles = useMemo(() => createStyles(colors, comfyColors, comfyFontColors), [colors]);
   const insets = useSafeAreaInsets();
   const { activities } = useActivityStore();
   const activityIdParam = route.params?.activityId;
@@ -685,7 +687,7 @@ export default function CreateActivityView({ navigation, route }: any) {
             <Ionicons
               name="close"
               size={32}
-              color={Theme.comfyFontColors.green}
+              color={comfyFontColors.green}
             />
           </TouchableOpacity>
         </View>
@@ -722,7 +724,7 @@ export default function CreateActivityView({ navigation, route }: any) {
 
       {isLoading && (
         <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#5665dc" />
+          <ActivityIndicator size="large" color={colors.secondaryAccent} />
           <Text style={styles.loadingText}>Guardando actividad...</Text>
         </View>
       )}
@@ -730,197 +732,199 @@ export default function CreateActivityView({ navigation, route }: any) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "flex-end",
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(10, 11, 18, 0.62)",
-  },
-  sheet: {
-    height: SHEET_HEIGHT,
-    backgroundColor: Theme.colors.screenBackground,
-    borderTopLeftRadius: 54,
-    borderTopRightRadius: 54,
-    paddingTop: 10,
-    overflow: "hidden",
-  },
-  dragArea: {
-    alignItems: "center",
-    paddingTop: 8,
-    paddingBottom: 16,
-  },
-  dragHandle: {
-    width: 64,
-    height: 6,
-    borderRadius: 999,
-    backgroundColor: Theme.colors.cardBorder,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-  },
-  title: {
-    color: Theme.colors.surface,
-    fontSize: 24,
-    fontWeight: "800",
-    letterSpacing: -1,
-  },
-  stepText: {
-    color: "#8dccff",
-    fontSize: 12,
-    fontWeight: "800",
-    marginTop: 2,
-  },
-  closeButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: Theme.comfyColors.green,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  footer: {
-    flexDirection: "row",
-    gap: 14,
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 24,
-  },
-  primaryButton: {
-    flex: 1,
-    backgroundColor: Theme.comfyColors.green,
-    borderRadius: 24,
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 56,
-  },
-  primaryButtonWithBack: {
-    flex: 2,
-  },
-  primaryButtonText: {
-    color: Theme.comfyFontColors.green,
-    fontSize: 18,
-    fontWeight: "900",
-  },
-  secondaryButton: {
-    flex: 1,
-    backgroundColor: Theme.colors.cardBackground,
-    borderRadius: 24,
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 56,
-  },
-  secondaryButtonText: {
-    color: Theme.colors.surface,
-    fontSize: 16,
-    fontWeight: "900",
-  },
-  loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(10, 11, 18, 0.8)",
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 9999,
-  },
-  loadingText: {
-    color: Theme.colors.surface,
-    fontSize: 16,
-    fontWeight: "800",
-    marginTop: 12,
-  },
+function createStyles(colors: ThemeColors, comfyColors: Record<string, string>, comfyFontColors: Record<string, string>) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      justifyContent: "flex-end",
+    },
+    backdrop: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: "rgba(10, 11, 18, 0.62)",
+    },
+    sheet: {
+      height: SHEET_HEIGHT,
+      backgroundColor: colors.screenBackground,
+      borderTopLeftRadius: 54,
+      borderTopRightRadius: 54,
+      paddingTop: 10,
+      overflow: "hidden",
+    },
+    dragArea: {
+      alignItems: "center",
+      paddingTop: 8,
+      paddingBottom: 16,
+    },
+    dragHandle: {
+      width: 64,
+      height: 6,
+      borderRadius: 999,
+      backgroundColor: colors.cardBorder,
+    },
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: 20,
+    },
+    title: {
+      color: colors.surface,
+      fontSize: 24,
+      fontWeight: "800",
+      letterSpacing: -1,
+    },
+    stepText: {
+      color: "#8dccff",
+      fontSize: 12,
+      fontWeight: "800",
+      marginTop: 2,
+    },
+    closeButton: {
+      width: 44,
+      height: 44,
+      borderRadius: 14,
+      backgroundColor: comfyColors.green,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    footer: {
+      flexDirection: "row",
+      gap: 14,
+      paddingHorizontal: 20,
+      paddingTop: 12,
+      paddingBottom: 24,
+    },
+    primaryButton: {
+      flex: 1,
+      backgroundColor: comfyColors.green,
+      borderRadius: 24,
+      alignItems: "center",
+      justifyContent: "center",
+      minHeight: 56,
+    },
+    primaryButtonWithBack: {
+      flex: 2,
+    },
+    primaryButtonText: {
+      color: comfyFontColors.green,
+      fontSize: 18,
+      fontWeight: "900",
+    },
+    secondaryButton: {
+      flex: 1,
+      backgroundColor: colors.cardBackground,
+      borderRadius: 24,
+      alignItems: "center",
+      justifyContent: "center",
+      minHeight: 56,
+    },
+    secondaryButtonText: {
+      color: colors.surface,
+      fontSize: 16,
+      fontWeight: "900",
+    },
+    loadingOverlay: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: "rgba(10, 11, 18, 0.8)",
+      justifyContent: "center",
+      alignItems: "center",
+      zIndex: 9999,
+    },
+    loadingText: {
+      color: colors.surface,
+      fontSize: 16,
+      fontWeight: "800",
+      marginTop: 12,
+    },
 
-  // NL Parse Section
-  nlContainer: {
-    marginBottom: 8,
-  },
-  nlInputRow: {
-    flexDirection: "row",
-    gap: 10,
-    alignItems: "flex-end",
-  },
-  nlTextInputWrapper: {
-    flex: 1,
-  },
-  nlTextInput: {
-    borderWidth: 2,
-    borderColor: Theme.colors.cardBorder,
-    borderRadius: 20,
-    backgroundColor: Theme.colors.cardBackground,
-    color: Theme.colors.surface,
-    fontSize: 15,
-    fontWeight: "700",
-    paddingHorizontal: 16,
-    minHeight: 200,
-    textAlignVertical: "center",
-  },
-  nlParseButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: "#5665dc",
-    borderRadius: 20,
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-    minHeight: 56,
-  },
-  nlParseButtonDisabled: {
-    opacity: 0.5,
-  },
-  nlParseButtonText: {
-    color: "#fff",
-    fontSize: 15,
-    fontWeight: "900",
-  },
-  nlErrorBanner: {
-    backgroundColor: "rgba(255, 107, 107, 0.12)",
-    borderWidth: 1,
-    borderColor: "#ff6b6b",
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  nlErrorContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  nlErrorText: {
-    flex: 1,
-    color: Theme.colors.surface,
-    fontSize: 13,
-    fontWeight: "700",
-    lineHeight: 18,
-  },
-  nlErrorActions: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    alignItems: "center",
-    gap: 10,
-    marginTop: 10,
-  },
-  nlRetryButton: {
-    backgroundColor: "#5665dc",
-    borderRadius: 14,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-  },
-  nlRetryText: {
-    color: "#fff",
-    fontSize: 14,
-    fontWeight: "900",
-  },
-  nlDismissButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "rgba(255,255,255,0.1)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
+    // NL Parse Section
+    nlContainer: {
+      marginBottom: 8,
+    },
+    nlInputRow: {
+      flexDirection: "row",
+      gap: 10,
+      alignItems: "flex-end",
+    },
+    nlTextInputWrapper: {
+      flex: 1,
+    },
+    nlTextInput: {
+      borderWidth: 2,
+      borderColor: colors.cardBorder,
+      borderRadius: 20,
+      backgroundColor: colors.cardBackground,
+      color: colors.surface,
+      fontSize: 15,
+      fontWeight: "700",
+      paddingHorizontal: 16,
+      minHeight: 200,
+      textAlignVertical: "center",
+    },
+    nlParseButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      backgroundColor: colors.secondaryAccent,
+      borderRadius: 20,
+      paddingHorizontal: 18,
+      paddingVertical: 14,
+      minHeight: 56,
+    },
+    nlParseButtonDisabled: {
+      opacity: 0.5,
+    },
+    nlParseButtonText: {
+      color: "#fff",
+      fontSize: 15,
+      fontWeight: "900",
+    },
+    nlErrorBanner: {
+      backgroundColor: "rgba(255, 107, 107, 0.12)",
+      borderWidth: 1,
+      borderColor: "#ff6b6b",
+      borderRadius: 16,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+    },
+    nlErrorContent: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+    },
+    nlErrorText: {
+      flex: 1,
+      color: colors.surface,
+      fontSize: 13,
+      fontWeight: "700",
+      lineHeight: 18,
+    },
+    nlErrorActions: {
+      flexDirection: "row",
+      justifyContent: "flex-end",
+      alignItems: "center",
+      gap: 10,
+      marginTop: 10,
+    },
+    nlRetryButton: {
+      backgroundColor: colors.secondaryAccent,
+      borderRadius: 14,
+      paddingHorizontal: 18,
+      paddingVertical: 10,
+    },
+    nlRetryText: {
+      color: "#fff",
+      fontSize: 14,
+      fontWeight: "900",
+    },
+    nlDismissButton: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: "rgba(255,255,255,0.1)",
+      alignItems: "center",
+      justifyContent: "center",
+    },
 
-});
+  });
+}

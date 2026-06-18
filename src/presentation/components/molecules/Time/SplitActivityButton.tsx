@@ -1,6 +1,6 @@
 import { View, Text, TouchableOpacity } from "react-native";
 import React from "react";
-import { Theme } from "../../theme/colors";
+import { useTheme } from "../../theme/colors";
 import { AntDesign } from "@expo/vector-icons";
 import { PartitionConfig } from "../../../../domain/entities/activity.types";
 
@@ -19,6 +19,7 @@ export default function SplitActivityButton({
   onAdd,
   onDelete,
 }: Props) {
+  const { colors } = useTheme();
   return (
     <View>
       <View
@@ -35,18 +36,18 @@ export default function SplitActivityButton({
             style={{
               backgroundColor:
                 activeIndex === index
-                  ? Theme.colors.cardBackground
-                  : Theme.colors.cardBackground,
+                  ? colors.cardBackground
+                  : colors.cardBackground,
               paddingHorizontal: 15,
               paddingVertical: 5,
               borderRadius: 10,
               borderWidth: 1,
-              borderColor: Theme.colors.cardBorder,
+              borderColor: colors.cardBorder,
             }}
           >
             <Text
               style={{
-                color: Theme.colors.surface,
+                color: colors.surface,
                 fontWeight: "bold",
               }}
             >
@@ -57,17 +58,17 @@ export default function SplitActivityButton({
         <TouchableOpacity
           onPress={onAdd}
           style={{
-            backgroundColor: Theme.colors.cardBackground,
+            backgroundColor: colors.cardBackground,
             width: 30,
             height: 30,
             borderRadius: 50,
             justifyContent: "center",
             alignItems: "center",
             borderWidth: 1,
-            borderColor: Theme.colors.cardBorder,
+            borderColor: colors.cardBorder,
           }}
         >
-          <AntDesign name="plus" size={12} color={Theme.colors.surface} />
+          <AntDesign name="plus" size={12} color={colors.surface} />
         </TouchableOpacity>
 
         {partitions.length > 1 && onDelete && (
@@ -75,7 +76,7 @@ export default function SplitActivityButton({
             onPress={onDelete}
             style={{
               marginLeft: "auto",
-              backgroundColor: Theme.colors.error || "#ff4d4d",
+              backgroundColor: colors.error || "#ff4d4d",
               width: 30,
               height: 30,
               borderRadius: 50,
@@ -83,7 +84,7 @@ export default function SplitActivityButton({
               alignItems: "center",
             }}
           >
-            <AntDesign name="delete" size={14} color={Theme.colors.surface} />
+            <AntDesign name="delete" size={14} color={colors.surface} />
           </TouchableOpacity>
         )}
       </View>

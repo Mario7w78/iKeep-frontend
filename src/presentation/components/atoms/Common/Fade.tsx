@@ -1,20 +1,21 @@
 import React from "react";
 import { View, StyleSheet } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { Theme } from "../../theme/colors";
+import { useTheme } from "../../theme/colors";
 interface FadeProps {
   children?: React.ReactNode;
 }
 
 export const Fade = ({ children }: FadeProps) => {
-  const bgColor = Theme.colors.screenBackground;
+  const { colors } = useTheme();
+  const bgColor = colors.screenBackground;
   const transparentColor = `${bgColor}00`;
 
   return (
     <View style={styles.container}>
       {children}
       <LinearGradient
-        colors={[Theme.colors.screenBackground, transparentColor]}
+        colors={[colors.screenBackground, transparentColor]}
         style={styles.topGradient}
         pointerEvents="none"
       />

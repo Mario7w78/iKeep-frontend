@@ -1,8 +1,9 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import { Modal, View, Text, StyleSheet, TouchableOpacity, Pressable, PanResponder, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ScheduledActivity } from '../../../../domain/entities/Schedule';
-import { Theme } from '../../theme/colors';
+import { useTheme } from '../../theme/colors';
+import type { ThemeColors } from '../../theme/colors';
 
 interface ActivityDetailModalProps {
   visible: boolean;
@@ -13,6 +14,8 @@ interface ActivityDetailModalProps {
 
 export function ActivityDetailModal({ visible, activityItem, onClose, onEdit }: ActivityDetailModalProps) {
   const translateY = useRef(new Animated.Value(0)).current;
+  const { colors, comfyColors, comfyFontColors } = useTheme();
+  const styles = useMemo(() => createStyles(colors, comfyColors, comfyFontColors), [colors, comfyColors, comfyFontColors]);
 
   const panResponder = useRef(
     PanResponder.create({
@@ -68,9 +71,9 @@ export function ActivityDetailModal({ visible, activityItem, onClose, onEdit }: 
 
   const getIdentityColor = (identity: string) => {
     switch (identity) {
-      case 'clase': return Theme.comfyColors.skyBlue;
-      case 'trabajo': return Theme.comfyColors.orange;
-      default: return Theme.comfyColors.green;
+      case 'clase': return comfyColors.skyBlue;
+      case 'trabajo': return comfyColors.orange;
+      default: return comfyColors.green;
     }
   };
 
@@ -99,17 +102,17 @@ export function ActivityDetailModal({ visible, activityItem, onClose, onEdit }: 
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
-      case 'baja': return Theme.comfyColors.green;
-      case 'media': return Theme.comfyColors.yellow;
+      case 'baja': return comfyColors.green;
+      case 'media': return comfyColors.yellow;
       case 'alta': return '#FF6B6B';
-      default: return Theme.colors.surface;
+      default: return colors.surface;
     }
   };
 
   const getPriorityColor = (priority: number) => {
     if (priority >= 5) return '#FF6B6B';
-    if (priority >= 3) return Theme.comfyColors.skyBlue;
-    return Theme.comfyColors.green;
+    if (priority >= 3) return comfyColors.skyBlue;
+    return comfyColors.green;
   };
 
   return (
@@ -139,7 +142,7 @@ export function ActivityDetailModal({ visible, activityItem, onClose, onEdit }: 
               </View>
             </View>
             <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-              <Ionicons name="close" size={24} color={Theme.colors.surface} />
+              <Ionicons name="close" size={24} color={colors.surface} />
             </TouchableOpacity>
           </View>
 
@@ -148,7 +151,7 @@ export function ActivityDetailModal({ visible, activityItem, onClose, onEdit }: 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>HORARIO ASIGNADO</Text>
             <View style={styles.timeCard}>
-              <Ionicons name="time-outline" size={26} color={Theme.comfyColors.skyBlue} />
+              <Ionicons name="time-outline" size={26} color={comfyColors.skyBlue} />
               <View>
                 <Text style={styles.timeText}>{assignedStartTime} – {assignedEndTime}</Text>
                 <Text style={styles.dayText}>{day}</Text>
@@ -165,7 +168,7 @@ export function ActivityDetailModal({ visible, activityItem, onClose, onEdit }: 
                   <Ionicons 
                     name={activity.isFixed() ? 'lock-closed-outline' : 'flash-outline'} 
                     size={16} 
-                    color={Theme.colors.surface} 
+                    color={colors.surface} 
                   />
                   <Text style={styles.badgeText}>
                     {activity.isFixed() ? 'Fijo' : 'Optimizable'}
@@ -175,9 +178,9 @@ export function ActivityDetailModal({ visible, activityItem, onClose, onEdit }: 
 
               <View style={styles.gridItem}>
                 <Text style={styles.gridLabel}>Prioridad</Text>
-                <View style={[styles.badge, { backgroundColor: 'rgba(255,255,255,0.05)' }]}>
+                <View style={styles.badge}>
                   <Ionicons name="flag" size={16} color={getPriorityColor(activity.priority)} />
-                  <Text style={[styles.badgeText, { color: Theme.colors.surface }]}>
+                  <Text style={styles.badgeText}>
                     {getPriorityLabel(activity.priority)}
                   </Text>
                 </View>
@@ -185,9 +188,9 @@ export function ActivityDetailModal({ visible, activityItem, onClose, onEdit }: 
 
               <View style={styles.gridItem}>
                 <Text style={styles.gridLabel}>Dificultad</Text>
-                <View style={[styles.badge, { backgroundColor: 'rgba(255,255,255,0.05)' }]}>
+                <View style={styles.badge}>
                   <Ionicons name="speedometer-outline" size={16} color={getDifficultyColor(activity.difficulty)} />
-                  <Text style={[styles.badgeText, { color: Theme.colors.surface }]}>
+                  <Text style={styles.badgeText}>
                     {getDifficultyLabel(activity.difficulty)}
                   </Text>
                 </View>
@@ -195,8 +198,8 @@ export function ActivityDetailModal({ visible, activityItem, onClose, onEdit }: 
 
               <View style={styles.gridItem}>
                 <Text style={styles.gridLabel}>Fecha Límite</Text>
-                <View style={[styles.badge, { backgroundColor: 'rgba(255,255,255,0.05)' }]}>
-                  <Ionicons name="calendar-outline" size={16} color={Theme.colors.iconPrimary} />
+                <View style={styles.badge}>
+                  <Ionicons name="calendar-outline" size={16} color={colors.iconPrimary} />
                   <Text style={styles.badgeText}>
                     {activity.deadline 
                       ? new Date(activity.deadline).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
@@ -214,7 +217,7 @@ export function ActivityDetailModal({ visible, activityItem, onClose, onEdit }: 
               activeOpacity={0.8}
               onPress={() => { onEdit(activity.id); onClose(); }}
             >
-              <Ionicons name="create-outline" size={20} color={Theme.colors.surface} />
+              <Ionicons name="create-outline" size={20} color={colors.surface} />
               <Text style={styles.editButtonText}>Editar actividad</Text>
             </TouchableOpacity>
           )}
@@ -227,20 +230,20 @@ export function ActivityDetailModal({ visible, activityItem, onClose, onEdit }: 
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors, comfyColors: Record<string, string>, comfyFontColors: Record<string, string>) => StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: 'flex-end',
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(10, 11, 18, 0.75)',
+    backgroundColor: colors.overlayBackground,
   },
   sheet: {
-    backgroundColor: Theme.colors.screenBackground,
+    backgroundColor: colors.screenBackground,
     borderTopLeftRadius: 36,
     borderTopRightRadius: 36,
-    borderColor: Theme.colors.cardBorder,
+    borderColor: colors.cardBorder,
     borderWidth: 1,
     borderBottomWidth: 0,
     paddingTop: 12,
@@ -252,7 +255,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 5,
     borderRadius: 2.5,
-    backgroundColor: Theme.colors.cardBorder,
+    backgroundColor: colors.cardBorder,
     alignSelf: 'center',
     marginBottom: 8,
   },
@@ -279,13 +282,13 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   title: {
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontSize: 20,
     fontWeight: '800',
     letterSpacing: -0.5,
   },
   subtitle: {
-    color: Theme.colors.textSecondary,
+    color: colors.textSecondary,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -293,19 +296,21 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    backgroundColor: colors.screenBackground,
+    borderWidth: 1.5,
+    borderColor: colors.cardBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
   divider: {
     height: 1,
-    backgroundColor: Theme.colors.cardBorder,
+    backgroundColor: colors.cardBorder,
   },
   section: {
     gap: 10,
   },
   sectionTitle: {
-    color: Theme.colors.iconPrimary,
+    color: colors.iconPrimary,
     fontSize: 12,
     fontWeight: '900',
     letterSpacing: 0.8,
@@ -314,20 +319,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 16,
-    backgroundColor: Theme.colors.cardBackground,
-    borderColor: Theme.colors.cardBorder,
+    backgroundColor: colors.cardBackground,
+    borderColor: colors.cardBorder,
     borderWidth: 1,
     borderRadius: 20,
     padding: 16,
   },
   timeText: {
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontSize: 22,
     fontWeight: '900',
     letterSpacing: -0.5,
   },
   dayText: {
-    color: Theme.colors.textTertiary,
+    color: colors.textTertiary,
     fontSize: 14,
     fontWeight: '700',
     marginTop: 2,
@@ -343,14 +348,16 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   gridLabel: {
-    color: Theme.colors.textTertiary,
+    color: colors.textTertiary,
     fontSize: 12,
     fontWeight: '800',
   },
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: colors.screenBackground,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 12,
@@ -358,7 +365,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   badgeText: {
-    color: Theme.colors.surface,
+    color: colors.textSecondary,
     fontSize: 13,
     fontWeight: '800',
   },
@@ -366,19 +373,19 @@ const styles = StyleSheet.create({
     height: 54,
     borderRadius: 27,
     borderWidth: 1.5,
-    borderColor: Theme.colors.cardBorder,
+    borderColor: colors.cardBorder,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
   },
   editButtonText: {
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontSize: 16,
     fontWeight: '900',
   },
   actionButton: {
-    backgroundColor: Theme.comfyColors.green,
+    backgroundColor: comfyColors.green,
     height: 54,
     borderRadius: 27,
     alignItems: 'center',
@@ -386,7 +393,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   actionButtonText: {
-    color: Theme.comfyFontColors.green,
+    color: comfyFontColors.green,
     fontSize: 16,
     fontWeight: '900',
   },

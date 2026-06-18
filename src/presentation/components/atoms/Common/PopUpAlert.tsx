@@ -1,5 +1,6 @@
+import React, { useMemo } from 'react';
 import { Modal, View, Text, Button, StyleSheet } from 'react-native';
-import { Theme } from '../../theme/colors';
+import { useTheme } from '../../theme/colors';
 
 interface props {
   text: string,
@@ -8,6 +9,9 @@ interface props {
 }
 
 export default function PopUpAlert({ text, isVisible, onClose }: props) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <View>
       <Modal
@@ -27,10 +31,10 @@ export default function PopUpAlert({ text, isVisible, onClose }: props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   backgroundOpacity: {
     flex: 1,
-    backgroundColor: Theme.colors.overlayBackground,
+    backgroundColor: colors.overlayBackground,
     justifyContent: 'center',
     alignItems: 'center'
   },
@@ -43,7 +47,7 @@ const styles = StyleSheet.create({
   alertText: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: Theme.colors.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
   }
 })

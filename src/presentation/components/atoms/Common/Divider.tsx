@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleProp, ViewStyle } from 'react-native';
-import { Theme } from '../../theme/colors';
+import { useTheme } from '../../theme/colors';
 
 interface Props {
   style?: StyleProp<ViewStyle>;
@@ -11,10 +11,13 @@ interface Props {
 
 export const Divider = ({ 
   style, 
-  color = Theme.colors.cardBorder || '#E0E0E0',
+  color: colorProp,
   thickness = 1, 
   orientation = 'horizontal' 
 }: Props) => {
+  const { colors } = useTheme();
+  const color = colorProp ?? colors.cardBorder ?? '#E0E0E0';
+
   return (
     <View
       style={[

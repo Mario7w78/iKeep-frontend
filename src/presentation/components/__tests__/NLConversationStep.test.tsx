@@ -19,6 +19,14 @@ if (LayoutAnimation) {
   };
 }
 
+// Mock AsyncStorage
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  setItem: jest.fn(),
+  getItem: jest.fn().mockResolvedValue(null),
+  removeItem: jest.fn(),
+  clear: jest.fn(),
+}));
+
 // Mock TypingIndicator to prevent any infinite loop issues with Animated loops in Jest
 jest.mock('../atoms/CreateActivity/TypingIndicator', () => ({
   TypingIndicator: () => null,

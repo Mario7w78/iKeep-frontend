@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { ScrollView, TouchableOpacity, Text, StyleSheet } from 'react-native';
-import { Theme } from '../../theme/colors';
+import { useTheme } from '../../theme/colors';
 
 interface Props {
   options: string[];
@@ -9,7 +9,10 @@ interface Props {
   onSelect: (val: any) => void;
 }
 
-export const ChipGroup = ({ options, selectedValue, onSelect, uniqueValue }: Props) => (
+export const ChipGroup = ({ options, selectedValue, onSelect, uniqueValue }: Props) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  return (
   <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipContainer}>
     {options.map((option) => (
       <TouchableOpacity
@@ -30,23 +33,24 @@ export const ChipGroup = ({ options, selectedValue, onSelect, uniqueValue }: Pro
     ))}
   </ScrollView>
 );
+};
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   chipContainer: { flexDirection: 'row' },
   chip: {
-    backgroundColor: Theme.colors.cardBackground,
+    backgroundColor: colors.cardBackground,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderWidth: 1,
     borderRadius: 20,
     marginRight: 10,
-    borderColor: Theme.colors.surface
+    borderColor: colors.surface
   },
-  chipSelected: { backgroundColor: Theme.colors.cardBackground },
+  chipSelected: { backgroundColor: colors.cardBackground },
   chipText: {
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontWeight: 'bold'
   },
   chipDisabled: { opacity: 0.4 },
-  chipTextSelected: { color: Theme.colors.surface },
+  chipTextSelected: { color: colors.surface },
 });

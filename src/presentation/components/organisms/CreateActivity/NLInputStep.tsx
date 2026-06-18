@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -8,7 +8,7 @@ import {
   StyleSheet,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Theme } from "../../theme/colors";
+import { useTheme, ThemeColors } from "../../theme/colors";
 
 type NLInputStepProps = {
   nlText: string;
@@ -32,6 +32,8 @@ export default function NLInputStep({
   nlError,
   onAnalyze,
 }: NLInputStepProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [tipIndex, setTipIndex] = useState(0);
 
   useEffect(() => {
@@ -85,10 +87,10 @@ export default function NLInputStep({
         disabled={!nlText.trim() || nlLoading}
       >
         {nlLoading ? (
-          <ActivityIndicator size="small" color="#fff" />
+          <ActivityIndicator size="small" color={colors.secondaryAccentText} />
         ) : (
           <>
-            <Ionicons name="sparkles-outline" size={20} color="#fff" />
+            <Ionicons name="sparkles-outline" size={20} color={colors.secondaryAccentText} />
             <Text style={styles.analyzeButtonText}>Analizar con IA</Text>
           </>
         )}
@@ -97,7 +99,7 @@ export default function NLInputStep({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 20,
@@ -105,7 +107,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   title: {
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontSize: 20,
     fontWeight: "800",
   },
@@ -132,10 +134,10 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 2,
-    borderColor: Theme.colors.cardBorder,
+    borderColor: colors.cardBorder,
     borderRadius: 20,
-    backgroundColor: Theme.colors.cardBackground,
-    color: Theme.colors.surface,
+    backgroundColor: colors.cardBackground,
+    color: colors.surface,
     fontSize: 15,
     fontWeight: "700",
     paddingHorizontal: 16,
@@ -158,7 +160,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     flex: 1,
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontSize: 13,
     fontWeight: "700",
     lineHeight: 18,
@@ -168,7 +170,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 10,
-    backgroundColor: "#5665dc",
+    backgroundColor: colors.secondaryAccent,
     borderRadius: 24,
     paddingVertical: 16,
     minHeight: 56,
@@ -177,7 +179,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   analyzeButtonText: {
-    color: "#fff",
+    color: colors.secondaryAccentText,
     fontSize: 16,
     fontWeight: "900",
   },

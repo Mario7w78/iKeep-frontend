@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import {
   Modal,
   View,
@@ -13,7 +13,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { Activity, DayOfWeek } from "../../../../domain/entities/Activity";
 import { DayConfig } from "../../../../domain/entities/activity.types";
-import { Theme } from "../../theme/colors";
+import { useTheme, groupColors } from "../../theme/colors";
+import type { ThemeColors } from "../../theme/colors";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -29,6 +30,8 @@ export function ActivityConfigDetailModal({
   onClose,
 }: ActivityConfigDetailModalProps) {
   const navigation = useNavigation<any>();
+  const { colors, comfyColors } = useTheme();
+  const styles = useMemo(() => createStyles(colors, comfyColors), [colors, comfyColors]);
 
   if (!activity) return null;
 
@@ -45,9 +48,9 @@ export function ActivityConfigDetailModal({
 
   const getIdentityColor = (identity: string) => {
     switch (identity) {
-      case "clase": return Theme.comfyColors.skyBlue;
-      case "trabajo": return Theme.comfyColors.orange;
-      default: return Theme.comfyColors.green;
+      case "clase": return comfyColors.skyBlue;
+      case "trabajo": return comfyColors.orange;
+      default: return comfyColors.green;
     }
   };
 
@@ -86,20 +89,20 @@ export function ActivityConfigDetailModal({
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
       case "baja":
-        return Theme.comfyColors.green;
+        return comfyColors.green;
       case "media":
-        return Theme.comfyColors.yellow;
+        return comfyColors.yellow;
       case "alta":
         return "#FF6B6B";
       default:
-        return Theme.colors.surface;
+        return colors.surface;
     }
   };
 
   const getPriorityColor = (priority: number) => {
     if (priority >= 5) return "#FF6B6B";
-    if (priority >= 3) return Theme.comfyColors.skyBlue;
-    return Theme.comfyColors.green;
+    if (priority >= 3) return comfyColors.skyBlue;
+    return comfyColors.green;
   };
 
   const formatDeadline = (dateStr: string | null) => {
@@ -168,7 +171,7 @@ export function ActivityConfigDetailModal({
               </View>
             </View>
             <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-              <Ionicons name="close" size={24} color={Theme.colors.surface} />
+              <Ionicons name="close" size={24} color={colors.surface} />
             </TouchableOpacity>
           </View>
 
@@ -192,7 +195,7 @@ export function ActivityConfigDetailModal({
                           : "flash-outline"
                       }
                       size={16}
-                      color={Theme.colors.surface}
+                      color={colors.surface}
                     />
                     <Text style={styles.badgeText}>
                       {activity.isFixed() ? "Fijo" : "Optimizable"}
@@ -202,23 +205,13 @@ export function ActivityConfigDetailModal({
 
                 <View style={styles.gridItem}>
                   <Text style={styles.gridLabel}>Prioridad</Text>
-                  <View
-                    style={[
-                      styles.badge,
-                      { backgroundColor: "rgba(255,255,255,0.05)" },
-                    ]}
-                  >
+                  <View style={styles.badge}>
                     <Ionicons
                       name="flag"
                       size={16}
                       color={getPriorityColor(activity.priority)}
                     />
-                    <Text
-                      style={[
-                        styles.badgeText,
-                        { color: Theme.colors.surface },
-                      ]}
-                    >
+                    <Text style={styles.badgeText}>
                       {getPriorityLabel(activity.priority)}
                     </Text>
                   </View>
@@ -226,23 +219,13 @@ export function ActivityConfigDetailModal({
 
                 <View style={styles.gridItem}>
                   <Text style={styles.gridLabel}>Dificultad</Text>
-                  <View
-                    style={[
-                      styles.badge,
-                      { backgroundColor: "rgba(255,255,255,0.05)" },
-                    ]}
-                  >
+                  <View style={styles.badge}>
                     <Ionicons
                       name="speedometer-outline"
                       size={16}
                       color={getDifficultyColor(activity.difficulty)}
                     />
-                    <Text
-                      style={[
-                        styles.badgeText,
-                        { color: Theme.colors.surface },
-                      ]}
-                    >
+                    <Text style={styles.badgeText}>
                       {getDifficultyText(activity.difficulty)}
                     </Text>
                   </View>
@@ -250,16 +233,11 @@ export function ActivityConfigDetailModal({
 
                 <View style={styles.gridItem}>
                   <Text style={styles.gridLabel}>Fecha Límite</Text>
-                  <View
-                    style={[
-                      styles.badge,
-                      { backgroundColor: "rgba(255,255,255,0.05)" },
-                    ]}
-                  >
+                  <View style={styles.badge}>
                     <Ionicons
                       name="calendar-outline"
                       size={16}
-                      color={Theme.colors.iconPrimary}
+                      color={colors.iconPrimary}
                     />
                     <Text style={styles.badgeText}>
                       {formatDeadline(activity.deadline)}
@@ -272,7 +250,7 @@ export function ActivityConfigDetailModal({
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>DÍAS CONFIGURADOS</Text>
               <View style={styles.daysSummaryCard}>
-                <Ionicons name="calendar-outline" size={22} color={Theme.comfyColors.skyBlue} />
+                <Ionicons name="calendar-outline" size={22} color={comfyColors.skyBlue} />
                 <Text style={styles.daysSummaryText}>
                   {configuredDays} día{configuredDays !== 1 ? 's' : ''} configurado{configuredDays !== 1 ? 's' : ''}
                 </Text>
@@ -284,7 +262,7 @@ export function ActivityConfigDetailModal({
               <View style={styles.groupsContainer}>
                 {Object.entries(groups).map(([gidStr, { days, config }]) => {
                   const gid = Number(gidStr);
-                  const color = Theme.groupColors[gid % Theme.groupColors.length];
+                  const color = groupColors[gid % groupColors.length];
 
                   return (
                     <View key={gid} style={styles.groupTag}>
@@ -348,8 +326,8 @@ export function ActivityConfigDetailModal({
                 navigation.navigate("CreateActivityModal", { activityId: activity.id });
               }}
             >
-              <Ionicons name="create-outline" size={20} color={Theme.colors.surface} />
-              <Text style={[styles.actionButtonText, { color: Theme.colors.surface }]}>Editar</Text>
+              <Ionicons name="create-outline" size={20} color={colors.secondaryAccentText} />
+              <Text style={[styles.actionButtonText, { color: colors.secondaryAccentText }]}>Editar</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.actionButton, styles.closeButtonSecondary]}
@@ -365,19 +343,19 @@ export function ActivityConfigDetailModal({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors, comfyColors: Record<string, string>) => StyleSheet.create({
   overlayContainer: {
     flex: 1,
-    backgroundColor: "rgba(10, 11, 18, 0.75)",
+    backgroundColor: colors.overlayBackground,
   },
   closeArea: {
     flex: 1,
   },
   sheet: {
-    backgroundColor: Theme.colors.screenBackground,
+    backgroundColor: colors.screenBackground,
     borderTopLeftRadius: 36,
     borderTopRightRadius: 36,
-    borderColor: Theme.colors.cardBorder,
+    borderColor: colors.cardBorder,
     borderWidth: 1,
     borderBottomWidth: 0,
     paddingTop: 12,
@@ -390,7 +368,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 5,
     borderRadius: 2.5,
-    backgroundColor: Theme.colors.cardBorder,
+    backgroundColor: colors.cardBorder,
     alignSelf: "center",
   },
   header: {
@@ -416,13 +394,13 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   title: {
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontSize: 20,
     fontWeight: "800",
     letterSpacing: -0.5,
   },
   subtitle: {
-    color: Theme.colors.textSecondary,
+    color: colors.textSecondary,
     fontSize: 14,
     fontWeight: "600",
   },
@@ -430,13 +408,15 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "rgba(255, 255, 255, 0.06)",
+    backgroundColor: colors.screenBackground,
+    borderWidth: 1.5,
+    borderColor: colors.cardBorder,
     alignItems: "center",
     justifyContent: "center",
   },
   divider: {
     height: 1,
-    backgroundColor: Theme.colors.cardBorder,
+    backgroundColor: colors.cardBorder,
   },
   scroll: {
     flexGrow: 1,
@@ -449,7 +429,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   sectionTitle: {
-    color: Theme.colors.iconPrimary,
+    color: colors.iconPrimary,
     fontSize: 12,
     fontWeight: "900",
     letterSpacing: 0.8,
@@ -465,14 +445,16 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   gridLabel: {
-    color: Theme.colors.textTertiary,
+    color: colors.textTertiary,
     fontSize: 12,
     fontWeight: "800",
   },
   badge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: colors.screenBackground,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 12,
@@ -480,7 +462,7 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
   },
   badgeText: {
-    color: Theme.colors.surface,
+    color: colors.textSecondary,
     fontSize: 13,
     fontWeight: "800",
   },
@@ -488,14 +470,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: Theme.colors.cardBackground,
-    borderColor: Theme.colors.cardBorder,
+    backgroundColor: colors.cardBackground,
+    borderColor: colors.cardBorder,
     borderWidth: 1,
     borderRadius: 20,
     padding: 16,
   },
   daysSummaryText: {
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontSize: 16,
     fontWeight: "800",
   },
@@ -503,8 +485,8 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   groupTag: {
-    backgroundColor: Theme.colors.cardBackground,
-    borderColor: Theme.colors.cardBorder,
+    backgroundColor: colors.cardBackground,
+    borderColor: colors.cardBorder,
     borderWidth: 1,
     borderRadius: 20,
     padding: 16,
@@ -557,7 +539,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   actionButtonText: {
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontSize: 16,
     fontWeight: "900",
   },
@@ -569,10 +551,10 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     gap: 8,
-    backgroundColor: "#5665dc",
+    backgroundColor: colors.secondaryAccent,
   },
   closeButtonSecondary: {
     flex: 1.2,
-    backgroundColor: Theme.colors.cardBorder,
+    backgroundColor: colors.cardBorder,
   },
 });

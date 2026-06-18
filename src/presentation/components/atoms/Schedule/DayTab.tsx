@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { TouchableOpacity, Text, View, StyleSheet } from 'react-native';
 import { DayOfWeek } from '../../../../domain/entities/Activity';
 import { JS_DAY_TO_DAYOFWEEK } from '../../../utils/scheduleUtils';
+import { useTheme, ThemeColors } from '../../theme/colors';
 
 const DAY_SINGLE_LETTER: Record<DayOfWeek, string> = {
   Lunes: 'L',
@@ -22,71 +23,77 @@ interface Props {
 export function DayTab({ day, isSelected, onPress }: Props) {
   const today = JS_DAY_TO_DAYOFWEEK[new Date().getDay()];
   const isToday = day === today;
+  const { colors, comfyColors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   return (
-    <View style={s.tabContainer}>
+    <View style={styles.tabContainer}>
       <TouchableOpacity
         onPress={onPress}
         style={[
-          s.tab,
-          isSelected ? s.tabActive : s.tabInactive,
-          isToday && !isSelected && { borderColor: '#98FF60', borderWidth: 1.5 }
+          styles.tab,
+          isSelected ? styles.tabActive : styles.tabInactive,
+          isToday && !isSelected && { borderColor: comfyColors.green, borderWidth: 1.5 }
         ]}
       >
         <Text style={[
-          s.text, 
-          isSelected ? s.textActive : s.textInactive,
-          isToday && !isSelected && { color: '#98FF60' }
+          styles.text, 
+          isSelected ? styles.textActive : styles.textInactive,
+          isToday && !isSelected && { color: comfyColors.green }
         ]}>
           {DAY_SINGLE_LETTER[day]}
         </Text>
       </TouchableOpacity>
       {isSelected ? (
-        <View style={s.indicator} />
+        <View style={styles.indicator} />
       ) : (
-        <View style={s.indicatorPlaceholder} />
+        <View style={styles.indicatorPlaceholder} />
       )}
     </View>
   );
 }
 
-const s = StyleSheet.create({
-  tabContainer: {
-    alignItems: 'center',
-    gap: 6,
-  },
-  tab: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tabActive: {
-    backgroundColor: '#2B7FFF',
-  },
-  tabInactive: {
-    backgroundColor: 'rgba(39, 39, 42, 0.5)',
-  },
-  text: {
-    fontSize: 16,
-    fontWeight: '900',
-  },
-  textActive: {
-    color: '#ffffff',
-  },
-  textInactive: {
-    color: '#A9A9A9',
-  },
-  indicator: {
-    width: 20,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#ffffff',
-  },
-  indicatorPlaceholder: {
-    width: 20,
-    height: 4,
-    backgroundColor: 'transparent',
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    tabContainer: {
+      alignItems: 'center',
+      gap: 6,
+    },
+    tab: {
+      width: 44,
+      height: 44,
+      borderRadius: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    tabActive: {
+      backgroundColor: colors.secondaryAccent,
+    },
+    tabInactive: {
+      backgroundColor: colors.screenBackground,
+      borderWidth: 1.5,
+      borderColor: colors.cardBorder,
+    },
+    text: {
+      fontSize: 16,
+      fontWeight: '900',
+    },
+    textActive: {
+      color: colors.secondaryAccentText,
+    },
+    textInactive: {
+      color: colors.textSecondary,
+    },
+    indicator: {
+      width: 20,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: colors.secondaryAccent,
+    },
+    indicatorPlaceholder: {
+      width: 20,
+      height: 4,
+      backgroundColor: 'transparent',
+    },
+  });
+}

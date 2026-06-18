@@ -21,6 +21,8 @@ export interface ChatStoreState {
   clearChat: () => void;
   sendMessage: (text: string) => Promise<void>;
   retry: () => void;
+  confirmPendingActivity: (messageId: string) => Promise<void>;
+  cancelPendingActivity: (messageId: string) => void;
 }
 
 export type ChatStore = UseBoundStore<StoreApi<ChatStoreState>>;
@@ -191,12 +193,26 @@ export function createChatStore(
         isThinking: true,
       });
 
+      const activities = activityStore.getState().activities || [];
+      const activitiesList = activities.map((a: any) => a.title);
+
       const history: MessageDto[] = get().messages
         .filter((m) => !m.isError)
         .map((m) => ({
           role: m.role as 'user' | 'assistant',
           content: m.content,
         }));
+
+      if (activitiesList.length > 0) {
+        history.unshift({
+          role: 'user',
+          content: `[Contexto de la agenda: Las actividades que ya existen son: ${activitiesList.map(name => `"${name}"`).join(', ')}. Si el usuario pide modificar o se refiere a alguna de ellas, devolvé su nombre exacto en el campo 'name' del resultado.]`
+        });
+        history.unshift({
+          role: 'assistant',
+          content: `Entendido. Usaré esos nombres exactos para relacionar las modificaciones de las actividades.`
+        });
+      }
 
       let creatingMsgId: string | null = null;
       try {
@@ -219,102 +235,78 @@ export function createChatStore(
             0
           );
 
-          if (!parsedState.activityName || !parsedState.activityName.trim()) {
-            throw new Error('Ingresa un nombre para la actividad');
-          }
-          if (!parsedState.selectedDays || parsedState.selectedDays.length === 0) {
-            throw new Error('Guarda la configuración de al menos un día');
-          }
+          // Find if there is a matching activity in the database to edit/modify
+          const activities = activityStore.getState().activities || [];
+          const parsedName = parsedState.activityName || '';
+          const normalizedParsedName = parsedName.trim().toLowerCase();
 
-          // Partitions validation
-          for (const day of parsedState.selectedDays) {
-            const config = parsedState.daysDict[day];
-            if (config) {
-              validatePartitions(config.partitions, [day], parsedState.isFixed);
+          // Check if user has an edit intent in their input text
+          const normalizedInput = text.toLowerCase();
+          const isEditIntent = normalizedInput.includes('modific') || 
+                               normalizedInput.includes('edit') || 
+                               normalizedInput.includes('cambia') || 
+                               normalizedInput.includes('actualiz');
+
+          let matchingActivity: any = null;
+          if (normalizedParsedName) {
+            // 1. Exact match
+            matchingActivity = activities.find(
+              (a: any) => a.title.trim().toLowerCase() === normalizedParsedName
+            );
+            // 2. Partial match if edit intent
+            if (!matchingActivity && isEditIntent) {
+              matchingActivity = activities.find(
+                (a: any) => a.title.toLowerCase().includes(normalizedParsedName) || 
+                            normalizedParsedName.includes(a.title.toLowerCase())
+              );
+            }
+            // 3. Fallback check user input if edit intent
+            if (!matchingActivity && isEditIntent) {
+              matchingActivity = activities.find(
+                (a: any) => normalizedInput.includes(a.title.toLowerCase())
+              );
             }
           }
 
-          // Window validation
-          for (const day of parsedState.selectedDays) {
-            const dayConfig = parsedState.daysDict[day];
-            if (dayConfig) {
-              const prefStart = dayConfig.preferredStartTime;
-              const prefEnd = dayConfig.preferredEndTime;
-              if (prefStart != null && prefEnd != null) {
-                const partDuration = dayConfig.partitions.reduce(
-                  (sum: number, p: any) => sum + p.durationTime,
-                  0
-                );
-                if (calculateDurationAcrossMidnight(prefStart, prefEnd) < partDuration) {
-                  throw new Error(`La ventana preferida del ${day} es más corta que la duración estimada de la actividad en ese día.`);
-                }
-              }
-            }
+          let originalActivityProps: any = null;
+          if (matchingActivity) {
+            originalActivityProps = {
+              id: matchingActivity.id,
+              activityName: matchingActivity.title,
+              isFixed: matchingActivity.isFixed(),
+              identity: matchingActivity.identity,
+              priority: matchingActivity.priority,
+              difficulty: matchingActivity.difficulty,
+              deadline: matchingActivity.deadline,
+              daysConfig: matchingActivity.daysConfig,
+              days: matchingActivity.daysEnabled,
+              preferredStartTime: matchingActivity.preferredStartTime,
+              preferredEndTime: matchingActivity.preferredEndTime,
+              optionalDay: matchingActivity.optionalDay,
+              isAnchor: matchingActivity.isAnchor,
+            };
           }
 
-          // Overlaps validation
-          validateOverlapWithSchedule(
-            null,
-            parsedState.isFixed,
-            parsedState.selectedDays,
-            parsedState.daysDict,
-            parsedState.horaPreferidaInicio,
-            parsedState.horaPreferidaFin,
-            parsedState.duracionMinutos ?? 60
-          );
-
-          creatingMsgId = `creating-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-          const creatingMsg: ChatMessage = {
-            id: creatingMsgId,
-            role: 'assistant',
-            content: '¡Listo! Estoy creando tu actividad...',
-            timestamp: Date.now(),
+          const pendingActivity = {
+            id: matchingActivity ? matchingActivity.id : Date.now().toString(),
+            isModification: !!matchingActivity,
+            originalName: matchingActivity ? matchingActivity.title : null,
+            originalActivityProps,
+            parsedState,
           };
-          set({
-            messages: [...get().messages, creatingMsg],
-          });
 
-          const priorityMap: Record<'baja' | 'media' | 'alta', number> = {
-            baja: 1,
-            media: 3,
-            alta: 5,
-          };
-          const finalPriority = parsedState.isFixed ? 5 : priorityMap[parsedState.priority || 'media'];
-          const finalDifficulty = parsedState.isFixed ? 'media' : (parsedState.difficulty || 'media');
-          const finalId = Date.now().toString();
-
-          await activityStore.getState().handleCreateActivity({
-            id: finalId,
-            activityName: parsedState.activityName,
-            isFixed: parsedState.isFixed,
-            identity: parsedState.identity || 'clase',
-            priority: finalPriority,
-            difficulty: finalDifficulty,
-            deadline: null,
-            daysConfig: parsedState.daysDict,
-            days: parsedState.selectedDays,
-            preferredStartTime: parsedState.horaPreferidaInicio,
-            preferredEndTime: parsedState.horaPreferidaFin,
-            optionalDay: !parsedState.isFixed && !parsedState.isAnchor,
-            isAnchor: parsedState.isAnchor || undefined,
-          });
-
-          await scheduleStore.getState().handleGenerateSchedule();
-
-          const successMsg: ChatMessage = {
-            id: `success-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+          const confirmMsg: ChatMessage = {
+            id: `confirm-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
             role: 'assistant',
-            content: '¡Actividad creada con éxito! Si no estás de acuerdo con la configuración, puedes pedirme cambios en este mismo chat o editarla.',
+            content: matchingActivity
+              ? `Encontré la actividad "${matchingActivity.title}" en la base de datos. ¿Querés modificarla con los siguientes datos?`
+              : '¿Querés crear esta actividad con los siguientes datos?',
             timestamp: Date.now(),
-            isCreated: true,
+            pendingActivity,
           };
 
           set({
-            createdActivityId: finalId,
-            messages: [
-              ...get().messages.filter((m) => m.id !== creatingMsgId),
-              successMsg,
-            ],
+            messages: [...get().messages, confirmMsg],
             isThinking: false,
           });
         }
@@ -335,6 +327,178 @@ export function createChatStore(
           isThinking: false,
         });
       }
+    },
+
+    confirmPendingActivity: async (messageId: string) => {
+      const msg = get().messages.find((m) => m.id === messageId);
+      if (!msg || !msg.pendingActivity) return;
+
+      const { pendingActivity } = msg;
+      const { parsedState, id, isModification, originalActivityProps } = pendingActivity;
+
+      set({ isThinking: true });
+
+      const validatingMsgId = `validating-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      const validatingMsg: ChatMessage = {
+        id: validatingMsgId,
+        role: 'assistant',
+        content: isModification ? 'Modificando la actividad...' : 'Creando la actividad...',
+        timestamp: Date.now(),
+      };
+
+      set({
+        messages: [...get().messages, validatingMsg],
+      });
+
+      try {
+        if (!parsedState.activityName || !parsedState.activityName.trim()) {
+          throw new Error('Ingresa un nombre para la actividad');
+        }
+        if (!parsedState.selectedDays || parsedState.selectedDays.length === 0) {
+          throw new Error('Guarda la configuración de al menos un día');
+        }
+
+        // Partitions validation
+        for (const day of parsedState.selectedDays) {
+          const config = parsedState.daysDict[day];
+          if (config) {
+            validatePartitions(config.partitions, [day], parsedState.isFixed);
+          }
+        }
+
+        // Window validation
+        for (const day of parsedState.selectedDays) {
+          const dayConfig = parsedState.daysDict[day];
+          if (dayConfig) {
+            const prefStart = dayConfig.preferredStartTime;
+            const prefEnd = dayConfig.preferredEndTime;
+            if (prefStart != null && prefEnd != null) {
+              const partDuration = dayConfig.partitions.reduce(
+                (sum: number, p: any) => sum + p.durationTime,
+                0
+              );
+              if (calculateDurationAcrossMidnight(prefStart, prefEnd) < partDuration) {
+                throw new Error(`La ventana preferida del ${day} es más corta que la duración estimada de la actividad en ese día.`);
+              }
+            }
+          }
+        }
+
+        // Overlaps validation
+        validateOverlapWithSchedule(
+          isModification ? id : null,
+          parsedState.isFixed,
+          parsedState.selectedDays,
+          parsedState.daysDict,
+          parsedState.horaPreferidaInicio,
+          parsedState.horaPreferidaFin,
+          parsedState.duracionMinutos ?? 60
+        );
+
+        const priorityMap: Record<'baja' | 'media' | 'alta', number> = {
+          baja: 1,
+          media: 3,
+          alta: 5,
+        };
+        const priorityKey = (parsedState.priority || 'media') as 'baja' | 'media' | 'alta';
+        const finalPriority = parsedState.isFixed ? 5 : priorityMap[priorityKey];
+        const finalDifficulty = parsedState.isFixed ? 'media' : (parsedState.difficulty || 'media');
+
+        await activityStore.getState().handleCreateActivity({
+          id,
+          activityName: parsedState.activityName,
+          isFixed: parsedState.isFixed,
+          identity: parsedState.identity || 'clase',
+          priority: finalPriority,
+          difficulty: finalDifficulty,
+          deadline: null,
+          daysConfig: parsedState.daysDict,
+          days: parsedState.selectedDays,
+          preferredStartTime: parsedState.horaPreferidaInicio,
+          preferredEndTime: parsedState.horaPreferidaFin,
+          optionalDay: !parsedState.isFixed && !parsedState.isAnchor,
+          isAnchor: parsedState.isAnchor || undefined,
+        });
+
+        try {
+          await scheduleStore.getState().handleGenerateSchedule();
+        } catch (scheduleError: any) {
+          console.log('Error al generar el horario, revirtiendo cambios en la base de datos...');
+          if (isModification && originalActivityProps) {
+            await activityStore.getState().handleCreateActivity(originalActivityProps);
+          } else {
+            await activityStore.getState().handleDeleteActivity(id);
+          }
+          await scheduleStore.getState().handleGenerateSchedule();
+          throw scheduleError;
+        }
+
+        set({
+          createdActivityId: id,
+          messages: get().messages
+            .filter((m) => m.id !== validatingMsgId)
+            .map((m) =>
+              m.id === messageId
+                ? { ...m, isConfirmed: true }
+                : m
+            ),
+        });
+
+        const successMsg: ChatMessage = {
+          id: `success-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+          role: 'assistant',
+          content: isModification
+            ? '¡Actividad modificada con éxito!'
+            : '¡Actividad creada con éxito! Si no estás de acuerdo con la configuración, puedes pedirme cambios en este mismo chat o editarla.',
+          timestamp: Date.now(),
+          isCreated: true,
+        };
+
+        set({
+          messages: [...get().messages, successMsg],
+          isThinking: false,
+        });
+      } catch (error: any) {
+        console.error('Error confirming pending activity:', error);
+        
+        set({
+          messages: get().messages.filter((m) => m.id !== validatingMsgId),
+        });
+
+        const errorMsg: ChatMessage = {
+          id: `error-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+          role: 'assistant',
+          content: error.message || 'Ups, hubo un error al procesar la actividad.',
+          timestamp: Date.now(),
+          isError: true,
+        };
+
+        set({
+          messages: [...get().messages, errorMsg],
+          isThinking: false,
+        });
+      }
+    },
+
+    cancelPendingActivity: (messageId: string) => {
+      set({
+        messages: get().messages.map((m) =>
+          m.id === messageId
+            ? { ...m, isCancelled: true }
+            : m
+        ),
+      });
+
+      const cancelMsg: ChatMessage = {
+        id: `cancel-msg-${Date.now()}`,
+        role: 'assistant',
+        content: 'Modificación/creación cancelada.',
+        timestamp: Date.now(),
+      };
+
+      set({
+        messages: [...get().messages, cancelMsg],
+      });
     },
 
     retry: () => {

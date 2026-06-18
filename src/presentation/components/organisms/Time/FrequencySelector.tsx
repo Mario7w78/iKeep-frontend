@@ -1,8 +1,9 @@
+import React, { useMemo } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { DayOfWeek } from "../../../../domain/entities/Activity";
-import { Theme } from "../../theme/colors";
-import { frequencyProps } from "../../../hooks/props";
+import { useTheme, ThemeColors } from "../../theme/colors";
 import AntDesign from "@expo/vector-icons/AntDesign";
+
 interface props {
   onSelect: (val: DayOfWeek) => void;
   selectedValue: string[];
@@ -24,6 +25,9 @@ export const FrequencySelector = ({
   selectedDays,
   editingGroupId,
 }: props) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const DAY_LETTERS: Partial<Record<DayOfWeek, string>> = {
     Lunes: "L",
     Martes: "M",
@@ -60,10 +64,10 @@ export const FrequencySelector = ({
           marginBottom: 10,
         }}
       >
-        <AntDesign name="info-circle" size={10} color="white" />
+        <AntDesign name="info-circle" size={10} color={colors.textSecondary} />
         <Text
           style={{
-            color: Theme.colors.textSecondary,
+            color: colors.textSecondary,
             fontSize: 10,
             fontWeight: "bold",
           }}
@@ -112,7 +116,7 @@ export const FrequencySelector = ({
   );
 };
 
-export const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flexDirection: "column",
     justifyContent: "center",
@@ -127,11 +131,11 @@ export const styles = StyleSheet.create({
   },
   labelSmall: {
     fontSize: 20,
-    color: Theme.colors.textSecondary,
+    color: colors.textSecondary,
     fontWeight: "700",
   },
   saveButton: {
-    backgroundColor: Theme.colors.cardBackground,
+    backgroundColor: colors.cardBackground,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 10,
@@ -139,7 +143,7 @@ export const styles = StyleSheet.create({
   saveButtonDisabled: { opacity: 0.35 },
   saveButtonText: {
     fontWeight: "bold",
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontSize: 13,
   },
 
@@ -155,32 +159,32 @@ export const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Theme.colors.screenBackground,
+    backgroundColor: colors.screenBackground,
     gap: 2,
   },
   dayButtonConfigured: {
-    borderColor: "#AFA9EC",
-    backgroundColor: "#EEEDFE",
+    borderColor: colors.secondaryAccent,
+    backgroundColor: `${colors.secondaryAccent}26`,
   },
   dayButtonSelected: {
-    backgroundColor: Theme.colors.cardBackground,
+    backgroundColor: colors.cardBackground,
   },
 
   dayLetter: {
     fontSize: 16,
     fontWeight: "500",
-    color: Theme.colors.textSecondary,
+    color: colors.textSecondary,
     lineHeight: 18,
   },
-  dayLetterConfigured: { color: "#3C3489" },
-  dayLetterSelected: { color: Theme.colors.surface },
+  dayLetterConfigured: { color: colors.surface },
+  dayLetterSelected: { color: colors.surface },
 
   dayAbbr: {
     fontSize: 11,
     fontWeight: "500",
-    color: Theme.colors.textSecondary,
+    color: colors.textSecondary,
     lineHeight: 13,
   },
-  dayAbbrConfigured: { color: "#7F77DD" },
+  dayAbbrConfigured: { color: colors.textSecondary },
   dayAbbrSelected: { color: "rgba(255,255,255,0.6)" },
 });

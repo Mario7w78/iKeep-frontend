@@ -1,7 +1,7 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { TouchableOpacity, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Theme } from "../../theme/colors";
+import { useTheme } from "../../theme/colors";
 
 type SelectableCardProps = {
   title: string;
@@ -18,43 +18,46 @@ export default function SelectableCard({
   selected,
   onPress,
 }: SelectableCardProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <TouchableOpacity
       style={[styles.card, selected && styles.cardSelected]}
       onPress={onPress}
     >
-      <Ionicons name={icon} size={30} color={Theme.colors.surface} />
-      <Text style={styles.title}>{title}</Text>
-      <Text style={styles.description}>{description}</Text>
+      <Ionicons name={icon} size={30} color={selected ? colors.secondaryAccentText : colors.surface} />
+      <Text style={[styles.title, selected && { color: colors.secondaryAccentText }]}>{title}</Text>
+      <Text style={[styles.description, selected && { color: colors.secondaryAccentText, opacity: 0.8 }]}>{description}</Text>
     </TouchableOpacity>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   card: {
     flex: 1,
     minHeight: 112,
     borderRadius: 24,
     borderWidth: 2,
-    borderColor: Theme.colors.cardBorder,
-    backgroundColor: Theme.colors.cardBackground,
+    borderColor: colors.cardBorder,
+    backgroundColor: colors.cardBackground,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 10,
     gap: 6,
   },
   cardSelected: {
-    backgroundColor: "#5665dc",
-    borderColor: Theme.colors.cardBorder,
+    backgroundColor: colors.secondaryAccent,
+    borderColor: colors.cardBorder,
   },
   title: {
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontSize: 16,
     fontWeight: "900",
     textAlign: "center",
   },
   description: {
-    color: Theme.colors.iconPrimary,
+    color: colors.iconPrimary,
     fontSize: 12,
     fontWeight: "800",
     textAlign: "center",

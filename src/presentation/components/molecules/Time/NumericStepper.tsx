@@ -1,3 +1,4 @@
+import React, { useMemo } from "react";
 import {
   View,
   TextInput,
@@ -5,7 +6,7 @@ import {
   StyleSheet,
   Text,
 } from "react-native";
-import { Theme } from "../../theme/colors";
+import { useTheme } from "../../theme/colors";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import { getHours, getMinutes } from "../../../utils/timeUtils";
 import { timeType } from "../../../../domain/entities/activity.types";
@@ -24,7 +25,10 @@ export const NumericStepper = ({
   onSelectType,
   onAdd,
   onSubstract,
-}: Props) => (
+}: Props) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  return (
   <View style={styles.container}>
     <View style={styles.timeContainer}>
       <TouchableOpacity
@@ -73,16 +77,17 @@ export const NumericStepper = ({
     </View>
     <View style={styles.buttonContainer}>
       <TouchableOpacity style={styles.iconButton} onPress={onSubstract}>
-        <AntDesign name="minus" size={16} color={Theme.colors.surface} />
+        <AntDesign name="minus" size={16} color={colors.surface} />
       </TouchableOpacity>
       <TouchableOpacity style={styles.iconButton} onPress={onAdd}>
-        <AntDesign name="plus" size={16} color={Theme.colors.surface} />
+        <AntDesign name="plus" size={16} color={colors.surface} />
       </TouchableOpacity>
     </View>
   </View>
 );
+};
 
-export const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   container: {
     flex: 1,
     flexDirection: "column",
@@ -100,11 +105,11 @@ export const styles = StyleSheet.create({
   mainText: {
     fontWeight: "bold",
     fontSize: 32,
-    color: Theme.colors.surface,
+    color: colors.surface,
     textAlign: "center",
   },
   iconButton: {
-    backgroundColor: Theme.colors.cardBackground,
+    backgroundColor: colors.cardBackground,
     padding: 10,
     borderRadius: 10,
   },
@@ -124,19 +129,19 @@ export const styles = StyleSheet.create({
   timeText: {
     fontSize: 20,
     fontWeight: "bold",
-    color: Theme.colors.surface,
+    color: colors.surface,
     alignSelf: "center",
   },
   doubleDots: {
     fontSize: 20,
     fontWeight: "bold",
-    color: Theme.colors.surface,
+    color: colors.surface,
     alignSelf: "center",
   },
   activeTimeButton: {
-    backgroundColor: Theme.colors.cardBackground,
+    backgroundColor: colors.cardBackground,
   },
   activeTimeText: {
-    color: Theme.colors.surface,
+    color: colors.surface,
   },
 });

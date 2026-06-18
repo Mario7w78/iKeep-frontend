@@ -1,4 +1,4 @@
-import { Theme } from "../components/theme/colors";
+import { comfyColors, comfyFontColors } from "../components/theme/colors";
 import { AntDesign } from '@expo/vector-icons';
 type AntDesignIconName = React.ComponentProps<typeof AntDesign>['name'];
 
@@ -7,9 +7,9 @@ export type ActivityType = "CLASS" | "WORK" | "EXTRA";
 
 export const getActivityColor = (type: ActivityType): string => {
   const colors: Record<ActivityType, string> = {
-    CLASS: Theme.comfyColors.green,
-    WORK: Theme.comfyColors.orange,
-    EXTRA: Theme.comfyColors.skyBlue,
+    CLASS: comfyColors.green,
+    WORK: comfyColors.orange,
+    EXTRA: comfyColors.skyBlue,
   };
 
   return colors[type];
@@ -17,9 +17,9 @@ export const getActivityColor = (type: ActivityType): string => {
 
 export const getFontColor = (type: ActivityType): string => {
   const colors: Record<ActivityType, string> = {
-    CLASS: Theme.comfyFontColors.green,
-    WORK: Theme.comfyFontColors.orange,
-    EXTRA: Theme.comfyFontColors.skyBlue,
+    CLASS: comfyFontColors.green,
+    WORK: comfyFontColors.orange,
+    EXTRA: comfyFontColors.skyBlue,
   };
 
   return colors[type];

@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 import { DropdownMenu } from '../../molecules/DropDownMenu/DropdownMenu';
 import { MenuOptionCheck } from '../../atoms/DropDownMenu/MenuOptionCheck';
 import { DayOfWeek } from '../../../../domain/entities/Activity';
-import { Theme } from '../../theme/colors';
+import { useTheme, ThemeColors } from '../../theme/colors';
 
 const DAYS_OF_WEEK: DayOfWeek[] = [
     'Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo'
@@ -17,6 +17,8 @@ interface Props {
 }
 
 export default function FrequencyDropdown({ onSelectionChange, selected }: Props) {
+    const { colors } = useTheme();
+    const styles = useMemo(() => createStyles(colors), [colors]);
     const [visible, setVisible] = useState(false);
 
     const toggleSelect = (day: DayOfWeek) => {
@@ -56,7 +58,7 @@ export default function FrequencyDropdown({ onSelectionChange, selected }: Props
                         <Text style={styles.triggerText} numberOfLines={1}>
                             {renderTriggerText()}
                         </Text>
-                        <MaterialIcons name='keyboard-arrow-down' size={30} color='white' />
+                        <MaterialIcons name='keyboard-arrow-down' size={30} color={colors.iconSecondary} />
                     </View>
                 }
             >
@@ -83,7 +85,7 @@ export default function FrequencyDropdown({ onSelectionChange, selected }: Props
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
     menuContainer: {
         marginVertical: 10,
         alignItems: 'center',
@@ -97,13 +99,13 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         borderRadius: 12,
-        backgroundColor: Theme.colors.cardBackground, 
+        backgroundColor: colors.cardBackground, 
         elevation: 3,
     },
     triggerText: {
         fontSize: 14,
         fontWeight: '600',
-        color: Theme.colors.surface,
+        color: colors.surface,
         flex: 1,
     },
     optionText: {

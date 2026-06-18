@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,7 @@ import {
   Pressable,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Theme } from '../../theme/colors';
+import { useTheme, comfyColors } from '../../theme/colors';
 
 export interface EnergyOption {
   value: number;
@@ -21,9 +21,9 @@ export interface EnergyOption {
 }
 
 const ENERGY_OPTIONS: EnergyOption[] = [
-  { value: 1, label: 'Baja', description: 'Evitar tareas difíciles', icon: 'battery-dead', iconColor: Theme.comfyColors.yellow },
-  { value: 2, label: 'Normal', description: 'Rendimiento habitual', icon: 'battery-half', iconColor: Theme.comfyColors.green },
-  { value: 3, label: 'Alta', description: 'Puedo con todo', icon: 'flash', iconColor: Theme.comfyColors.skyBlue },
+  { value: 1, label: 'Baja', description: 'Evitar tareas difíciles', icon: 'battery-dead', iconColor: comfyColors.yellow },
+  { value: 2, label: 'Normal', description: 'Rendimiento habitual', icon: 'battery-half', iconColor: comfyColors.green },
+  { value: 3, label: 'Alta', description: 'Puedo con todo', icon: 'flash', iconColor: comfyColors.skyBlue },
 ];
 
 interface EnergyPickerProps {
@@ -37,6 +37,8 @@ export const EnergyPicker: React.FC<EnergyPickerProps> = ({
   onSelect,
   onCancel,
 }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [shouldRender, setShouldRender] = useState(visible);
   const animation = useRef(new Animated.Value(0)).current;
 
@@ -124,7 +126,7 @@ export const EnergyPicker: React.FC<EnergyPickerProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -134,7 +136,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(10, 11, 18, 0.62)',
   },
   sheet: {
-    backgroundColor: Theme.colors.screenBackground,
+    backgroundColor: colors.screenBackground,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingBottom: 40,
@@ -144,7 +146,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 5,
     borderRadius: 3,
-    backgroundColor: Theme.colors.surface,
+    backgroundColor: colors.surface,
     opacity: 0.2,
     alignSelf: 'center',
     marginTop: 12,
@@ -153,13 +155,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: '700',
-    color: Theme.colors.surface,
+    color: colors.surface,
     textAlign: 'center',
     marginBottom: 6,
   },
   subtitle: {
     fontSize: 14,
-    color: Theme.colors.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 20,
@@ -170,9 +172,9 @@ const styles = StyleSheet.create({
   optionCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Theme.colors.cardBackground,
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: Theme.colors.cardBorder,
+    borderColor: colors.cardBorder,
     borderRadius: 16,
     paddingVertical: 14,
     paddingHorizontal: 16,
@@ -195,22 +197,22 @@ const styles = StyleSheet.create({
   optionLabel: {
     fontSize: 17,
     fontWeight: '600',
-    color: Theme.colors.surface,
+    color: colors.surface,
   },
   optionDesc: {
     fontSize: 13,
-    color: Theme.colors.textSecondary,
+    color: colors.textSecondary,
   },
   cancelBtn: {
     marginTop: 20,
     alignItems: 'center',
     paddingVertical: 14,
     borderRadius: 14,
-    backgroundColor: Theme.colors.cardBackground,
+    backgroundColor: colors.cardBackground,
   },
   cancelText: {
     fontSize: 16,
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontWeight: '500',
   },
 });

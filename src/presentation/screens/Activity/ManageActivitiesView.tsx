@@ -20,7 +20,7 @@ export default function ManageActivitiesView({ navigation, route }: any) {
   const { handleGenerateSchedule } = useScheduleStore();
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
 
-  const styles = useMemo(() => createStyles(colors, comfyColors, comfyFontColors), [colors]);
+  const styles = useMemo(() => createStyles(colors, comfyColors, comfyFontColors), [colors, comfyColors, comfyFontColors]);
 
   useEffect(() => {
     loadActivities();
@@ -185,7 +185,7 @@ export default function ManageActivitiesView({ navigation, route }: any) {
 const createStyles = (
   colors: ReturnType<typeof useTheme>['colors'],
   comfyColors: ReturnType<typeof useTheme>['comfyColors'],
-  _comfyFontColors: ReturnType<typeof useTheme>['comfyFontColors'],
+  comfyFontColors: ReturnType<typeof useTheme>['comfyFontColors'],
 ) => StyleSheet.create({
   safe: {
     flex: 1,
@@ -256,23 +256,23 @@ const createStyles = (
     gap: 8,
   },
   badge: {
-    backgroundColor: "#4c506e",
+    backgroundColor: colors.screenBackground,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 4,
   },
-  difficultyBadge: {
-    backgroundColor: "#525576",
-  },
+  difficultyBadge: {},
   badgeText: {
-    color: colors.surface,
+    color: colors.textSecondary,
     fontSize: 12,
     fontWeight: "800",
   },
   deleteButton: {
     padding: 8,
     borderRadius: 12,
-    backgroundColor: "rgba(255, 77, 77, 0.1)",
+    backgroundColor: `${colors.error}20`,
   },
   actionButtonsCol: {
     flexDirection: "row",
@@ -282,7 +282,7 @@ const createStyles = (
   editButton: {
     padding: 8,
     borderRadius: 12,
-    backgroundColor: "rgba(174, 190, 255, 0.1)",
+    backgroundColor: `${colors.iconPrimary}20`,
   },
   emptyContainer: {
     alignItems: "center",
@@ -315,7 +315,7 @@ const createStyles = (
     marginTop: 12,
   },
   emptyButtonText: {
-    color: _comfyFontColors.green,
+    color: comfyFontColors.green,
     textAlign: "center",
     fontSize: 15,
     fontWeight: "900",

@@ -1,9 +1,9 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { View, Text, ScrollView, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { DayOfWeek } from "../../../../domain/entities/Activity";
 import { DayConfig } from "../../../../domain/entities/activity.types";
-import { Theme } from "../../theme/colors";
+import { useTheme, comfyColors } from "../../theme/colors";
 import DayPickerGrid from "../../molecules/CreateActivity/DayPickerGrid";
 
 type DaySelectionStepProps = {
@@ -25,6 +25,8 @@ export default function DaySelectionStep({
   onSelectDay,
   isDayConfigured,
 }: DaySelectionStepProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const getSubtitle = () => {
     if (isFixed) {
       return "Selecciona los días para la actividad";
@@ -45,7 +47,7 @@ export default function DaySelectionStep({
         <Ionicons
           name="calendar-outline"
           size={42}
-          color={Theme.comfyColors.green}
+          color={comfyColors.green}
         />
       </View>
       <Text style={styles.heroTitle}>Días</Text>
@@ -71,7 +73,7 @@ export default function DaySelectionStep({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   scroll: {
     flex: 1,
   },
@@ -86,26 +88,26 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   heroTitle: {
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontSize: 24,
     fontWeight: "900",
     textAlign: "center",
   },
   heroSubtitle: {
-    color: Theme.colors.iconPrimary,
+    color: colors.iconPrimary,
     fontSize: 16,
     fontWeight: "800",
     textAlign: "center",
   },
   selectionSummary: {
-    backgroundColor: "rgba(141,255,104,0.14)",
+    backgroundColor: `${comfyColors.green}24`,
     borderRadius: 28,
     paddingVertical: 14,
     alignItems: "center",
     marginTop: 8,
   },
   selectionSummaryText: {
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontSize: 15,
     fontWeight: "900",
   },

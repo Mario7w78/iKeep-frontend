@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { DaySelector } from '../../molecules/Schedule/DaySelector';
 import { DayOfWeek } from '../../../../domain/entities/Activity';
-import { Theme } from '../../theme/colors';
+import { useTheme, ThemeColors } from '../../theme/colors';
 
 interface Props {
   selectedDay: DayOfWeek;
@@ -32,6 +32,8 @@ const getFormattedDateForDay = (day: DayOfWeek) => {
 };
 
 export function ScheduleHeader({ selectedDay, activityCount, onSelectDay, onRefresh, viewMode, onToggleViewMode }: Props) {
+  const { colors, comfyColors, comfyFontColors } = useTheme();
+  const s = useMemo(() => createStyles(colors, comfyColors, comfyFontColors), [colors, comfyColors, comfyFontColors]);
   const dateText = getFormattedDateForDay(selectedDay);
 
   return (
@@ -50,11 +52,11 @@ export function ScheduleHeader({ selectedDay, activityCount, onSelectDay, onRefr
         </View>
         <View style={s.actionButtons}>
           <TouchableOpacity style={s.toggleBtn} onPress={onToggleViewMode} hitSlop={12}>
-            <Ionicons name={viewMode === 'grid' ? 'list-outline' : 'calendar-outline'} size={24} color={Theme.comfyColors.green} />
+            <Ionicons name={viewMode === 'grid' ? 'list-outline' : 'calendar-outline'} size={24} color={comfyColors.green} />
           </TouchableOpacity>
           {onRefresh && (
             <TouchableOpacity style={s.refreshBtn} onPress={onRefresh} hitSlop={12}>
-              <Ionicons name="refresh" size={24} color={Theme.comfyColors.green} />
+              <Ionicons name="refresh" size={24} color={comfyColors.green} />
             </TouchableOpacity>
           )}
         </View>
@@ -64,70 +66,72 @@ export function ScheduleHeader({ selectedDay, activityCount, onSelectDay, onRefr
   );
 }
 
-const s = StyleSheet.create({
-  header: {
-    backgroundColor: '#1F212C',
-    paddingTop: 52,
-    paddingBottom: 12,
-    borderBottomWidth: 1.5,
-    borderBottomColor: 'rgba(21, 93, 252, 0.2)', // Glowing blue bottom border
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingRight: 20,
-    marginBottom: 12,
-  },
-  titleBlock: {
-    paddingHorizontal: 20,
-    gap: 4,
-    flex: 1,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '900',
-    color: '#ffffff',
-    letterSpacing: -0.5,
-  },
-  dateText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#a8a9bb',
-  },
-  activityCountRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  activityCountText: {
-    fontSize: 14,
-    color: '#98FF60', // Comfy green
-    fontWeight: '800',
-  },
-  refreshBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: Theme.colors.cardBackground,
-    borderWidth: 1,
-    borderColor: Theme.colors.cardBorder,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  toggleBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: Theme.colors.cardBackground,
-    borderWidth: 1,
-    borderColor: Theme.colors.cardBorder,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-});
+function createStyles(colors: ThemeColors, comfyColors: Record<string, string>, _comfyFontColors: Record<string, string>) {
+  return StyleSheet.create({
+    header: {
+      backgroundColor: colors.cardBackground,
+      paddingTop: 52,
+      paddingBottom: 12,
+      borderBottomWidth: 1.5,
+      borderBottomColor: colors.cardBorder,
+    },
+    titleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingRight: 20,
+      marginBottom: 12,
+    },
+    titleBlock: {
+      paddingHorizontal: 20,
+      gap: 4,
+      flex: 1,
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: '900',
+      color: colors.surface,
+      letterSpacing: -0.5,
+    },
+    dateText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: colors.textSecondary,
+    },
+    activityCountRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    activityCountText: {
+      fontSize: 14,
+      color: comfyColors.green,
+      fontWeight: '800',
+    },
+    refreshBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      backgroundColor: colors.cardBackground,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    actionButtons: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    toggleBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      backgroundColor: colors.cardBackground,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+  });
+}

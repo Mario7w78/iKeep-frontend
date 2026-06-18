@@ -1,6 +1,6 @@
-import React, { forwardRef, useImperativeHandle, useState } from 'react';
+import React, { forwardRef, useImperativeHandle, useState, useMemo } from 'react';
 import { Modal, View, Text, StyleSheet, TouchableOpacity, Pressable } from 'react-native';
-import { Theme } from '../../theme/colors';
+import { useTheme } from '../../theme/colors';
 
 export interface BottomSheetModal {
   present: () => void;
@@ -8,6 +8,8 @@ export interface BottomSheetModal {
 }
 
 export const ActivityDetailSheet = forwardRef<BottomSheetModal>((_, ref) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [visible, setVisible] = useState(false);
 
   useImperativeHandle(ref, () => ({
@@ -26,9 +28,9 @@ export const ActivityDetailSheet = forwardRef<BottomSheetModal>((_, ref) => {
   );
 });
 
-const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: Theme.colors.overlayBackground },
-  sheet: { backgroundColor: Theme.colors.surface, padding: 24, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
+const createStyles = (colors) => StyleSheet.create({
+  backdrop: { flex: 1, backgroundColor: colors.overlayBackground },
+  sheet: { backgroundColor: colors.surface, padding: 24, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
   title: { fontSize: 20, fontWeight: 'bold', marginBottom: 12 },
-  text: { fontSize: 16, color: Theme.colors.textSecondary },
+  text: { fontSize: 16, color: colors.textSecondary },
 });

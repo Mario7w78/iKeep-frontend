@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Switch } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Theme } from "../../theme/colors";
+import { useTheme, ThemeColors } from "../../theme/colors";
 
 type PriorityDeadlineStepProps = {
   priority: "baja" | "media" | "alta";
@@ -20,6 +20,8 @@ const clearTime = (date: Date) => {
 function CustomCalendar({ value, onChange }: { value: Date; onChange: (date: Date) => void }) {
   const today = clearTime(new Date());
   const [viewDate, setViewDate] = useState(new Date(value || today));
+  const { colors, comfyColors, comfyFontColors } = useTheme();
+  const styles = useMemo(() => createStyles(colors, comfyColors, comfyFontColors), [colors]);
 
   const year = viewDate.getFullYear();
   const month = viewDate.getMonth();
@@ -64,13 +66,13 @@ function CustomCalendar({ value, onChange }: { value: Date; onChange: (date: Dat
           style={[styles.monthNavBtn, isPrevMonthDisabled && { opacity: 0.35 }]}
           disabled={isPrevMonthDisabled}
         >
-          <Ionicons name="chevron-back" size={20} color={Theme.colors.surface} />
+          <Ionicons name="chevron-back" size={20} color={colors.surface} />
         </TouchableOpacity>
         <Text style={styles.calendarMonthTitle}>
           {MONTH_NAMES[month]} {year}
         </Text>
         <TouchableOpacity onPress={() => changeMonth(1)} style={styles.monthNavBtn}>
-          <Ionicons name="chevron-forward" size={20} color={Theme.colors.surface} />
+          <Ionicons name="chevron-forward" size={20} color={colors.surface} />
         </TouchableOpacity>
       </View>
 
@@ -164,6 +166,8 @@ export default function PriorityDeadlineStep({
   onSetDeadline,
 }: PriorityDeadlineStepProps) {
   const [hasDeadline, setHasDeadline] = useState(deadline !== null);
+  const { colors, comfyColors, comfyFontColors } = useTheme();
+  const styles = useMemo(() => createStyles(colors, comfyColors, comfyFontColors), [colors]);
 
   const toggleHasDeadline = (value: boolean) => {
     setHasDeadline(value);
@@ -195,7 +199,7 @@ export default function PriorityDeadlineStep({
           <Ionicons
             name="arrow-down-circle-outline"
             size={24}
-            color={priority === "baja" ? Theme.colors.surface : Theme.colors.iconPrimary}
+            color={priority === "baja" ? colors.secondaryAccentText : colors.iconPrimary}
           />
           <Text style={[styles.cardTitle, priority === "baja" && styles.cardTitleSelected]}>Baja</Text>
         </TouchableOpacity>
@@ -212,7 +216,7 @@ export default function PriorityDeadlineStep({
           <Ionicons
             name="play-circle-outline"
             size={24}
-            color={priority === "media" ? Theme.colors.surface : Theme.colors.iconPrimary}
+            color={priority === "media" ? colors.secondaryAccentText : colors.iconPrimary}
           />
           <Text style={[styles.cardTitle, priority === "media" && styles.cardTitleSelected]}>Media</Text>
         </TouchableOpacity>
@@ -229,7 +233,7 @@ export default function PriorityDeadlineStep({
           <Ionicons
             name="arrow-up-circle-outline"
             size={24}
-            color={priority === "alta" ? Theme.colors.surface : Theme.colors.iconPrimary}
+            color={priority === "alta" ? colors.secondaryAccentText : colors.iconPrimary}
           />
           <Text style={[styles.cardTitle, priority === "alta" && styles.cardTitleSelected]}>Alta</Text>
         </TouchableOpacity>
@@ -245,8 +249,8 @@ export default function PriorityDeadlineStep({
         <Switch
           value={hasDeadline}
           onValueChange={toggleHasDeadline}
-          trackColor={{ false: Theme.colors.cardBorder, true: "#5665dc" }}
-          thumbColor={hasDeadline ? Theme.colors.surface : Theme.colors.iconPrimary}
+          trackColor={{ false: colors.cardBorder, true: colors.secondaryAccent }}
+          thumbColor={hasDeadline ? colors.surface : colors.iconPrimary}
         />
       </View>
 
@@ -259,7 +263,8 @@ export default function PriorityDeadlineStep({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ThemeColors, comfyColors: Record<string, string>, comfyFontColors: Record<string, string>) {
+  return StyleSheet.create({
   scroll: {
     flex: 1,
   },
@@ -270,19 +275,19 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   sectionTitle: {
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontSize: 16,
     fontWeight: "900",
     marginTop: 8,
     marginBottom: 2,
   },
   sectionTitleNoMargin: {
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontSize: 16,
     fontWeight: "900",
   },
   subtitle: {
-    color: Theme.colors.iconPrimary,
+    color: colors.iconPrimary,
     fontSize: 13,
     fontWeight: "700",
     marginBottom: 6,
@@ -295,8 +300,8 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 20,
     borderWidth: 2,
-    borderColor: Theme.colors.cardBorder,
-    backgroundColor: Theme.colors.cardBackground,
+    borderColor: colors.cardBorder,
+    backgroundColor: colors.cardBackground,
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 16,
@@ -304,24 +309,24 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   cardSelected: {
-    backgroundColor: "#5665dc",
-    borderColor: "#8dccff",
+    backgroundColor: colors.secondaryAccent,
+    borderColor: colors.secondaryAccent,
   },
   cardDisabled: {
     opacity: 0.35,
   },
   cardTitle: {
-    color: Theme.colors.iconPrimary,
+    color: colors.iconPrimary,
     fontSize: 14,
     fontWeight: "900",
     textAlign: "center",
   },
   cardTitleSelected: {
-    color: Theme.colors.surface,
+    color: colors.secondaryAccentText,
   },
   divider: {
     height: 1,
-    backgroundColor: Theme.colors.cardBorder,
+    backgroundColor: colors.cardBorder,
     marginVertical: 12,
   },
   deadlineToggleRow: {
@@ -337,8 +342,8 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   calendarContainer: {
-    backgroundColor: Theme.colors.cardBackground,
-    borderColor: Theme.colors.cardBorder,
+    backgroundColor: colors.cardBackground,
+    borderColor: colors.cardBorder,
     borderWidth: 2,
     borderRadius: 24,
     padding: 16,
@@ -358,7 +363,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   calendarMonthTitle: {
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontSize: 16,
     fontWeight: "800",
   },
@@ -369,7 +374,7 @@ const styles = StyleSheet.create({
   weekDayLabel: {
     width: "14.28%",
     textAlign: "center",
-    color: Theme.colors.textTertiary,
+    color: colors.textTertiary,
     fontSize: 12,
     fontWeight: "900",
   },
@@ -402,29 +407,29 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   dayText: {
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontSize: 14,
     fontWeight: "700",
   },
   dayTextPast: {
-    color: Theme.colors.cardBorder,
+    color: colors.cardBorder,
     opacity: 0.4,
   },
   daySelected: {
-    backgroundColor: "#5665dc",
+    backgroundColor: colors.secondaryAccent,
     borderRadius: 17,
   },
   dayTextSelected: {
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontWeight: "900",
   },
   dayToday: {
-    borderColor: Theme.comfyColors.green,
+    borderColor: comfyColors.green,
     borderWidth: 2,
     borderRadius: 17,
   },
   dayTextToday: {
-    color: Theme.comfyColors.green,
+    color: comfyColors.green,
     fontWeight: "900",
   },
   rangeMiddle: {
@@ -448,8 +453,9 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   daysDiffText: {
-    color: Theme.comfyColors.skyBlue,
+    color: comfyColors.skyBlue,
     fontSize: 14,
     fontWeight: "800",
   },
-});
+  });
+}

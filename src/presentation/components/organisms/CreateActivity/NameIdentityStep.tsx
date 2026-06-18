@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { View, Text, TextInput, ScrollView, StyleSheet, TouchableOpacity, Switch } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Theme } from "../../theme/colors";
+import { useTheme, ThemeColors } from "../../theme/colors";
 
 type NameIdentityStepProps = {
   activityName: string;
@@ -30,6 +30,8 @@ const clearTime = (date: Date) => {
 function CustomCalendar({ value, onChange }: { value: Date; onChange: (date: Date) => void }) {
   const today = clearTime(new Date());
   const [viewDate, setViewDate] = useState(new Date(value || today));
+  const { colors, comfyColors, comfyFontColors } = useTheme();
+  const styles = useMemo(() => createStyles(colors, comfyColors, comfyFontColors), [colors]);
 
   const year = viewDate.getFullYear();
   const month = viewDate.getMonth();
@@ -73,13 +75,13 @@ function CustomCalendar({ value, onChange }: { value: Date; onChange: (date: Dat
           style={[styles.monthNavBtn, isPrevMonthDisabled && { opacity: 0.35 }]}
           disabled={isPrevMonthDisabled}
         >
-          <Ionicons name="chevron-back" size={20} color={Theme.colors.surface} />
+          <Ionicons name="chevron-back" size={20} color={colors.surface} />
         </TouchableOpacity>
         <Text style={styles.calendarMonthTitle}>
           {MONTH_NAMES[month]} {year}
         </Text>
         <TouchableOpacity onPress={() => changeMonth(1)} style={styles.monthNavBtn}>
-          <Ionicons name="chevron-forward" size={20} color={Theme.colors.surface} />
+          <Ionicons name="chevron-forward" size={20} color={colors.surface} />
         </TouchableOpacity>
       </View>
 
@@ -178,6 +180,8 @@ export default function NameIdentityStep({
   header,
 }: NameIdentityStepProps) {
   const [hasDeadline, setHasDeadline] = useState(deadline !== null);
+  const { colors, comfyColors, comfyFontColors } = useTheme();
+  const styles = useMemo(() => createStyles(colors, comfyColors, comfyFontColors), [colors]);
 
   useEffect(() => {
     setHasDeadline(deadline !== null);
@@ -217,7 +221,7 @@ export default function NameIdentityStep({
         <Ionicons
           name={dynamicIconName as any}
           size={24}
-          color={Theme.colors.iconPrimary}
+          color={colors.iconPrimary}
           style={styles.inputIcon}
         />
         <TextInput
@@ -245,7 +249,7 @@ export default function NameIdentityStep({
           <Ionicons
             name="school-outline"
             size={24}
-            color={identity === "clase" ? Theme.colors.surface : Theme.colors.iconPrimary}
+            color={identity === "clase" ? colors.secondaryAccentText : colors.iconPrimary}
           />
           <Text style={[styles.cardTitle, identity === "clase" && styles.cardTitleSelected]}>Clase</Text>
         </TouchableOpacity>
@@ -259,7 +263,7 @@ export default function NameIdentityStep({
           <Ionicons
             name="briefcase-outline"
             size={24}
-            color={identity === "trabajo" ? Theme.colors.surface : Theme.colors.iconPrimary}
+            color={identity === "trabajo" ? colors.secondaryAccentText : colors.iconPrimary}
           />
           <Text style={[styles.cardTitle, identity === "trabajo" && styles.cardTitleSelected]}>Trabajo</Text>
         </TouchableOpacity>
@@ -274,7 +278,7 @@ export default function NameIdentityStep({
           <Ionicons
             name="checkmark-done-circle-outline"
             size={24}
-            color={identity === "tarea" ? Theme.colors.surface : Theme.colors.iconPrimary}
+            color={identity === "tarea" ? colors.secondaryAccentText : colors.iconPrimary}
           />
           <Text style={[styles.cardTitle, identity === "tarea" && styles.cardTitleSelected]}>Tarea</Text>
         </TouchableOpacity>
@@ -298,10 +302,10 @@ export default function NameIdentityStep({
           <Ionicons
             name="time-outline"
             size={26}
-            color={isFixed ? Theme.colors.surface : Theme.colors.iconPrimary}
+            color={isFixed ? colors.secondaryAccentText : colors.iconPrimary}
           />
           <Text style={[styles.cardTitle, isFixed && styles.cardTitleSelected]}>Fijo</Text>
-          <Text style={styles.cardDesc}>Anclado a una hora</Text>
+          <Text style={[styles.cardDesc, isFixed && { color: colors.secondaryAccentText }]}>Anclado a una hora</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -316,10 +320,10 @@ export default function NameIdentityStep({
           <Ionicons
             name="sparkles-outline"
             size={26}
-            color={!isFixed ? Theme.colors.surface : Theme.colors.iconPrimary}
+            color={!isFixed ? colors.secondaryAccentText : colors.iconPrimary}
           />
           <Text style={[styles.cardTitle, !isFixed && styles.cardTitleSelected]}>Optimizable</Text>
-          <Text style={styles.cardDesc}>Mejor ubicación</Text>
+          <Text style={[styles.cardDesc, !isFixed && { color: colors.secondaryAccentText }]}>Mejor ubicación</Text>
         </TouchableOpacity>
       </View>
 
@@ -339,7 +343,7 @@ export default function NameIdentityStep({
               <Ionicons
                 name="leaf-outline"
                 size={24}
-                color={difficulty === "baja" ? Theme.colors.surface : Theme.colors.iconPrimary}
+                color={difficulty === "baja" ? colors.secondaryAccentText : colors.iconPrimary}
               />
               <Text style={[styles.cardTitle, difficulty === "baja" && styles.cardTitleSelected]}>Baja</Text>
             </TouchableOpacity>
@@ -356,7 +360,7 @@ export default function NameIdentityStep({
               <Ionicons
                 name="speedometer-outline"
                 size={24}
-                color={difficulty === "media" ? Theme.colors.surface : Theme.colors.iconPrimary}
+                color={difficulty === "media" ? colors.secondaryAccentText : colors.iconPrimary}
               />
               <Text style={[styles.cardTitle, difficulty === "media" && styles.cardTitleSelected]}>Normal</Text>
             </TouchableOpacity>
@@ -373,7 +377,7 @@ export default function NameIdentityStep({
               <Ionicons
                 name="flame-outline"
                 size={24}
-                color={difficulty === "alta" ? Theme.colors.surface : Theme.colors.iconPrimary}
+                color={difficulty === "alta" ? colors.secondaryAccentText : colors.iconPrimary}
               />
               <Text style={[styles.cardTitle, difficulty === "alta" && styles.cardTitleSelected]}>Alta</Text>
             </TouchableOpacity>
@@ -396,7 +400,7 @@ export default function NameIdentityStep({
               <Ionicons
                 name="arrow-down-circle-outline"
                 size={24}
-                color={priority === "baja" ? Theme.colors.surface : Theme.colors.iconPrimary}
+                color={priority === "baja" ? colors.secondaryAccentText : colors.iconPrimary}
               />
               <Text style={[styles.cardTitle, priority === "baja" && styles.cardTitleSelected]}>Baja</Text>
             </TouchableOpacity>
@@ -413,7 +417,7 @@ export default function NameIdentityStep({
               <Ionicons
                 name="play-circle-outline"
                 size={24}
-                color={priority === "media" ? Theme.colors.surface : Theme.colors.iconPrimary}
+                color={priority === "media" ? colors.secondaryAccentText : colors.iconPrimary}
               />
               <Text style={[styles.cardTitle, priority === "media" && styles.cardTitleSelected]}>Media</Text>
             </TouchableOpacity>
@@ -430,7 +434,7 @@ export default function NameIdentityStep({
               <Ionicons
                 name="arrow-up-circle-outline"
                 size={24}
-                color={priority === "alta" ? Theme.colors.surface : Theme.colors.iconPrimary}
+                color={priority === "alta" ? colors.secondaryAccentText : colors.iconPrimary}
               />
               <Text style={[styles.cardTitle, priority === "alta" && styles.cardTitleSelected]}>Alta</Text>
             </TouchableOpacity>
@@ -449,7 +453,7 @@ export default function NameIdentityStep({
                 <Ionicons
                   name={isAnchor ? "checkmark-circle" : "ellipse-outline"}
                   size={22}
-                  color={isAnchor ? Theme.comfyColors.green : Theme.colors.textTertiary}
+                  color={isAnchor ? comfyColors.green : colors.textTertiary}
                 />
                 <View style={styles.anchorToggleText}>
                   <Text style={[styles.anchorToggleTitle, isAnchor && styles.anchorToggleTitleActive]}>
@@ -478,8 +482,8 @@ export default function NameIdentityStep({
         <Switch
           value={hasDeadline}
           onValueChange={toggleHasDeadline}
-          trackColor={{ false: Theme.colors.cardBorder, true: "#5665dc" }}
-          thumbColor={hasDeadline ? Theme.colors.surface : Theme.colors.iconPrimary}
+          trackColor={{ false: colors.cardBorder, true: colors.secondaryAccent }}
+          thumbColor={hasDeadline ? colors.surface : colors.iconPrimary}
         />
       </View>
 
@@ -492,7 +496,8 @@ export default function NameIdentityStep({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ThemeColors, comfyColors: Record<string, string>, comfyFontColors: Record<string, string>) {
+  return StyleSheet.create({
   scroll: {
     flex: 1,
   },
@@ -503,19 +508,19 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   sectionTitle: {
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontSize: 16,
     fontWeight: "900",
     marginTop: 8,
     marginBottom: 4,
   },
   sectionTitleNoMargin: {
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontSize: 16,
     fontWeight: "900",
   },
   subtitle: {
-    color: Theme.colors.iconPrimary,
+    color: colors.iconPrimary,
     fontSize: 13,
     fontWeight: "700",
     marginBottom: 6,
@@ -524,9 +529,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 2,
-    borderColor: Theme.colors.cardBorder,
+    borderColor: colors.cardBorder,
     borderRadius: 20,
-    backgroundColor: Theme.colors.cardBackground,
+    backgroundColor: colors.cardBackground,
     paddingHorizontal: 16,
   },
   inputIcon: {
@@ -534,7 +539,7 @@ const styles = StyleSheet.create({
   },
   nameInput: {
     flex: 1,
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontSize: 16,
     fontWeight: "800",
     paddingVertical: 14,
@@ -551,8 +556,8 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 20,
     borderWidth: 2,
-    borderColor: Theme.colors.cardBorder,
-    backgroundColor: Theme.colors.cardBackground,
+    borderColor: colors.cardBorder,
+    backgroundColor: colors.cardBackground,
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 14,
@@ -560,23 +565,23 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   cardSelected: {
-    backgroundColor: "#5665dc",
-    borderColor: "#8dccff",
+    backgroundColor: colors.secondaryAccent,
+    borderColor: colors.secondaryAccent,
   },
   cardDisabled: {
     opacity: 0.35,
   },
   cardTitle: {
-    color: Theme.colors.iconPrimary,
+    color: colors.iconPrimary,
     fontSize: 14,
     fontWeight: "900",
     textAlign: "center",
   },
   cardTitleSelected: {
-    color: Theme.colors.surface,
+    color: colors.secondaryAccentText,
   },
   cardDesc: {
-    color: Theme.colors.iconPrimary,
+    color: colors.iconPrimary,
     fontSize: 10,
     fontWeight: "700",
     textAlign: "center",
@@ -584,37 +589,37 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: Theme.colors.cardBorder,
+    backgroundColor: colors.cardBorder,
     marginVertical: 12,
   },
   anchorToggle: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    backgroundColor: Theme.colors.cardBackground,
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: Theme.colors.cardBorder,
+    borderColor: colors.cardBorder,
     borderRadius: 14,
     paddingHorizontal: 16,
     paddingVertical: 14,
   },
   anchorToggleActive: {
-    borderColor: Theme.comfyColors.green,
-    backgroundColor: "rgba(141,255,104,0.08)",
+    borderColor: comfyColors.green,
+    backgroundColor: `${comfyColors.green}14`,
   },
   anchorToggleText: {
     flex: 1,
   },
   anchorToggleTitle: {
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontSize: 15,
     fontWeight: "800",
   },
   anchorToggleTitleActive: {
-    color: Theme.comfyColors.green,
+    color: comfyColors.green,
   },
   anchorToggleSubtitle: {
-    color: Theme.colors.textTertiary,
+    color: colors.textTertiary,
     fontSize: 12,
     fontWeight: "600",
     marginTop: 2,
@@ -632,8 +637,8 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   calendarContainer: {
-    backgroundColor: Theme.colors.cardBackground,
-    borderColor: Theme.colors.cardBorder,
+    backgroundColor: colors.cardBackground,
+    borderColor: colors.cardBorder,
     borderWidth: 2,
     borderRadius: 24,
     padding: 16,
@@ -653,7 +658,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   calendarMonthTitle: {
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontSize: 16,
     fontWeight: "800",
   },
@@ -664,7 +669,7 @@ const styles = StyleSheet.create({
   weekDayLabel: {
     width: "14.28%",
     textAlign: "center",
-    color: Theme.colors.textTertiary,
+    color: colors.textTertiary,
     fontSize: 12,
     fontWeight: "900",
   },
@@ -697,41 +702,41 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   dayText: {
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontSize: 14,
     fontWeight: "700",
   },
   dayTextPast: {
-    color: Theme.colors.cardBorder,
+    color: colors.cardBorder,
     opacity: 0.4,
   },
   daySelected: {
-    backgroundColor: "#5665dc",
+    backgroundColor: colors.secondaryAccent,
     borderRadius: 17,
   },
   dayTextSelected: {
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontWeight: "900",
   },
   dayToday: {
-    borderColor: Theme.comfyColors.green,
+    borderColor: comfyColors.green,
     borderWidth: 2,
     borderRadius: 17,
   },
   dayTextToday: {
-    color: Theme.comfyColors.green,
+    color: comfyColors.green,
     fontWeight: "900",
   },
   rangeMiddle: {
-    backgroundColor: "rgba(86, 101, 220, 0.18)",
+    backgroundColor: `${colors.secondaryAccent}2e`,
   },
   rangeStart: {
-    backgroundColor: "rgba(86, 101, 220, 0.18)",
+    backgroundColor: `${colors.secondaryAccent}2e`,
     borderTopLeftRadius: 17,
     borderBottomLeftRadius: 17,
   },
   rangeEnd: {
-    backgroundColor: "rgba(86, 101, 220, 0.18)",
+    backgroundColor: `${colors.secondaryAccent}2e`,
     borderTopRightRadius: 17,
     borderBottomRightRadius: 17,
   },
@@ -743,8 +748,9 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   daysDiffText: {
-    color: Theme.comfyColors.skyBlue,
+    color: comfyColors.skyBlue,
     fontSize: 14,
     fontWeight: "800",
   },
-});
+  });
+}

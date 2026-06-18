@@ -1,7 +1,7 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Theme } from "../../theme/colors";
+import { useTheme } from "../../theme/colors";
 
 type ChooseModeStepProps = {
   onChooseText: () => void;
@@ -12,6 +12,8 @@ export default function ChooseModeStep({
   onChooseText,
   onChooseManual,
 }: ChooseModeStepProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.container}>
       <Text style={styles.title}>¿Cómo quieres crear la actividad?</Text>
@@ -22,7 +24,7 @@ export default function ChooseModeStep({
         activeOpacity={0.85}
       >
         <View style={styles.cardIcon}>
-          <Ionicons name="text-outline" size={28} color="#5665dc" />
+          <Ionicons name="text-outline" size={28} color={colors.secondaryAccent} />
         </View>
         <View style={styles.cardText}>
           <Text style={styles.cardTitle}>Texto libre</Text>
@@ -39,7 +41,7 @@ export default function ChooseModeStep({
         activeOpacity={0.85}
       >
         <View style={styles.cardIcon}>
-          <Ionicons name="settings-outline" size={28} color="#5665dc" />
+          <Ionicons name="settings-outline" size={28} color={colors.secondaryAccent} />
         </View>
         <View style={styles.cardText}>
           <Text style={styles.cardTitle}>Manual</Text>
@@ -53,7 +55,7 @@ export default function ChooseModeStep({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: "center",
@@ -62,7 +64,7 @@ const styles = StyleSheet.create({
     marginBottom: 65,
   },
   title: {
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontSize: 20,
     fontWeight: "800",
     textAlign: "center",
@@ -70,18 +72,18 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: Theme.colors.cardBackground,
+    backgroundColor: colors.cardBackground,
     borderRadius: 20,
     padding: 20,
     gap: 16,
     borderWidth: 2,
-    borderColor: Theme.colors.cardBorder,
+    borderColor: colors.cardBorder,
   },
   cardIcon: {
     width: 52,
     height: 52,
     borderRadius: 16,
-    backgroundColor: "rgba(86, 101, 220, 0.12)",
+    backgroundColor: `${colors.secondaryAccent}20`,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -89,7 +91,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   cardTitle: {
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontSize: 18,
     fontWeight: "800",
     marginBottom: 4,

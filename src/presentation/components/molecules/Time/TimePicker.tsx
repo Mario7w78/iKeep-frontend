@@ -1,7 +1,7 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { Theme } from '../../theme/colors';
+import { useTheme } from '../../theme/colors';
 
 const ITEM_HEIGHT = 35;
 
@@ -19,6 +19,8 @@ interface PickerColumnProps {
 }
 
 const PickerColumn: React.FC<PickerColumnProps> = ({ data, selectedIndex, onValueChange }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const scrollY = useRef(new Animated.Value(selectedIndex * ITEM_HEIGHT)).current;
   const [currentIndex, setCurrentIndex] = useState(selectedIndex);
   const scrollViewRef = useRef<any>(null);
@@ -85,7 +87,7 @@ const PickerColumn: React.FC<PickerColumnProps> = ({ data, selectedIndex, onValu
               key={item}
               style={[styles.item, { transform: [{ perspective: 1000 }, { rotateX }, { scale }], opacity }]}
             >
-              <Text style={[styles.text, { color: Theme.colors.surface }]}>
+              <Text style={[styles.text, { color: colors.surface }]}>
                 {item}
               </Text>
             </Animated.View>
@@ -103,6 +105,8 @@ interface TimePickerProps {
 }
 
 const TimePicker: React.FC<TimePickerProps> = ({ onTimeChange, time, flashTrigger }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const defaultTime = time || new Date();
   
   const hour12 = defaultTime.getHours() % 12 || 12; 
@@ -169,7 +173,7 @@ const TimePicker: React.FC<TimePickerProps> = ({ onTimeChange, time, flashTrigge
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   container: {
     height: ITEM_HEIGHT * 5,
     width: 240,
@@ -180,14 +184,14 @@ const styles = StyleSheet.create({
   columnContainer: { flex: 1 },
   item: { height: ITEM_HEIGHT, justifyContent: 'center', alignItems: 'center' },
   text: { fontSize: 24, fontWeight: '600' },
-  separator: { fontSize: 24, fontWeight: 'bold', color: Theme.colors.surface, paddingBottom: 4 },
+  separator: { fontSize: 24, fontWeight: 'bold', color: colors.surface, paddingBottom: 4 },
   periodSpacer: { width: 8 },
   indicator: {
     position: 'absolute',
     top: ITEM_HEIGHT * 2,
     height: ITEM_HEIGHT,
     width: '100%',
-    backgroundColor: Theme.colors.cardBackground,
+    backgroundColor: colors.cardBackground,
     borderRadius: 10,
   },
 });

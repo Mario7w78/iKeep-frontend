@@ -27,27 +27,31 @@ import {
   getEnergyHistory,
 } from "../../../infrastructure/persistence/EnergyHistoryService";
 
-const makeEnergyLevels = (c: typeof import("../../components/theme/colors").comfyColors) => [
+const makeEnergyLevels = (
+  c: typeof import("../../components/theme/colors").comfyColors,
+  cardBg: string,
+  isLight: boolean
+) => [
   {
     label: "Baja energia",
     color: c.yellow,
     icon: "battery-dead",
     iconColor: c.yellow,
-    gradient: ["#34364d", "#4c4832"] as const,
+    gradient: isLight ? [cardBg, "#FFF9E6"] as const : [cardBg, "#4c4832"] as const,
   },
   {
     label: "Energia estable",
     color: c.green,
     icon: "battery-half",
     iconColor: c.green,
-    gradient: ["#34364d", "#2d3d33"] as const,
+    gradient: isLight ? [cardBg, "#E8F9F0"] as const : [cardBg, "#2d3d33"] as const,
   },
   {
     label: "Alta energia",
     color: c.skyBlue,
     icon: "flash",
     iconColor: c.skyBlue,
-    gradient: ["#34364d", "#2c344d"] as const,
+    gradient: isLight ? [cardBg, "#EBF5FF"] as const : [cardBg, "#2c344d"] as const,
   },
 ];
 
@@ -75,7 +79,8 @@ const DAY_DISPLAY_NAMES: Record<string, string> = {
 export default function HomeView() {
   const navigation = useNavigation<any>();
   const { colors, comfyColors, comfyFontColors } = useTheme();
-  const ENERGY_LEVELS = useMemo(() => makeEnergyLevels(comfyColors), [comfyColors]);
+  const isLight = colors.screenBackground.toLowerCase() === '#f1f6f3' || colors.screenBackground.toLowerCase() === '#ffffff';
+  const ENERGY_LEVELS = useMemo(() => makeEnergyLevels(comfyColors, colors.cardBackground, isLight), [comfyColors, colors.cardBackground, isLight]);
   const styles = useMemo(() => createStyles(colors, comfyColors, comfyFontColors), [colors]);
 
   const username = useAppStore((s) => s.username);
@@ -620,7 +625,7 @@ const createStyles = (
     borderRadius: 29,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(141, 255, 104, 0.14)",
+    backgroundColor: `${comfyColors.green}24`,
     shadowColor: comfyColors.green,
     shadowOpacity: 0.45,
     shadowRadius: 18,

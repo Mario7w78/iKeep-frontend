@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -13,7 +13,8 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { PartitionConfig } from "../../../../domain/entities/activity.types";
-import { Theme } from "../../theme/colors";
+import { useTheme } from "../../theme/colors";
+import type { ThemeColors } from "../../theme/colors";
 import TimeChip from "../../atoms/CreateActivity/TimeChip";
 import { calculateDurationAcrossMidnight } from "../../../utils/timeUtils";
 
@@ -80,6 +81,9 @@ export default function TimePartitionForm({
   const [travelCustomToMinutesText, setTravelCustomToMinutesText] = useState("");
   const [travelCustomFromHoursText, setTravelCustomFromHoursText] = useState("");
   const [travelCustomFromMinutesText, setTravelCustomFromMinutesText] = useState("");
+
+  const { colors, comfyColors, comfyFontColors } = useTheme();
+  const styles = useMemo(() => createStyles(colors, comfyColors, comfyFontColors), [colors, comfyColors, comfyFontColors]);
 
   useEffect(() => {
     const h = Math.floor(durationTimeValue / 60);
@@ -224,7 +228,7 @@ export default function TimePartitionForm({
                   style={styles.cardDeleteButton}
                   onPress={() => onDiscardPartition(index)}
                 >
-                  <Ionicons name="trash-outline" size={20} color={Theme.colors.error} />
+                  <Ionicons name="trash-outline" size={20} color={colors.error} />
                 </TouchableOpacity>
               )}
             </View>
@@ -244,7 +248,7 @@ export default function TimePartitionForm({
                         setShowCustomTravelFromPickerIndex(null);
                       }}
                     >
-                      <Ionicons name="time-outline" size={22} color={Theme.colors.surface} />
+                      <Ionicons name="time-outline" size={22} color={colors.surface} />
                       <Text style={styles.timeInputText}>{formatTime(partition.startHour)}</Text>
                     </TouchableOpacity>
                   </View>
@@ -261,7 +265,7 @@ export default function TimePartitionForm({
                         setShowCustomTravelFromPickerIndex(null);
                       }}
                     >
-                      <Ionicons name="time-outline" size={22} color={Theme.colors.surface} />
+                      <Ionicons name="time-outline" size={22} color={colors.surface} />
                       <Text style={styles.timeInputText}>{formatTime(partition.endHour)}</Text>
                     </TouchableOpacity>
                   </View>
@@ -275,7 +279,7 @@ export default function TimePartitionForm({
                       display="spinner"
                       themeVariant="dark"
                       minuteInterval={5}
-                      textColor={Theme.colors.surface}
+                      textColor={colors.surface}
                       onChange={(_, selectedDate) => {
                         if (selectedDate) onSetStartTime(selectedDate);
                         if (Platform.OS !== "ios") setShowStartPickerIndex(null);
@@ -300,7 +304,7 @@ export default function TimePartitionForm({
                       mode="time"
                       display="spinner"
                       themeVariant="dark"
-                      textColor={Theme.colors.surface}
+                      textColor={colors.surface}
                       onChange={(_, selectedDate) => {
                         if (selectedDate) onSetEndTime(selectedDate);
                         if (Platform.OS !== "ios") setShowEndPickerIndex(null);
@@ -543,7 +547,7 @@ export default function TimePartitionForm({
       })}
 
       <TouchableOpacity style={styles.ghostButton} onPress={onAddPartition}>
-        <Ionicons name="add" size={22} color="#8dccff" />
+        <Ionicons name="add" size={22} color={colors.secondaryAccent} />
         <Text style={styles.ghostButtonText}>+ Añadir otro turno este mismo día</Text>
       </TouchableOpacity>
 
@@ -562,8 +566,8 @@ export default function TimePartitionForm({
               value={isRestricted}
               onValueChange={handleToggleRestriction}
               disabled={durationTimeValue >= 1440}
-              trackColor={{ false: "#525576", true: Theme.comfyColors.green }}
-              thumbColor={Theme.colors.surface}
+              trackColor={{ false: colors.cardBorder, true: comfyColors.green }}
+              thumbColor={colors.surface}
             />
           </View>
 
@@ -579,7 +583,7 @@ export default function TimePartitionForm({
                       setShowPrefEndPicker(false);
                     }}
                   >
-                    <Ionicons name="time-outline" size={20} color={Theme.colors.surface} />
+                    <Ionicons name="time-outline" size={20} color={colors.surface} />
                     <Text style={styles.timeSelectorText}>
                       {minutesToTimeStr(preferredStartTime)}
                     </Text>
@@ -587,7 +591,7 @@ export default function TimePartitionForm({
                 </View>
 
                 <View style={{ width: 16, alignItems: 'center', justifyContent: 'center', marginTop: 24 }}>
-                  <Text style={{ color: Theme.colors.textSecondary }}>—</Text>
+                  <Text style={{ color: colors.textSecondary }}>—</Text>
                 </View>
 
                 <View style={{ flex: 1 }}>
@@ -599,7 +603,7 @@ export default function TimePartitionForm({
                       setShowPrefStartPicker(false);
                     }}
                   >
-                    <Ionicons name="time-outline" size={20} color={Theme.colors.surface} />
+                    <Ionicons name="time-outline" size={20} color={colors.surface} />
                     <Text style={styles.timeSelectorText}>
                       {minutesToTimeStr(preferredEndTime)}
                     </Text>
@@ -614,7 +618,7 @@ export default function TimePartitionForm({
                     mode="time"
                     display="spinner"
                     themeVariant="dark"
-                    textColor={Theme.colors.surface}
+                    textColor={colors.surface}
                     onChange={(_, selectedDate) => {
                       if (selectedDate) {
                         const mins = selectedDate.getHours() * 60 + selectedDate.getMinutes();
@@ -641,7 +645,7 @@ export default function TimePartitionForm({
                     mode="time"
                     display="spinner"
                     themeVariant="dark"
-                    textColor={Theme.colors.surface}
+                    textColor={colors.surface}
                     onChange={(_, selectedDate) => {
                       if (selectedDate) {
                         const mins = selectedDate.getHours() * 60 + selectedDate.getMinutes();
@@ -664,7 +668,7 @@ export default function TimePartitionForm({
               <View style={styles.windowInfoContainer}>
                 {calculateDurationAcrossMidnight(preferredStartTime!, preferredEndTime!) < durationTimeValue ? (
                   <View style={styles.warningContainer}>
-                    <Ionicons name="warning" size={16} color={Theme.colors.error} />
+                    <Ionicons name="warning" size={16} color={colors.error} />
                     <Text style={styles.warningText}>
                       La ventana seleccionada ({calculateDurationAcrossMidnight(preferredStartTime!, preferredEndTime!)} min) es más corta que la duración estimada ({durationTimeValue} min)
                     </Text>
@@ -683,13 +687,13 @@ export default function TimePartitionForm({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors, comfyColors: Record<string, string>, comfyFontColors: Record<string, string>) => StyleSheet.create({
   card: {
     gap: 16,
   },
   partitionCard: {
-    backgroundColor: Theme.colors.cardBackground,
-    borderColor: Theme.colors.cardBorder,
+    backgroundColor: colors.cardBackground,
+    borderColor: colors.cardBorder,
     borderWidth: 2,
     borderRadius: 24,
     padding: 16,
@@ -702,7 +706,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   cardTitle: {
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontSize: 18,
     fontWeight: "900",
   },
@@ -719,7 +723,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   cardFieldLabel: {
-    color: Theme.colors.iconPrimary,
+    color: colors.iconPrimary,
     fontSize: 14,
     fontWeight: "900",
   },
@@ -730,26 +734,26 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   quickChip: {
-    backgroundColor: "#4c4e68",
+    backgroundColor: colors.screenBackground,
     borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: Theme.colors.cardBorder,
+    borderColor: colors.cardBorder,
     paddingHorizontal: 12,
     paddingVertical: 10,
     alignItems: "center",
     justifyContent: "center",
   },
   quickChipSelected: {
-    backgroundColor: "rgba(174, 190, 255, 0.15)",
-    borderColor: Theme.colors.iconPrimary,
+    backgroundColor: `${colors.iconPrimary}20`,
+    borderColor: colors.iconPrimary,
   },
   quickChipText: {
-    color: Theme.colors.textTertiary,
+    color: colors.textTertiary,
     fontSize: 13,
     fontWeight: "800",
   },
   quickChipTextSelected: {
-    color: Theme.colors.surface,
+    color: colors.surface,
   },
   chipsRow: {
     flexDirection: "row",
@@ -765,14 +769,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
     borderWidth: 2,
-    borderColor: "#5665dc",
+    borderColor: colors.secondaryAccent,
     borderRadius: 20,
     paddingVertical: 14,
     marginTop: 8,
     backgroundColor: "transparent",
   },
   ghostButtonText: {
-    color: "#aebeff",
+    color: colors.secondaryAccent,
     fontSize: 15,
     fontWeight: "900",
   },
@@ -782,11 +786,13 @@ const styles = StyleSheet.create({
     gap: 12,
     minHeight: 56,
     borderRadius: 18,
-    backgroundColor: "#545875",
+    backgroundColor: colors.screenBackground,
+    borderWidth: 1.5,
+    borderColor: colors.cardBorder,
     paddingHorizontal: 20,
   },
   timeInputText: {
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontSize: 18,
     fontWeight: "900",
   },
@@ -801,8 +807,10 @@ const styles = StyleSheet.create({
   minutesInput: {
     minHeight: 50,
     borderRadius: 16,
-    backgroundColor: "#51546e",
-    color: Theme.colors.surface,
+    backgroundColor: colors.screenBackground,
+    borderWidth: 1.5,
+    borderColor: colors.cardBorder,
+    color: colors.surface,
     fontSize: 16,
     fontWeight: "800",
     paddingHorizontal: 20,
@@ -819,7 +827,7 @@ const styles = StyleSheet.create({
   },
   optimizableMessageText: {
     flex: 1,
-    color: Theme.colors.iconPrimary,
+    color: colors.iconPrimary,
     fontSize: 13,
     fontWeight: "700",
     lineHeight: 18,
@@ -832,27 +840,29 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#51546e",
+    backgroundColor: colors.screenBackground,
+    borderWidth: 1.5,
+    borderColor: colors.cardBorder,
     borderRadius: 16,
     paddingHorizontal: 16,
     minHeight: 50,
   },
   timeInputBox: {
     flex: 1,
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontSize: 16,
     fontWeight: "800",
     paddingVertical: 8,
   },
   timeInputLabel: {
-    color: "#a8a9bb",
+    color: colors.textSecondary,
     fontSize: 14,
     fontWeight: "800",
     marginLeft: 8,
   },
   divider: {
     height: 1,
-    backgroundColor: Theme.colors.cardBorder,
+    backgroundColor: colors.cardBorder,
     marginVertical: 14,
     opacity: 0.5,
   },
@@ -865,12 +875,12 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   restrictionTitle: {
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontSize: 16,
     fontWeight: "800",
   },
   restrictionSubtitle: {
-    color: Theme.colors.textSecondary,
+    color: colors.textSecondary,
     fontSize: 11,
     fontWeight: "500",
     marginTop: 2,
@@ -886,7 +896,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   timeLabel: {
-    color: Theme.colors.textSecondary,
+    color: colors.textSecondary,
     fontSize: 12,
     fontWeight: "700",
     marginBottom: 6,
@@ -895,29 +905,29 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    backgroundColor: Theme.colors.screenBackground,
-    borderColor: Theme.colors.cardBorder,
+    backgroundColor: colors.screenBackground,
+    borderColor: colors.cardBorder,
     borderWidth: 1,
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 16,
   },
   timeSelectorText: {
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontSize: 15,
     fontWeight: "700",
   },
   pickerContainer: {
-    backgroundColor: Theme.colors.screenBackground,
+    backgroundColor: colors.screenBackground,
     borderRadius: 16,
     padding: 8,
     borderWidth: 1,
-    borderColor: Theme.colors.cardBorder,
+    borderColor: colors.cardBorder,
     marginTop: 4,
   },
   doneBtn: {
     alignSelf: "flex-end",
-    backgroundColor: Theme.comfyColors.green,
+    backgroundColor: comfyColors.green,
     borderRadius: 8,
     paddingVertical: 6,
     paddingHorizontal: 12,
@@ -925,7 +935,7 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
   doneText: {
-    color: Theme.comfyFontColors.green,
+    color: comfyFontColors.green,
     fontWeight: "800",
     fontSize: 12,
   },
@@ -933,7 +943,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   windowLengthText: {
-    color: Theme.comfyColors.green,
+    color: comfyColors.green,
     fontSize: 13,
     fontWeight: "800",
   },
@@ -948,7 +958,7 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   warningText: {
-    color: Theme.colors.error,
+    color: colors.error,
     fontSize: 12,
     fontWeight: "700",
     flex: 1,

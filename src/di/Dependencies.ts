@@ -31,6 +31,8 @@ import { createActivityStore, ActivityStore } from '../infrastructure/store/useA
 import { createScheduleStore, ScheduleStore } from '../infrastructure/store/useScheduleStore';
 import { createUserStore, UserStore } from '../infrastructure/store/useUserStore';
 import { asyncStorageDayLimitPersistence } from '../infrastructure/persistence/AsyncStorageDayLimitPersistence';
+import { sendConversation } from '../infrastructure/api/ParseNLApiService';
+import { createChatStore, ChatStore } from '../infrastructure/store/useChatStore';
 
 const activityRepository: ActivityRepository = new AsyncStorageActivityRepository();
 const userRepository: UserRepository = new AsyncStorageUserRepository();
@@ -74,4 +76,10 @@ export const useScheduleStore: ScheduleStore = createScheduleStore(
 export const useUserStore: UserStore = createUserStore(
   getUserUseCase,
   updateUserUseCase
+);
+
+export const useChatStore: ChatStore = createChatStore(
+  useActivityStore,
+  useScheduleStore,
+  sendConversation
 );

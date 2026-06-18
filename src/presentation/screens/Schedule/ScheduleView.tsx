@@ -332,6 +332,16 @@ export default function ScheduleView() {
             })}
           </ScrollView>
 
+          {/* Chat FAB */}
+          <TouchableOpacity
+            style={s.fabChatBtn}
+            activeOpacity={0.8}
+            onPress={() => navigation.navigate("AIChatView")}
+          >
+            <Ionicons name="chatbubbles-outline" size={26} color={Theme.comfyColors.green} />
+          </TouchableOpacity>
+
+          {/* Create activity FAB */}
           <TouchableOpacity
             style={s.fabCreateBtn}
             activeOpacity={0.8}
@@ -425,6 +435,24 @@ const s = StyleSheet.create({
     color: Theme.colors.surface,
     fontSize: 15,
     fontWeight: '700',
+  },
+  fabChatBtn: {
+    position: "absolute",
+    bottom: 84,
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: Theme.colors.cardBackground,
+    borderWidth: 1.5,
+    borderColor: Theme.comfyColors.green,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 6,
   },
   fabCreateBtn: {
     position: "absolute",

@@ -154,8 +154,15 @@ export function createChatStore(
     }
   };
 
+  const greetingMessage: ChatMessage = {
+    id: 'sapo-greeting',
+    role: 'assistant',
+    content: '¡Hola! Soy Sapo 🐸, tu asistente virtual. Decime qué actividad querés agregar y te ayudo a organizar tu día.',
+    timestamp: Date.now(),
+  };
+
   return create<ChatStoreState>((set, get) => ({
-    messages: [],
+    messages: [greetingMessage],
     isThinking: false,
     inputText: '',
     createdActivityId: null,
@@ -166,7 +173,7 @@ export function createChatStore(
 
     clearChat: () =>
       set({
-        messages: [],
+        messages: [{ ...greetingMessage, timestamp: Date.now() }],
         isThinking: false,
         inputText: '',
         createdActivityId: null,

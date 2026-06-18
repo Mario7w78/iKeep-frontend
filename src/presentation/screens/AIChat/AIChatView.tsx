@@ -1,5 +1,6 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useChatStore } from '../../../di/Dependencies';
 import { NLConversationStep } from '../../components/organisms/CreateActivity/NLConversationStep';
 
@@ -26,7 +27,7 @@ export default function AIChatView({ navigation }: any) {
   };
 
   return (
-    <View style={styles.container} testID="ai-chat-view-container">
+    <SafeAreaView style={styles.container} edges={['top']} testID="ai-chat-view-container">
       <NLConversationStep
         messages={messages}
         onSend={sendMessage}
@@ -36,7 +37,7 @@ export default function AIChatView({ navigation }: any) {
         onViewActivity={handleViewActivity}
         onClear={clearChat}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 

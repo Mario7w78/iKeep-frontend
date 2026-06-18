@@ -333,13 +333,6 @@ export default function HomeView() {
             <Text style={styles.title}>Hola, {username || "Usuario"}. Tu día está listo.</Text>
             <Text style={styles.date}>{dayFormatter.format(new Date())}</Text>
           </View>
-          <TouchableOpacity
-            style={styles.headerChatButton}
-            activeOpacity={0.75}
-            onPress={() => navigation.navigate("AIChatView")}
-          >
-            <Ionicons name="chatbubbles-outline" size={24} color={Theme.comfyColors.green} />
-          </TouchableOpacity>
         </View>
 
         <LinearGradient
@@ -567,6 +560,15 @@ export default function HomeView() {
         />
       </ScrollView>
 
+      {/* Chat FAB */}
+      <TouchableOpacity
+        style={styles.fabChatBtn}
+        activeOpacity={0.8}
+        onPress={() => navigation.navigate("AIChatView")}
+      >
+        <Ionicons name="chatbubbles-outline" size={26} color={Theme.comfyColors.green} />
+      </TouchableOpacity>
+
       {/* FAB to create activity */}
       <TouchableOpacity
         style={styles.fabCreateBtn}
@@ -657,15 +659,23 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     textAlign: "center",
   },
-  headerChatButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+  fabChatBtn: {
+    position: 'absolute',
+    bottom: 84,
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: Theme.colors.cardBackground,
-    borderWidth: 1,
-    borderColor: Theme.colors.cardBorder,
+    borderWidth: 1.5,
+    borderColor: Theme.comfyColors.green,
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 6,
   },
   fabCreateBtn: {
     position: 'absolute',

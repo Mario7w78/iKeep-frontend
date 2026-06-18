@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
 import { DaySelector } from '../../molecules/Schedule/DaySelector';
 import { DayOfWeek } from '../../../../domain/entities/Activity';
 import { Theme } from '../../theme/colors';
@@ -33,7 +32,6 @@ const getFormattedDateForDay = (day: DayOfWeek) => {
 };
 
 export function ScheduleHeader({ selectedDay, activityCount, onSelectDay, onRefresh, viewMode, onToggleViewMode }: Props) {
-  const navigation = useNavigation<any>();
   const dateText = getFormattedDateForDay(selectedDay);
 
   return (
@@ -51,9 +49,6 @@ export function ScheduleHeader({ selectedDay, activityCount, onSelectDay, onRefr
           </View>
         </View>
         <View style={s.actionButtons}>
-          <TouchableOpacity style={s.chatBtn} onPress={() => navigation.navigate("AIChatView")} hitSlop={12}>
-            <Ionicons name="chatbubbles-outline" size={24} color={Theme.comfyColors.green} />
-          </TouchableOpacity>
           <TouchableOpacity style={s.toggleBtn} onPress={onToggleViewMode} hitSlop={12}>
             <Ionicons name={viewMode === 'grid' ? 'list-outline' : 'calendar-outline'} size={24} color={Theme.comfyColors.green} />
           </TouchableOpacity>
@@ -124,16 +119,6 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-  },
-  chatBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: Theme.colors.cardBackground,
-    borderWidth: 1,
-    borderColor: Theme.colors.cardBorder,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   toggleBtn: {
     width: 40,

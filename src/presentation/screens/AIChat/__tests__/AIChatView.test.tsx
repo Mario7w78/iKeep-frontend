@@ -7,6 +7,11 @@ import { sendConversation } from '../../../../infrastructure/api/ParseNLApiServi
 
 // Mock required modules
 jest.mock('react-native-safe-area-context', () => ({
+  SafeAreaView: (props: any) => {
+    const { View } = require('react-native');
+    const { children, style, ...rest } = props;
+    return <View style={style} {...rest}>{children}</View>;
+  },
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 
@@ -54,10 +59,12 @@ describe('useChatStore', () => {
     mockSendConversation = jest.fn();
   });
 
-  it('initializes with empty messages and not thinking', () => {
+  it('initializes with greeting message and not thinking', () => {
     const store = createChatStore(mockActivityStore, mockScheduleStore, mockSendConversation);
     const state = store.getState();
-    expect(state.messages).toEqual([]);
+    expect(state.messages).toHaveLength(1);
+    expect(state.messages[0].role).toBe('assistant');
+    expect(state.messages[0].id).toBe('sapo-greeting');
     expect(state.isThinking).toBe(false);
     expect(state.createdActivityId).toBeNull();
   });
@@ -71,18 +78,18 @@ describe('useChatStore', () => {
 
     const sendPromise = store.getState().sendMessage('Quiero estudiar inglés');
 
-    // Check intermediate state
+    // user message is appended after greeting (index 1)
     expect(store.getState().isThinking).toBe(true);
-    expect(store.getState().messages.length).toBe(1);
-    expect(store.getState().messages[0].content).toBe('Quiero estudiar inglés');
-    expect(store.getState().messages[0].role).toBe('user');
+    expect(store.getState().messages.length).toBe(2);
+    expect(store.getState().messages[1].content).toBe('Quiero estudiar inglés');
+    expect(store.getState().messages[1].role).toBe('user');
 
     await sendPromise;
 
     expect(store.getState().isThinking).toBe(false);
-    expect(store.getState().messages.length).toBe(2);
-    expect(store.getState().messages[1].content).toBe('¿De qué color es la actividad?');
-    expect(store.getState().messages[1].role).toBe('assistant');
+    expect(store.getState().messages.length).toBe(3);
+    expect(store.getState().messages[2].content).toBe('¿De qué color es la actividad?');
+    expect(store.getState().messages[2].role).toBe('assistant');
   });
 
   it('handles result response and calls store saves and schedule regeneration', async () => {
@@ -139,7 +146,7 @@ describe('useChatStore', () => {
     expect(store.getState().messages.some((m) => m.content === '¿Qué día?')).toBe(true);
   });
 
-  it('clearChat resets the state', () => {
+  it('clearChat resets to greeting', () => {
     const store = createChatStore(mockActivityStore, mockScheduleStore, mockSendConversation);
 
     // Set some state
@@ -153,7 +160,8 @@ describe('useChatStore', () => {
     store.getState().clearChat();
 
     const state = store.getState();
-    expect(state.messages).toEqual([]);
+    expect(state.messages).toHaveLength(1);
+    expect(state.messages[0].id).toBe('sapo-greeting');
     expect(state.isThinking).toBe(false);
     expect(state.inputText).toBe('');
     expect(state.createdActivityId).toBeNull();

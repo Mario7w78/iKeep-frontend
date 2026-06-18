@@ -33,9 +33,21 @@ export const domainToScheduleRequest = (
     options?: GenerateScheduleOptions
 ): ScheduleRequestDto => {
     const actividades_fijas: ActividadFijaDto[] = [];
-    const actividades_optimizables: TareaPendienteDto[] = [];
+    const actividades_ancla: TareaPendienteDto[] = [];
+    const actividades_optimizables_puras: TareaPendienteDto[] = [];
+
+    const pushOptimizable = (entry: TareaPendienteDto, isAnchor: boolean) => {
+        if (isAnchor) {
+            actividades_ancla.push(entry);
+        } else {
+            actividades_optimizables_puras.push(entry);
+        }
+    };
 
     activities.forEach(act => {
+        const isAnchor = act.isAnchor ?? false;
+        const isPure = !isAnchor;
+
         // Optional day: optimizable activities without fixed day constraint
         if (act.type === ActivityType.FLEXIBLE && act.optionalDay) {
             const firstDay = act.daysEnabled[0];
@@ -61,7 +73,7 @@ export const domainToScheduleRequest = (
                     hora_preferida_inicio: config.preferredStartTime ?? act.preferredStartTime ?? null,
                     hora_preferida_fin: config.preferredEndTime ?? act.preferredEndTime ?? null,
                     dias_permitidos: act.daysEnabled.map(d => DAY_TO_INT[d]),
-                    es_ancla: act.isAnchor || undefined,
+                    es_ancla: isAnchor || undefined,
                     travel_to: partition.travelTo ?? undefined,
                     travel_from: partition.travelFrom ?? undefined,
                 };
@@ -72,7 +84,7 @@ export const domainToScheduleRequest = (
                     entry.dia_hasta = act.dayTo;
                 }
 
-                actividades_optimizables.push(entry);
+                pushOptimizable(entry, isAnchor);
             });
             return; // skip per-day iteration
         }
@@ -88,7 +100,7 @@ export const domainToScheduleRequest = (
                 const inicio = dateToMinutes(partition.startHour);
                 const fin = dateToMinutes(partition.endHour);
 
-                actividades_optimizables.push({
+                const entry: TareaPendienteDto = {
                     id: `${act.id}-${config.groupId}-${pIdx}`,
                     nombre: act.title || 'Actividad sin nombre',
                     tipo: act.identity || ('tarea' as BackendActivityType),
@@ -104,10 +116,12 @@ export const domainToScheduleRequest = (
                     dias_permitidos: act.daysEnabled.map(d => DAY_TO_INT[d]),
                     dia_desde: act.dayFrom,
                     dia_hasta: act.dayTo,
-                    es_ancla: act.isAnchor || undefined,
+                    es_ancla: isAnchor || undefined,
                     travel_to: partition.travelTo ?? undefined,
                     travel_from: partition.travelFrom ?? undefined,
-                });
+                };
+
+                pushOptimizable(entry, isAnchor);
             });
             return; // skip per-day iteration
         }
@@ -139,12 +153,12 @@ export const domainToScheduleRequest = (
                 if (act.type === ActivityType.FIXED) {
                     actividades_fijas.push(baseDto);
                 } else {
-                    actividades_optimizables.push({
+                    pushOptimizable({
                         ...baseDto,
                         hora_preferida_inicio: config.preferredStartTime ?? act.preferredStartTime ?? null,
                         hora_preferida_fin: config.preferredEndTime ?? act.preferredEndTime ?? null,
-                        es_ancla: act.isAnchor || undefined,
-                    });
+                        es_ancla: isAnchor || undefined,
+                    }, isAnchor);
                 }
             });
         });
@@ -152,7 +166,8 @@ export const domainToScheduleRequest = (
 
     return {
         actividades_fijas,
-        actividades_optimizables,
+        actividades_ancla,
+        actividades_optimizables_puras,
         ubicaciones: options?.ubicaciones ?? [],
         tiempos_traslado: options?.tiempos_traslado ?? [],
         dia_inicio: options?.dia_inicio ?? 0,

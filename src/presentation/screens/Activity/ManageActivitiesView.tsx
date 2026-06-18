@@ -14,7 +14,7 @@ import { Theme } from "../../components/theme/colors";
 import { Activity } from "../../../domain/entities/Activity";
 import { ActivityConfigDetailModal } from "../../components/organisms/Activity/ActivityConfigDetailModal";
 
-export default function ManageActivitiesView({ navigation }: any) {
+export default function ManageActivitiesView({ navigation, route }: any) {
   const { activities, loadActivities, handleDeleteActivity } = useActivityStore();
   const { handleGenerateSchedule } = useScheduleStore();
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
@@ -22,6 +22,20 @@ export default function ManageActivitiesView({ navigation }: any) {
   useEffect(() => {
     loadActivities();
   }, []);
+
+  useEffect(() => {
+    if (route.params?.selectActivityId && activities.length > 0) {
+      const found = activities.find((a) => a.id === route.params.selectActivityId);
+      if (found) {
+        setSelectedActivity(found);
+        navigation.setParams({ selectActivityId: undefined });
+        Alert.alert(
+          "Actividad guardada",
+          "La actividad se guardó con éxito y se actualizó tu calendario."
+        );
+      }
+    }
+  }, [route.params?.selectActivityId, activities, navigation]);
 
   const onDelete = (id: string, name: string) => {
     Alert.alert(
@@ -119,7 +133,7 @@ export default function ManageActivitiesView({ navigation }: any) {
             <View style={styles.actionButtonsCol}>
               <TouchableOpacity
                 style={styles.editButton}
-                onPress={() => navigation.navigate("CreateActivityModal", { activity: item })}
+                onPress={() => navigation.navigate("CreateActivityModal", { activityId: item.id })}
               >
                 <Ionicons name="create-outline" size={22} color={Theme.colors.iconPrimary} />
               </TouchableOpacity>

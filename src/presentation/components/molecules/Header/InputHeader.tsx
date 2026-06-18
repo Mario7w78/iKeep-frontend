@@ -34,6 +34,7 @@ export const InputHeader = ({ value, onChangeText, onClose }: Props) => (
         onChangeText={onChangeText}
         placeholder="¿Comó se llama la actividad?"
         placeholderTextColor={Theme.colors.placeholder}
+        autoCorrect={false}
       />
     </View>
 

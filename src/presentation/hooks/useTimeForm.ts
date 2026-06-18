@@ -40,13 +40,19 @@ export default function useTimeForm() {
   ]);
   const [activePartitionIndex, setActivePartitionIndex] = useState(0);
 
-  const activePartition = partitions[activePartitionIndex] || partitions[0];
+  const activePartition = partitions[activePartitionIndex] || partitions[0] || {
+    startHour: new Date(),
+    endHour: new Date(),
+    durationTime: 60,
+    travelTo: null,
+    travelFrom: null,
+  };
 
-  const durationTimeValue = activePartition.durationTime;
-  const travelToValue = activePartition.travelTo;
-  const travelFromValue = activePartition.travelFrom;
-  const startTime = activePartition.startHour;
-  const endTime = activePartition.endHour;
+  const durationTimeValue = activePartition.durationTime ?? 60;
+  const travelToValue = activePartition.travelTo ?? null;
+  const travelFromValue = activePartition.travelFrom ?? null;
+  const startTime = activePartition.startHour ?? new Date();
+  const endTime = activePartition.endHour ?? new Date();
 
   const { handleCreateActivity, activities } = useActivityStore();
   const { startHour: dayStartMin, endHour: dayEndMin, handleGenerateSchedule } = useScheduleStore();
@@ -200,6 +206,7 @@ export default function useTimeForm() {
   const validatePartitions = (
     parts: PartitionConfig[],
     days: DayOfWeek[],
+    silent?: boolean,
   ): boolean => {
     if (isFixed) {
       for (let i = 0; i < parts.length; i++) {
@@ -209,10 +216,9 @@ export default function useTimeForm() {
           const sMin2 = dateToMinutes(new Date(parts[j].startHour));
           const eMin2 = dateToMinutes(new Date(parts[j].endHour));
           if (areOverlapping(sMin, eMin, sMin2, eMin2)) {
-            Alert.alert(
-              "Atención",
-              `Los bloques horarios para el día ${days.join(", ")} no pueden superponerse.`
-            );
+            const errorMsg = `Los bloques horarios para el día ${days.join(", ")} no pueden superponerse.`;
+            if (silent) throw new Error(errorMsg);
+            Alert.alert("Atención", errorMsg);
             return false;
           }
         }
@@ -242,6 +248,7 @@ export default function useTimeForm() {
     prefStart: number | null,
     prefEnd: number | null,
     duration: number,
+    silent?: boolean,
   ): boolean => {
     const storeState = useScheduleStore.getState();
     const schedule = storeState.schedule;
@@ -265,10 +272,9 @@ export default function useTimeForm() {
             const itemEnd = timeStrToMinutes(item.assignedEndTime);
 
             if (partStart < itemEnd && partEnd > itemStart) {
-              Alert.alert(
-                "Conflicto de Horario",
-                `El horario del día ${day} (${formatTime(part.startHour)} - ${formatTime(part.endHour)}) se superpone con la actividad ya establecida "${item.activity?.title ?? 'Actividad sin nombre'}" (${item.assignedStartTime} - ${item.assignedEndTime}).`
-              );
+              const errorMsg = `El horario del día ${day} (${formatTime(part.startHour)} - ${formatTime(part.endHour)}) se superpone con la actividad ya establecida "${item.activity?.title ?? 'Actividad sin nombre'}" (${item.assignedStartTime} - ${item.assignedEndTime}).`;
+              if (silent) throw new Error(errorMsg);
+              Alert.alert("Conflicto de Horario", errorMsg);
               return false;
             }
           }
@@ -319,10 +325,9 @@ export default function useTimeForm() {
             const overlapText = overlappingActivities.length > 0
               ? ` debido a la superposición con: ${overlappingActivities.join(", ")}`
               : "";
-            Alert.alert(
-              "Conflicto de Horario",
-              `La ventana preferida el día ${day} (${minutesToTimeStr(prefStart)} - ${minutesToTimeStr(prefEnd)}) no deja suficiente tiempo libre para realizar la actividad (${duration} min)${overlapText}.`
-            );
+            const errorMsg = `La ventana preferida el día ${day} (${minutesToTimeStr(prefStart)} - ${minutesToTimeStr(prefEnd)}) no deja suficiente tiempo libre para realizar la actividad (${duration} min)${overlapText}.`;
+            if (silent) throw new Error(errorMsg);
+            Alert.alert("Conflicto de Horario", errorMsg);
             return false;
           }
         }
@@ -331,19 +336,34 @@ export default function useTimeForm() {
     return true;
   };
 
-  const handleSaveActivity = async ({
-    daysDict,
-    selectedDays,
-  }: saveActivityProps) => {
+  const handleSaveActivity = async (overrides: saveActivityProps) => {
+    const { daysDict, selectedDays, silent } = overrides;
     const configuredDays = Object.keys(daysDict) as DayOfWeek[];
 
-    if (!activityName.trim()) {
-      Alert.alert("Atención", "Ingresa un nombre para la actividad");
+    const finalName = overrides.activityName !== undefined ? overrides.activityName : activityName;
+    const finalIsFixed = overrides.isFixed !== undefined ? overrides.isFixed : isFixed;
+    const finalIdentity = overrides.identity !== undefined ? overrides.identity : identity;
+    const finalPriorityStr = overrides.priority !== undefined ? overrides.priority : priority;
+    const finalDifficultyStr = overrides.difficulty !== undefined ? overrides.difficulty : difficulty;
+    const finalDeadline = overrides.deadline !== undefined ? overrides.deadline : deadline;
+    const finalPrefStart = overrides.preferredStartTime !== undefined ? overrides.preferredStartTime : preferredStartTime;
+    const finalPrefEnd = overrides.preferredEndTime !== undefined ? overrides.preferredEndTime : preferredEndTime;
+    const finalOptionalDay = overrides.optionalDay !== undefined ? overrides.optionalDay : optionalDay;
+    const finalDayFrom = overrides.dayFrom !== undefined ? overrides.dayFrom : dayFrom;
+    const finalDayTo = overrides.dayTo !== undefined ? overrides.dayTo : dayTo;
+    const finalIsAnchor = overrides.isAnchor !== undefined ? overrides.isAnchor : isAnchor;
+
+    if (!finalName.trim()) {
+      const errorMsg = "Ingresa un nombre para la actividad";
+      if (silent) throw new Error(errorMsg);
+      Alert.alert("Atención", errorMsg);
       return;
     }
 
     if (configuredDays.length === 0) {
-      Alert.alert("Atención", "Guarda la configuración de al menos un día");
+      const errorMsg = "Guarda la configuración de al menos un día";
+      if (silent) throw new Error(errorMsg);
+      Alert.alert("Atención", errorMsg);
       return;
     }
 
@@ -354,6 +374,7 @@ export default function useTimeForm() {
         !validatePartitions(
           config.partitions,
           [day],
+          silent,
         )
       ) {
         return;
@@ -376,31 +397,55 @@ export default function useTimeForm() {
           (sum, p) => sum + p.durationTime, 0
         );
         if (calculateDurationAcrossMidnight(prefStart, prefEnd) < partDuration) {
-          Alert.alert("Atención", `La ventana preferida del ${day} es más corta que la duración estimada de la actividad en ese día.`);
+          const errorMsg = `La ventana preferida del ${day} es más corta que la duración estimada de la actividad en ese día.`;
+          if (silent) throw new Error(errorMsg);
+          Alert.alert("Atención", errorMsg);
           return;
         }
       }
     }
 
-    const finalPriority = isFixed ? 5 : priorityMap[priority];
-    const finalDifficulty = isFixed ? "media" : difficulty;
+    // Validate overlap with schedule
+    for (const day of configuredDays) {
+      const config = daysDict[day]!;
+      if (
+        !validateOverlapWithSchedule(
+          activityId,
+          finalIsFixed,
+          [day],
+          config.partitions,
+          config.preferredStartTime ?? finalPrefStart,
+          config.preferredEndTime ?? finalPrefEnd,
+          config.partitions.reduce((sum, p) => sum + p.durationTime, 0),
+          silent,
+        )
+      ) {
+        return;
+      }
+    }
+
+    const finalPriority = finalIsFixed ? 5 : priorityMap[finalPriorityStr];
+    const finalDifficulty = finalIsFixed ? "media" : finalDifficultyStr;
+
+    const finalId = activityId || Date.now().toString();
+    setActivityId(finalId);
 
     await handleCreateActivity({
-      id: activityId || undefined,
-      activityName,
-      isFixed,
-      identity,
+      id: finalId,
+      activityName: finalName,
+      isFixed: finalIsFixed,
+      identity: finalIdentity,
       priority: finalPriority,
       difficulty: finalDifficulty,
-      deadline: deadline ? deadline.toISOString() : null,
-      daysConfig: daysDict,
+      deadline: finalDeadline ? finalDeadline.toISOString() : null,
+      daysConfig: daysDict as Record<string, any>,
       days: configuredDays,
-      preferredStartTime,
-      preferredEndTime,
-      optionalDay,
-      dayFrom: dayFrom ?? undefined,
-      dayTo: dayTo ?? undefined,
-      isAnchor: isAnchor || undefined,
+      preferredStartTime: finalPrefStart,
+      preferredEndTime: finalPrefEnd,
+      optionalDay: finalOptionalDay,
+      dayFrom: finalDayFrom ?? undefined,
+      dayTo: finalDayTo ?? undefined,
+      isAnchor: finalIsAnchor || undefined,
     });
 
     try {

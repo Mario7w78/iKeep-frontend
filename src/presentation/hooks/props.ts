@@ -16,7 +16,17 @@ export type editGroupProps = {
 export type saveActivityProps = {
     daysDict: Partial<Record<DayOfWeek, DayConfig>>,
     selectedDays: DayOfWeek[],
-    dayFrom?: number;
-    dayTo?: number;
+    dayFrom?: number | null;
+    dayTo?: number | null;
     isAnchor?: boolean;
+    activityName?: string;
+    isFixed?: boolean;
+    identity?: 'clase' | 'trabajo' | 'tarea';
+    priority?: 'baja' | 'media' | 'alta';
+    difficulty?: 'baja' | 'media' | 'alta';
+    deadline?: Date | null;
+    preferredStartTime?: number | null;
+    preferredEndTime?: number | null;
+    optionalDay?: boolean;
+    silent?: boolean;
 }

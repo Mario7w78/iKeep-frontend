@@ -345,7 +345,7 @@ export function ActivityConfigDetailModal({
               activeOpacity={0.8}
               onPress={() => {
                 onClose();
-                navigation.navigate("CreateActivityModal", { activity });
+                navigation.navigate("CreateActivityModal", { activityId: activity.id });
               }}
             >
               <Ionicons name="create-outline" size={20} color={Theme.colors.surface} />

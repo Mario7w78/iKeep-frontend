@@ -334,6 +334,7 @@ export default function TimePartitionForm({
                       placeholder="0"
                       placeholderTextColor="#a8a9bb"
                       style={styles.timeInputBox}
+                      autoCorrect={false}
                     />
                     <Text style={styles.timeInputLabel}>Horas</Text>
                   </View>
@@ -350,6 +351,7 @@ export default function TimePartitionForm({
                       placeholder="0"
                       placeholderTextColor="#a8a9bb"
                       style={styles.timeInputBox}
+                      autoCorrect={false}
                     />
                     <Text style={styles.timeInputLabel}>Minutos</Text>
                   </View>
@@ -418,6 +420,7 @@ export default function TimePartitionForm({
                         placeholder="0"
                         placeholderTextColor="#a8a9bb"
                         style={styles.timeInputBox}
+                        autoCorrect={false}
                       />
                       <Text style={styles.timeInputLabel}>Horas</Text>
                     </View>
@@ -437,6 +440,7 @@ export default function TimePartitionForm({
                         placeholder="0"
                         placeholderTextColor="#a8a9bb"
                         style={styles.timeInputBox}
+                        autoCorrect={false}
                       />
                       <Text style={styles.timeInputLabel}>Minutos</Text>
                     </View>
@@ -506,6 +510,7 @@ export default function TimePartitionForm({
                         placeholder="0"
                         placeholderTextColor="#a8a9bb"
                         style={styles.timeInputBox}
+                        autoCorrect={false}
                       />
                       <Text style={styles.timeInputLabel}>Horas</Text>
                     </View>
@@ -525,6 +530,7 @@ export default function TimePartitionForm({
                         placeholder="0"
                         placeholderTextColor="#a8a9bb"
                         style={styles.timeInputBox}
+                        autoCorrect={false}
                       />
                       <Text style={styles.timeInputLabel}>Minutos</Text>
                     </View>

@@ -18,7 +18,7 @@ import { useActivityStore, useScheduleStore } from "../../../di/Dependencies";
 import { useAppStore } from "../../../infrastructure/store/useAppStore";
 import { ScheduledActivity } from "../../../domain/entities/Schedule";
 import { JS_DAY_TO_DAYOFWEEK } from "../../utils/scheduleUtils";
-import { Theme } from "../../components/theme/colors";
+import { useTheme } from "../../components/theme/colors";
 import { SAPO_BASE64 } from "../../components/sapoBase64";
 import { ActivityDetailModal } from "../../components/organisms/Schedule/ActivityDetailModal";
 import {
@@ -27,26 +27,26 @@ import {
   getEnergyHistory,
 } from "../../../infrastructure/persistence/EnergyHistoryService";
 
-const ENERGY_LEVELS = [
+const makeEnergyLevels = (c: typeof import("../../components/theme/colors").comfyColors) => [
   {
     label: "Baja energia",
-    color: Theme.comfyColors.yellow,
+    color: c.yellow,
     icon: "battery-dead",
-    iconColor: Theme.comfyColors.yellow,
+    iconColor: c.yellow,
     gradient: ["#34364d", "#4c4832"] as const,
   },
   {
     label: "Energia estable",
-    color: Theme.comfyColors.green,
+    color: c.green,
     icon: "battery-half",
-    iconColor: Theme.comfyColors.green,
+    iconColor: c.green,
     gradient: ["#34364d", "#2d3d33"] as const,
   },
   {
     label: "Alta energia",
-    color: Theme.comfyColors.skyBlue,
+    color: c.skyBlue,
     icon: "flash",
-    iconColor: Theme.comfyColors.skyBlue,
+    iconColor: c.skyBlue,
     gradient: ["#34364d", "#2c344d"] as const,
   },
 ];
@@ -74,6 +74,10 @@ const DAY_DISPLAY_NAMES: Record<string, string> = {
 
 export default function HomeView() {
   const navigation = useNavigation<any>();
+  const { colors, comfyColors, comfyFontColors } = useTheme();
+  const ENERGY_LEVELS = useMemo(() => makeEnergyLevels(comfyColors), [comfyColors]);
+  const styles = useMemo(() => createStyles(colors, comfyColors, comfyFontColors), [colors]);
+
   const username = useAppStore((s) => s.username);
   const schedule = useScheduleStore((s) => s.schedule);
   const isLoadedFromStorage = useScheduleStore((s) => s.isLoadedFromStorage);
@@ -254,21 +258,21 @@ export default function HomeView() {
   const cardStatus = currentActivity
     ? {
         pill: isCurrentTravel ? "Traslado" : "En curso",
-        pillColor: isCurrentTravel ? '#C8963E' : Theme.comfyColors.green,
-        pillText: isCurrentTravel ? '#F5DEB3' : Theme.comfyFontColors.green,
+        pillColor: isCurrentTravel ? '#C8963E' : comfyColors.green,
+        pillText: isCurrentTravel ? '#F5DEB3' : comfyFontColors.green,
         label: isCurrentTravel ? "Viaje" : getIdentityLabel(currentActivity.activity?.identity),
       }
     : firstNext
     ? {
         pill: "Siguiente",
-        pillColor: Theme.comfyColors.skyBlue,
-        pillText: Theme.comfyFontColors.skyBlue,
+        pillColor: comfyColors.skyBlue,
+        pillText: comfyFontColors.skyBlue,
         label: getIdentityLabel(firstNext.activity?.identity),
       }
     : {
         pill: "Libre",
-        pillColor: Theme.colors.cardBorder,
-        pillText: Theme.colors.surface,
+        pillColor: colors.cardBorder,
+        pillText: colors.surface,
         label: "",
       };
 
@@ -293,7 +297,7 @@ export default function HomeView() {
       <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
         <View style={styles.emptyContainer}>
           <View style={styles.emptyIcon}>
-            <Ionicons name="calendar-outline" size={54} color={Theme.comfyColors.skyBlue} />
+            <Ionicons name="calendar-outline" size={54} color={comfyColors.skyBlue} />
           </View>
           <Text style={styles.emptyTitle}>No hay actividades</Text>
           <Text style={styles.emptyDescription}>
@@ -304,7 +308,7 @@ export default function HomeView() {
             activeOpacity={0.8}
             onPress={() => navigation.navigate("CreateActivityModal")}
           >
-            <Ionicons name="add-circle-outline" size={22} color={Theme.comfyFontColors.green} />
+            <Ionicons name="add-circle-outline" size={22} color={comfyFontColors.green} />
             <Text style={styles.emptyButtonText}>Crear actividad manualmente</Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -312,8 +316,8 @@ export default function HomeView() {
             activeOpacity={0.8}
             onPress={() => navigation.navigate("AIChatView")}
           >
-            <Ionicons name="chatbubbles-outline" size={22} color={Theme.comfyColors.green} />
-            <Text style={[styles.emptyButtonText, { color: Theme.comfyColors.green }]}>Crear actividad con el asistente Sapo</Text>
+            <Ionicons name="chatbubbles-outline" size={22} color={comfyColors.green} />
+            <Text style={[styles.emptyButtonText, { color: comfyColors.green }]}>Crear actividad con el asistente</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -350,7 +354,7 @@ export default function HomeView() {
           <Text style={styles.cardTitle}>¿Cómo está tu nivel de energía hoy?</Text>
           <View style={styles.energySelector}>
             <Pressable onPress={() => moveEnergy(-1)} hitSlop={12}>
-              <Ionicons name="chevron-back" size={34} color={Theme.colors.surface} />
+              <Ionicons name="chevron-back" size={34} color={colors.surface} />
             </Pressable>
             <View style={styles.energyOrb}>
               <Ionicons 
@@ -360,7 +364,7 @@ export default function HomeView() {
               />
             </View>
             <Pressable onPress={() => moveEnergy(1)} hitSlop={12}>
-              <Ionicons name="chevron-forward" size={34} color={Theme.colors.surface} />
+              <Ionicons name="chevron-forward" size={34} color={colors.surface} />
             </Pressable>
           </View>
           <Text style={styles.energyLabel}>{selectedEnergy.label}</Text>
@@ -378,7 +382,7 @@ export default function HomeView() {
               <Ionicons
                 name="checkmark-circle-outline"
                 size={18}
-                color={Theme.colors.screenBackground}
+                color={colors.screenBackground}
               />
               <Text style={styles.saveEnergyButtonText}>Guardar</Text>
             </TouchableOpacity>
@@ -389,7 +393,7 @@ export default function HomeView() {
         {schedule?.estado === 'INFACTIBLE' && (
           <View style={[styles.card, styles.infactibleCard]}>
             <View style={styles.infactibleHeader}>
-              <Ionicons name="warning-outline" size={22} color={Theme.comfyColors.yellow} />
+              <Ionicons name="warning-outline" size={22} color={comfyColors.yellow} />
               <Text style={styles.infactibleTitle}>Horario parcialmente generado</Text>
             </View>
             {schedule.recomendaciones.length > 0 && (
@@ -417,7 +421,7 @@ export default function HomeView() {
         {schedule?.estado === 'DESCONOCIDO' && (
           <View style={[styles.card, styles.desconocidoCard]}>
             <View style={styles.infactibleHeader}>
-              <Ionicons name="time-outline" size={20} color={Theme.comfyColors.yellow} />
+              <Ionicons name="time-outline" size={20} color={comfyColors.yellow} />
               <Text style={styles.desconocidoText}>
                 El servidor no encontró respuesta a tiempo, mostrando horario base
               </Text>
@@ -453,14 +457,14 @@ export default function HomeView() {
             </View>
           ) : firstNext ? (
             <View style={styles.timerRow}>
-              <Text style={[styles.timerText, { color: Theme.comfyColors.skyBlue }]}>
+              <Text style={[styles.timerText, { color: comfyColors.skyBlue }]}>
                 {firstNext.assignedStartTime}
               </Text>
               <Text style={styles.timerLabel}>hora de inicio</Text>
             </View>
           ) : freeTimeMinutes !== null ? (
             <View style={styles.timerRow}>
-              <Text style={[styles.timerText, { color: Theme.comfyColors.green }]}>
+              <Text style={[styles.timerText, { color: comfyColors.green }]}>
                 {formatMinutesRemaining(freeTimeMinutes)}
               </Text>
               <Text style={styles.timerLabel}>
@@ -469,7 +473,7 @@ export default function HomeView() {
             </View>
           ) : (
             <View style={styles.timerRow}>
-              <Text style={[styles.timerText, { color: Theme.comfyColors.green }]}>
+              <Text style={[styles.timerText, { color: comfyColors.green }]}>
                 Listo
               </Text>
               <Text style={styles.timerLabel}>¡Día completado!</Text>
@@ -487,7 +491,7 @@ export default function HomeView() {
             activeOpacity={0.75}
             onPress={() => navigation.navigate("CreateActivityModal")}
           >
-            <Ionicons name="add-circle-outline" size={20} color={Theme.colors.surface} />
+            <Ionicons name="add-circle-outline" size={20} color={colors.surface} />
             <Text style={styles.actionText}>Crear nueva actividad</Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -495,7 +499,7 @@ export default function HomeView() {
             activeOpacity={0.75}
             onPress={() => navigation.navigate("Activities")}
           >
-            <Ionicons name="list-outline" size={20} color={Theme.colors.surface} />
+            <Ionicons name="list-outline" size={20} color={colors.surface} />
             <Text style={styles.actionText}>Ver mis actividades</Text>
           </TouchableOpacity>
         </View>
@@ -518,7 +522,7 @@ export default function HomeView() {
                       </Text>
                       <Text style={styles.nextTitle}>{item.activity?.title ?? (item.tipo === 'trabajo' || item.tipo === 'viaje' ? '🚗 Viaje' : 'Actividad')}</Text>
                     </View>
-                    <Ionicons name="chevron-forward" size={20} color={Theme.colors.iconSecondary} />
+                    <Ionicons name="chevron-forward" size={20} color={colors.iconSecondary} />
                   </TouchableOpacity>
                 ))
               ) : nextDayWithItems ? (
@@ -537,7 +541,7 @@ export default function HomeView() {
                         </Text>
                         <Text style={styles.nextTitle}>{item.activity?.title ?? (item.tipo === 'trabajo' || item.tipo === 'viaje' ? '🚗 Viaje' : 'Actividad')}</Text>
                       </View>
-                      <Ionicons name="chevron-forward" size={20} color={Theme.colors.iconSecondary} />
+                      <Ionicons name="chevron-forward" size={20} color={colors.iconSecondary} />
                     </TouchableOpacity>
                   ))}
                 </>
@@ -554,7 +558,7 @@ export default function HomeView() {
                   <Ionicons
                     name={todayItems.length > 0 ? "checkmark-circle-outline" : "calendar-outline"}
                     size={22}
-                    color={todayItems.length > 0 ? Theme.comfyColors.green : Theme.colors.iconSecondary}
+                    color={todayItems.length > 0 ? comfyColors.green : colors.iconSecondary}
                   />
                 </View>
               )}
@@ -575,7 +579,7 @@ export default function HomeView() {
         activeOpacity={0.8}
         onPress={() => navigation.navigate("AIChatView")}
       >
-        <Ionicons name="chatbubbles-outline" size={26} color={Theme.comfyColors.green} />
+        <Ionicons name="chatbubbles-outline" size={26} color={comfyColors.green} />
       </TouchableOpacity>
 
       {/* FAB to create activity */}
@@ -584,16 +588,20 @@ export default function HomeView() {
         activeOpacity={0.8}
         onPress={() => navigation.navigate("CreateActivityModal")}
       >
-        <Ionicons name="add" size={32} color={Theme.comfyFontColors.green} />
+        <Ionicons name="add" size={32} color={comfyFontColors.green} />
       </TouchableOpacity>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (
+  colors: ReturnType<typeof useTheme>['colors'],
+  comfyColors: ReturnType<typeof useTheme>['comfyColors'],
+  _comfyFontColors: ReturnType<typeof useTheme>['comfyFontColors'],
+) => StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: Theme.colors.screenBackground,
+    backgroundColor: colors.screenBackground,
   },
   content: {
     paddingHorizontal: 20,
@@ -613,7 +621,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "rgba(141, 255, 104, 0.14)",
-    shadowColor: Theme.comfyColors.green,
+    shadowColor: comfyColors.green,
     shadowOpacity: 0.45,
     shadowRadius: 18,
   },
@@ -623,13 +631,13 @@ const styles = StyleSheet.create({
     resizeMode: "contain",
   },
   title: {
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontSize: 20,
     fontStyle: "italic",
     fontWeight: "800",
   },
   date: {
-    color: Theme.colors.textTertiary,
+    color: colors.textTertiary,
     fontSize: 14,
     marginTop: 2,
   },
@@ -637,7 +645,7 @@ const styles = StyleSheet.create({
     minHeight: 200,
   },
   cardTitle: {
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontSize: 18,
     fontWeight: "800",
     textAlign: "center",
@@ -663,7 +671,7 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
   },
   energyLabel: {
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontSize: 13,
     fontWeight: "800",
     textAlign: "center",
@@ -675,9 +683,9 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: Theme.colors.cardBackground,
+    backgroundColor: colors.cardBackground,
     borderWidth: 1.5,
-    borderColor: Theme.comfyColors.green,
+    borderColor: comfyColors.green,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -693,7 +701,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: Theme.comfyColors.green,
+    backgroundColor: comfyColors.green,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -715,19 +723,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "rgba(165, 178, 235, 0.15)",
-    borderColor: Theme.comfyColors.skyBlue,
+    borderColor: comfyColors.skyBlue,
     borderWidth: 2,
     borderStyle: "dashed",
     marginBottom: 22,
   },
   emptyTitle: {
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontSize: 24,
     fontWeight: "900",
     marginBottom: 8,
   },
   emptyDescription: {
-    color: Theme.colors.textSecondary,
+    color: colors.textSecondary,
     fontSize: 15,
     lineHeight: 22,
     marginBottom: 26,
@@ -736,7 +744,7 @@ const styles = StyleSheet.create({
   emptyButton: {
     minHeight: 52,
     borderRadius: 18,
-    backgroundColor: Theme.comfyColors.green,
+    backgroundColor: comfyColors.green,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -747,17 +755,17 @@ const styles = StyleSheet.create({
   emptyButtonSecondary: {
     backgroundColor: 'transparent',
     borderWidth: 1.5,
-    borderColor: Theme.comfyColors.green,
+    borderColor: comfyColors.green,
     marginTop: 12,
   },
   emptyButtonText: {
-    color: Theme.comfyFontColors.green,
+    color: comfyFontColors.green,
     fontSize: 16,
     fontWeight: "900",
   },
   card: {
-    backgroundColor: Theme.colors.cardBackground,
-    borderColor: Theme.colors.cardBorder,
+    backgroundColor: colors.cardBackground,
+    borderColor: colors.cardBorder,
     borderWidth: 1,
     borderRadius: 14,
     paddingHorizontal: 18,
@@ -772,23 +780,23 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   statusPill: {
-    backgroundColor: Theme.comfyColors.green,
+    backgroundColor: comfyColors.green,
     borderRadius: 18,
     paddingHorizontal: 15,
     paddingVertical: 8,
   },
   statusText: {
-    color: Theme.comfyFontColors.green,
+    color: comfyFontColors.green,
     fontSize: 16,
     fontWeight: "800",
   },
   classLabel: {
-    color: Theme.colors.textSecondary,
+    color: colors.textSecondary,
     fontSize: 16,
     fontWeight: "800",
   },
   currentTitle: {
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontSize: 20,
     fontWeight: "800",
     marginBottom: 12,
@@ -799,24 +807,24 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   timerText: {
-    color: Theme.comfyColors.green,
+    color: comfyColors.green,
     fontSize: 42,
     lineHeight: 48,
     fontWeight: "900",
   },
   timerLabel: {
-    color: Theme.colors.textTertiary,
+    color: colors.textTertiary,
     fontSize: 17,
     fontWeight: "700",
     marginBottom: 7,
   },
   changeTitle: {
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontSize: 20,
     fontWeight: "900",
   },
   changeSubtitle: {
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontSize: 15,
     marginTop: 4,
     marginBottom: 18,
@@ -825,7 +833,7 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: 11,
     borderWidth: 1,
-    borderColor: Theme.colors.cardBorder,
+    borderColor: colors.cardBorder,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -833,7 +841,7 @@ const styles = StyleSheet.create({
     marginTop: 11,
   },
   actionText: {
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontSize: 14,
     fontWeight: "800",
   },
@@ -841,7 +849,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   sectionTitle: {
-    color: Theme.colors.iconPrimary,
+    color: colors.iconPrimary,
     fontSize: 14,
     fontWeight: "900",
     letterSpacing: 0.4,
@@ -849,7 +857,7 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   timeline: {
-    borderLeftColor: Theme.colors.textTertiary,
+    borderLeftColor: colors.textTertiary,
     borderLeftWidth: 1,
     marginLeft: 22,
     paddingLeft: 15,
@@ -859,8 +867,8 @@ const styles = StyleSheet.create({
     minHeight: 70,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: Theme.colors.cardBorder,
-    backgroundColor: Theme.colors.cardBackground,
+    borderColor: colors.cardBorder,
+    backgroundColor: colors.cardBackground,
     paddingHorizontal: 12,
     paddingVertical: 12,
     flexDirection: "row",
@@ -868,7 +876,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   nextDayLabel: {
-    color: Theme.comfyColors.skyBlue,
+    color: comfyColors.skyBlue,
     fontSize: 13,
     fontWeight: "900",
     marginBottom: 4,
@@ -876,13 +884,13 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   nextTime: {
-    color: Theme.colors.textTertiary,
+    color: colors.textTertiary,
     fontSize: 12,
     fontWeight: "700",
     marginBottom: 4,
   },
   nextTitle: {
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontSize: 15,
     fontWeight: "800",
   },
@@ -904,7 +912,7 @@ const styles = StyleSheet.create({
   },
   infactibleCard: {
     backgroundColor: 'rgba(255, 183, 77, 0.12)',
-    borderColor: Theme.comfyColors.yellow,
+    borderColor: comfyColors.yellow,
   },
   infactibleHeader: {
     flexDirection: 'row',
@@ -913,7 +921,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   infactibleTitle: {
-    color: Theme.comfyColors.yellow,
+    color: comfyColors.yellow,
     fontSize: 16,
     fontWeight: '900',
   },
@@ -922,24 +930,24 @@ const styles = StyleSheet.create({
     paddingLeft: 4,
   },
   infactibleSectionTitle: {
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontSize: 13,
     fontWeight: '700',
     marginBottom: 4,
   },
   infactibleBullet: {
-    color: Theme.colors.textSecondary,
+    color: colors.textSecondary,
     fontSize: 13,
     lineHeight: 20,
     paddingLeft: 8,
   },
   desconocidoCard: {
     backgroundColor: 'rgba(255, 183, 77, 0.08)',
-    borderColor: Theme.comfyColors.yellow,
+    borderColor: comfyColors.yellow,
     paddingVertical: 12,
   },
   desconocidoText: {
-    color: Theme.comfyColors.yellow,
+    color: comfyColors.yellow,
     fontSize: 13,
     fontWeight: '600',
     flex: 1,

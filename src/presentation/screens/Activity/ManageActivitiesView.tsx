@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -10,14 +10,17 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useActivityStore, useScheduleStore } from "../../../di/Dependencies";
-import { Theme } from "../../components/theme/colors";
+import { useTheme } from "../../components/theme/colors";
 import { Activity } from "../../../domain/entities/Activity";
 import { ActivityConfigDetailModal } from "../../components/organisms/Activity/ActivityConfigDetailModal";
 
 export default function ManageActivitiesView({ navigation, route }: any) {
+  const { colors, comfyColors, comfyFontColors } = useTheme();
   const { activities, loadActivities, handleDeleteActivity } = useActivityStore();
   const { handleGenerateSchedule } = useScheduleStore();
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
+
+  const styles = useMemo(() => createStyles(colors, comfyColors, comfyFontColors), [colors]);
 
   useEffect(() => {
     loadActivities();
@@ -70,10 +73,10 @@ export default function ManageActivitiesView({ navigation, route }: any) {
 
   const getIdentityColor = (val: string) => {
     switch (val) {
-      case "clase": return Theme.comfyColors.skyBlue;
-      case "trabajo": return Theme.comfyColors.orange;
-      case "tarea": return Theme.comfyColors.green;
-      default: return Theme.comfyColors.green;
+      case "clase": return comfyColors.skyBlue;
+      case "trabajo": return comfyColors.orange;
+      case "tarea": return comfyColors.green;
+      default: return comfyColors.green;
     }
   };
 
@@ -91,7 +94,7 @@ export default function ManageActivitiesView({ navigation, route }: any) {
       <View style={styles.header}>
         {navigation.canGoBack?.() && (
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color={Theme.colors.surface} />
+            <Ionicons name="arrow-back" size={24} color={colors.surface} />
           </TouchableOpacity>
         )}
         <Text style={styles.title}>Mis Actividades</Text>
@@ -135,27 +138,27 @@ export default function ManageActivitiesView({ navigation, route }: any) {
                 style={styles.editButton}
                 onPress={() => navigation.navigate("CreateActivityModal", { activityId: item.id })}
               >
-                <Ionicons name="create-outline" size={22} color={Theme.colors.iconPrimary} />
+                <Ionicons name="create-outline" size={22} color={colors.iconPrimary} />
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.deleteButton}
                 onPress={() => onDelete(item.id, item.title)}
               >
-                <Ionicons name="trash-outline" size={22} color={Theme.colors.error} />
+                <Ionicons name="trash-outline" size={22} color={colors.error} />
               </TouchableOpacity>
             </View>
           </View>
         )}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Ionicons name="clipboard-outline" size={48} color={Theme.colors.iconPrimary} />
+            <Ionicons name="clipboard-outline" size={48} color={colors.iconPrimary} />
             <Text style={styles.emptyText}>No tienes actividades creadas</Text>
             <TouchableOpacity
               style={styles.emptyButton}
               activeOpacity={0.8}
               onPress={() => navigation.navigate("CreateActivityModal")}
             >
-              <Ionicons name="add-circle-outline" size={20} color={Theme.comfyFontColors.green} />
+              <Ionicons name="add-circle-outline" size={20} color={comfyFontColors.green} />
               <Text style={styles.emptyButtonText}>Crear actividad manualmente</Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -163,8 +166,8 @@ export default function ManageActivitiesView({ navigation, route }: any) {
               activeOpacity={0.8}
               onPress={() => navigation.navigate("AIChatView")}
             >
-              <Ionicons name="chatbubbles-outline" size={20} color={Theme.comfyColors.green} />
-              <Text style={[styles.emptyButtonText, { color: Theme.comfyColors.green }]}>Crear actividad con el asistente Sapo</Text>
+              <Ionicons name="chatbubbles-outline" size={20} color={comfyColors.green} />
+              <Text style={[styles.emptyButtonText, { color: comfyColors.green }]}>Crear actividad con el asistente</Text>
             </TouchableOpacity>
           </View>
         }
@@ -179,10 +182,14 @@ export default function ManageActivitiesView({ navigation, route }: any) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (
+  colors: ReturnType<typeof useTheme>['colors'],
+  comfyColors: ReturnType<typeof useTheme>['comfyColors'],
+  _comfyFontColors: ReturnType<typeof useTheme>['comfyFontColors'],
+) => StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: Theme.colors.screenBackground,
+    backgroundColor: colors.screenBackground,
   },
   header: {
     flexDirection: "row",
@@ -191,7 +198,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: Theme.colors.cardBorder,
+    borderBottomColor: colors.cardBorder,
   },
   backButton: {
     width: 40,
@@ -199,10 +206,10 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Theme.colors.cardBackground,
+    backgroundColor: colors.cardBackground,
   },
   title: {
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontSize: 20,
     fontWeight: "900",
   },
@@ -213,8 +220,8 @@ const styles = StyleSheet.create({
   activityCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: Theme.colors.cardBackground,
-    borderColor: Theme.colors.cardBorder,
+    backgroundColor: colors.cardBackground,
+    borderColor: colors.cardBorder,
     borderWidth: 1,
     borderRadius: 18,
     padding: 16,
@@ -240,7 +247,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   activityTitle: {
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontSize: 16,
     fontWeight: "800",
   },
@@ -258,7 +265,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#525576",
   },
   badgeText: {
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontSize: 12,
     fontWeight: "800",
   },
@@ -285,7 +292,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   emptyText: {
-    color: Theme.colors.textSecondary,
+    color: colors.textSecondary,
     fontSize: 16,
     fontWeight: "700",
     marginBottom: 16,
@@ -293,7 +300,7 @@ const styles = StyleSheet.create({
   emptyButton: {
     minHeight: 50,
     borderRadius: 18,
-    backgroundColor: Theme.comfyColors.green,
+    backgroundColor: comfyColors.green,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -304,11 +311,12 @@ const styles = StyleSheet.create({
   emptyButtonSecondary: {
     backgroundColor: 'transparent',
     borderWidth: 1.5,
-    borderColor: Theme.comfyColors.green,
+    borderColor: comfyColors.green,
     marginTop: 12,
   },
   emptyButtonText: {
-    color: Theme.comfyFontColors.green,
+    color: _comfyFontColors.green,
+    textAlign: "center",
     fontSize: 15,
     fontWeight: "900",
   },

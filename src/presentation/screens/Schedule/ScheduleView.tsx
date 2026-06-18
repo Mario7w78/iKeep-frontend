@@ -7,7 +7,7 @@ import { ScheduleHeader } from '../../components/organisms/Schedule/ScheduleHead
 import { ScheduleGrid } from '../../components/organisms/Schedule/ScheduleGrid';
 import { EnergyPicker } from '../../components/molecules/Energy/EnergyPicker';
 import { ActivityDetailModal } from '../../components/organisms/Schedule/ActivityDetailModal';
-import { Theme } from '../../components/theme/colors';
+import { useTheme } from '../../components/theme/colors';
 import { useScheduleStore, useActivityStore } from '../../../di/Dependencies';
 import { JS_DAY_TO_DAYOFWEEK } from '../../utils/scheduleUtils';
 import { ScheduledActivity } from '../../../domain/entities/Schedule';
@@ -28,10 +28,13 @@ function ChronologicalAgendaList({
   activities: ScheduledActivity[];
   onActivityPress: (item: ScheduledActivity) => void;
 }) {
+  const { colors, comfyColors, comfyFontColors } = useTheme();
+  const s = useMemo(() => createStyles(colors, comfyColors, comfyFontColors), [colors]);
+
   if (activities.length === 0) {
     return (
       <View style={s.listEmptyContainer}>
-        <Ionicons name="calendar-outline" size={48} color={Theme.colors.textSecondary} style={{ opacity: 0.5 }} />
+        <Ionicons name="calendar-outline" size={48} color={colors.textSecondary} style={{ opacity: 0.5 }} />
         <Text style={s.listEmptyTitle}>No hay actividades</Text>
         <Text style={s.listEmptySubtitle}>No tienes ninguna actividad programada para este día.</Text>
       </View>
@@ -55,17 +58,17 @@ function ChronologicalAgendaList({
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
-      case 'baja': return Theme.comfyColors.green;
-      case 'media': return Theme.comfyColors.yellow;
+      case 'baja': return comfyColors.green;
+      case 'media': return comfyColors.yellow;
       case 'alta': return '#FF6B6B';
-      default: return Theme.colors.surface;
+      default: return colors.surface;
     }
   };
 
   const getPriorityColor = (priority: number) => {
     if (priority >= 5) return '#FF6B6B';
-    if (priority >= 3) return Theme.comfyColors.skyBlue;
-    return Theme.comfyColors.green;
+    if (priority >= 3) return comfyColors.skyBlue;
+    return comfyColors.green;
   };
 
   const getIdentityIcon = (identity: string | undefined) => {
@@ -78,9 +81,9 @@ function ChronologicalAgendaList({
 
   const getIdentityColor = (identity: string | undefined) => {
     switch (identity) {
-      case 'clase': return Theme.comfyColors.skyBlue;
-      case 'trabajo': return Theme.comfyColors.orange;
-      default: return Theme.comfyColors.green;
+      case 'clase': return comfyColors.skyBlue;
+      case 'trabajo': return comfyColors.orange;
+      default: return comfyColors.green;
     }
   };
 
@@ -119,7 +122,7 @@ function ChronologicalAgendaList({
 
           <View style={s.listItemDetails}>
             <View style={s.detailRow}>
-              <Ionicons name="time-outline" size={14} color={Theme.comfyColors.skyBlue} />
+              <Ionicons name="time-outline" size={14} color={comfyColors.skyBlue} />
               <Text style={s.detailTimeText}>
                 {act.assignedStartTime} - {act.assignedEndTime}
               </Text>
@@ -153,6 +156,8 @@ function ChronologicalAgendaList({
 export default function ScheduleView() {
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
+  const { colors, comfyColors, comfyFontColors } = useTheme();
+  const s = useMemo(() => createStyles(colors, comfyColors, comfyFontColors), [colors]);
   const {
     activitiesForDay,
     handleGenerateSchedule,
@@ -271,7 +276,7 @@ export default function ScheduleView() {
       {showEmptyState ? (
         <View style={s.center}>
           <View style={s.emptyIcon}>
-            <Ionicons name="calendar-outline" size={54} color={Theme.comfyColors.yellow} />
+            <Ionicons name="calendar-outline" size={54} color={comfyColors.yellow} />
           </View>
           <Text style={s.emptyTitle}>Sin horario generado aún</Text>
           <Text style={s.emptyText}>
@@ -282,7 +287,7 @@ export default function ScheduleView() {
             activeOpacity={0.8}
             onPress={() => navigation.navigate("CreateActivityModal")}
           >
-            <Ionicons name="add-circle-outline" size={18} color={Theme.comfyFontColors.green} />
+            <Ionicons name="add-circle-outline" size={18} color={comfyFontColors.green} />
             <Text style={s.btnText}>Crear actividad manualmente</Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -290,8 +295,8 @@ export default function ScheduleView() {
             activeOpacity={0.8}
             onPress={() => navigation.navigate("AIChatView")}
           >
-            <Ionicons name="chatbubbles-outline" size={18} color={Theme.comfyColors.green} />
-            <Text style={[s.btnText, { color: Theme.comfyColors.green }]}>Crear actividad con el asistente Sapo</Text>
+            <Ionicons name="chatbubbles-outline" size={18} color={comfyColors.green} />
+            <Text style={[s.btnText, { color: comfyColors.green }]}>Crear actividad con el asistente</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -346,7 +351,7 @@ export default function ScheduleView() {
             activeOpacity={0.8}
             onPress={() => navigation.navigate("AIChatView")}
           >
-            <Ionicons name="chatbubbles-outline" size={26} color={Theme.comfyColors.green} />
+            <Ionicons name="chatbubbles-outline" size={26} color={comfyColors.green} />
           </TouchableOpacity>
 
           {/* Create activity FAB */}
@@ -355,14 +360,14 @@ export default function ScheduleView() {
             activeOpacity={0.8}
             onPress={() => navigation.navigate("CreateActivityModal")}
           >
-            <Ionicons name="add" size={32} color={Theme.comfyFontColors.green} />
+            <Ionicons name="add" size={32} color={comfyFontColors.green} />
           </TouchableOpacity>
         </View>
       )}
 
       {isLoading && (
         <View style={s.loadingOverlay}>
-          <ActivityIndicator size="large" color={Theme.colors.iconPrimary} />
+          <ActivityIndicator size="large" color={colors.iconPrimary} />
           <Text style={s.loadingText}>Generando horario...</Text>
         </View>
       )}
@@ -383,15 +388,19 @@ export default function ScheduleView() {
   );
 }
 
-const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Theme.colors.screenBackground },
+const createStyles = (
+  colors: ReturnType<typeof useTheme>['colors'],
+  comfyColors: ReturnType<typeof useTheme>['comfyColors'],
+  comfyFontColors: ReturnType<typeof useTheme>['comfyFontColors'],
+) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.screenBackground },
   center: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     gap: 16,
     padding: 32,
-    backgroundColor: Theme.colors.screenBackground,
+    backgroundColor: colors.screenBackground,
   },
   emptyIcon: {
     width: 120,
@@ -400,26 +409,26 @@ const s = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "rgba(233, 200, 74, 0.15)",
-    borderColor: Theme.comfyColors.yellow,
+    borderColor: comfyColors.yellow,
     borderWidth: 2,
     borderStyle: "dashed",
     marginBottom: 8,
   },
   emptyTitle: {
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontSize: 22,
     fontWeight: "800",
     textAlign: "center",
   },
   emptyText: {
     fontSize: 15,
-    color: Theme.colors.textSecondary,
+    color: colors.textSecondary,
     textAlign: "center",
     lineHeight: 22,
     marginBottom: 12,
   },
   btn: {
-    backgroundColor: Theme.comfyColors.green,
+    backgroundColor: comfyColors.green,
     borderRadius: 18,
     paddingHorizontal: 28,
     paddingVertical: 14,
@@ -432,10 +441,10 @@ const s = StyleSheet.create({
   btnSecondary: {
     backgroundColor: 'transparent',
     borderWidth: 1.5,
-    borderColor: Theme.comfyColors.green,
+    borderColor: comfyColors.green,
   },
   btnText: {
-    color: Theme.comfyFontColors.green,
+    color: comfyFontColors.green,
     fontSize: 16,
     fontWeight: "900",
   },
@@ -448,7 +457,7 @@ const s = StyleSheet.create({
     zIndex: 999,
   },
   loadingText: {
-    color: Theme.colors.surface,
+    color: colors.surface,
     fontSize: 15,
     fontWeight: '700',
   },
@@ -459,9 +468,9 @@ const s = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: Theme.colors.cardBackground,
+    backgroundColor: colors.cardBackground,
     borderWidth: 1.5,
-    borderColor: Theme.comfyColors.green,
+    borderColor: comfyColors.green,
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000",
@@ -477,7 +486,7 @@ const s = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: Theme.comfyColors.green,
+    backgroundColor: comfyColors.green,
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000",
@@ -492,8 +501,8 @@ const s = StyleSheet.create({
     paddingBottom: 80,
   },
   listItem: {
-    backgroundColor: Theme.colors.cardBackground,
-    borderColor: Theme.colors.cardBorder,
+    backgroundColor: colors.cardBackground,
+    borderColor: colors.cardBorder,
     borderWidth: 1.5,
     borderRadius: 16,
     padding: 14,
@@ -514,12 +523,12 @@ const s = StyleSheet.create({
   listItemTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: Theme.colors.surface,
+    color: colors.surface,
     flex: 1,
   },
   listItemDivider: {
     height: 1,
-    backgroundColor: Theme.colors.cardBorder,
+    backgroundColor: colors.cardBorder,
     opacity: 0.5,
   },
   listItemDetails: {
@@ -564,12 +573,12 @@ const s = StyleSheet.create({
   listEmptyTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: Theme.colors.surface,
+    color: colors.surface,
     textAlign: 'center',
   },
   listEmptySubtitle: {
     fontSize: 14,
-    color: Theme.colors.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
   },

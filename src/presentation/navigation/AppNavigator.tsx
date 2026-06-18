@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { StyleSheet } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -14,7 +14,7 @@ import SettingsView from "../screens/Settings/SettingsView";
 import ManageActivitiesView from "../screens/Activity/ManageActivitiesView";
 import { useAppStore } from "../../infrastructure/store/useAppStore";
 import { useScheduleStore } from "../../di/Dependencies";
-import { Theme } from "../components/theme/colors";
+import { Theme, useTheme, applyThemeToStaticTheme } from "../components/theme/colors";
 import AIChatView from "../screens/AIChat/AIChatView";
 
 export type RootStackParamList = {
@@ -48,13 +48,14 @@ const TAB_ICONS: Record<keyof MainTabParamList, [string, string]> = {
 
 function TabNavigator() {
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
 
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarActiveTintColor: Theme.colors.tabActive,
-        tabBarInactiveTintColor: Theme.colors.tabInactive,
+        tabBarActiveTintColor: colors.tabActive,
+        tabBarInactiveTintColor: colors.tabInactive,
         tabBarShowLabel: true,
         tabBarIcon: ({ focused, color }) => {
           const [active, inactive] = TAB_ICONS[route.name];
@@ -73,6 +74,7 @@ function TabNavigator() {
           {
             height: 50 + insets.bottom,
             paddingBottom: Math.max(insets.bottom, 10),
+            backgroundColor: colors.tabBarBackground,
           },
         ],
         tabBarLabelStyle: styles.tabLabel,
@@ -94,13 +96,6 @@ function TabNavigator() {
         options={{ title: "Calendario" }}
         component={ScheduleScreen}
       />
-      {/* 
-      <Tab.Screen
-        name="Stats"
-        options={{ title: "Estadisticas" }}
-        component={StatsView}
-      />
-      */}
       <Tab.Screen
         name="Setting"
         options={{ title: "Configuracion" }}
@@ -112,39 +107,47 @@ function TabNavigator() {
 
 export default function AppNavigator() {
   const hasSeenOnboarding = useAppStore((s) => s.hasSeenOnboarding);
+  const themeId = useAppStore((s) => s.themeId);
   const loadDayLimits = useScheduleStore((s) => s.loadDayLimits);
   const loadSchedule = useScheduleStore((s) => s.loadSchedule);
 
-  React.useEffect(() => {
+  useEffect(() => {
     loadDayLimits();
     loadSchedule();
   }, [loadDayLimits, loadSchedule]);
 
+  // Sync static Theme on mount (for components that import Theme directly)
+  useEffect(() => {
+    applyThemeToStaticTheme(themeId);
+  }, [themeId]);
+
   return (
-    <Stack.Navigator
-      screenOptions={{ headerShown: false }}
-      initialRouteName={hasSeenOnboarding ? "MainTabs" : "OnBoardingView"}
-    >
-      <Stack.Screen name="OnBoardingView" component={OnBoardingView} />
-      <Stack.Screen name="MainTabs" component={TabNavigator} />
-      <Stack.Screen name="ManageActivities" component={ManageActivitiesView} />
-      <Stack.Screen
-        name="CreateActivityModal"
-        component={CreateActivityScreen}
-        options={{
-          presentation: 'containedTransparentModal',
-          animation: 'fade',
-        }}
-      />
-      <Stack.Screen
-        name="AIChatView"
-        component={AIChatView}
-        options={{
-          presentation: 'containedTransparentModal',
-          animation: 'fade',
-        }}
-      />
-    </Stack.Navigator>
+    <ThemeProvider>
+      <Stack.Navigator
+        screenOptions={{ headerShown: false }}
+        initialRouteName={hasSeenOnboarding ? "MainTabs" : "OnBoardingView"}
+      >
+        <Stack.Screen name="OnBoardingView" component={OnBoardingView} />
+        <Stack.Screen name="MainTabs" component={TabNavigator} />
+        <Stack.Screen name="ManageActivities" component={ManageActivitiesView} />
+        <Stack.Screen
+          name="CreateActivityModal"
+          component={CreateActivityScreen}
+          options={{
+            presentation: 'containedTransparentModal',
+            animation: 'fade',
+          }}
+        />
+        <Stack.Screen
+          name="AIChatView"
+          component={AIChatView}
+          options={{
+            presentation: 'containedTransparentModal',
+            animation: 'fade',
+          }}
+        />
+      </Stack.Navigator>
+    </ThemeProvider>
   );
 }
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -11,7 +11,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { Theme } from "../../components/theme/colors";
+import { useTheme, getThemePresets } from "../../components/theme/colors";
 import { useScheduleStore } from "../../../di/Dependencies";
 import {
   dateToMinutes,
@@ -56,6 +56,10 @@ const SettingsView = () => {
     customEnergyPattern,
     setCustomEnergyPattern,
   } = useScheduleStore();
+
+  const { themeId, setThemeId, colors, comfyColors, comfyFontColors } = useTheme();
+  const themePresets = getThemePresets();
+  const styles = useMemo(() => createStyles(colors, comfyColors, comfyFontColors), [colors]);
 
   const [localStartTime, setLocalStartTime] = useState(
     minutesToDate(startHour)
@@ -158,7 +162,7 @@ const SettingsView = () => {
             <Ionicons
               name={showStartPicker ? "chevron-up" : "chevron-forward"}
               size={18}
-              color={Theme.colors.textTertiary}
+              color={colors.textTertiary}
             />
           </TouchableOpacity>
 
@@ -169,7 +173,7 @@ const SettingsView = () => {
                 mode="time"
                 display="spinner"
                 themeVariant="dark"
-                textColor={Theme.colors.surface}
+                textColor={colors.surface}
                 onChange={(_, selectedDate) => {
                   if (selectedDate) setLocalStartTime(selectedDate);
                 }}
@@ -194,7 +198,7 @@ const SettingsView = () => {
             <Ionicons
               name={showEndPicker ? "chevron-up" : "chevron-forward"}
               size={18}
-              color={Theme.colors.textTertiary}
+              color={colors.textTertiary}
             />
           </TouchableOpacity>
 
@@ -205,7 +209,7 @@ const SettingsView = () => {
                 mode="time"
                 display="spinner"
                 themeVariant="dark"
-                textColor={Theme.colors.surface}
+                textColor={colors.surface}
                 onChange={(_, selectedDate) => {
                   if (selectedDate) setLocalEndTime(selectedDate);
                 }}
@@ -231,6 +235,45 @@ const SettingsView = () => {
           Configura el rango de horas disponible para tu día. Aplica a todos los días de la semana.
         </Text>
 
+        {/* ═══════════════ APARIENCIA ═══════════════ */}
+        <Text style={styles.sectionHeader}>APARIENCIA</Text>
+        <View style={styles.section}>
+          <View style={styles.themeGrid}>
+            {themePresets.map((preset) => {
+              const isActive = themeId === preset.id;
+              return (
+                <TouchableOpacity
+                  key={preset.id}
+                  style={[
+                    styles.themeCard,
+                    isActive && styles.themeCardActive,
+                  ]}
+                  activeOpacity={0.7}
+                  onPress={() => setThemeId(preset.id)}
+                >
+                  <View style={[styles.themePreview, { backgroundColor: preset.colors.screenBackground }]}>
+                    <View style={[styles.themePreviewCard, { backgroundColor: preset.colors.cardBackground, borderColor: preset.colors.cardBorder }]}>
+                      <View style={[styles.themePreviewDot, { backgroundColor: preset.accent }]} />
+                    </View>
+                  </View>
+                  <Text style={[
+                    styles.themeCardLabel,
+                    isActive && styles.themeCardLabelActive,
+                  ]}>
+                    {preset.name}
+                  </Text>
+                  {isActive && (
+                    <Ionicons name="checkmark-circle" size={18} color={preset.accent} style={styles.themeCheck} />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+        <Text style={styles.sectionFooter}>
+          Elegí la combinación de colores que más te guste.
+        </Text>
+
         {/* ═══════════════ ENERGÍA ═══════════════ */}
         <Text style={styles.sectionHeader}>ENERGÍA</Text>
         <View style={styles.section}>
@@ -244,7 +287,7 @@ const SettingsView = () => {
             <Ionicons
               name={showPatternOptions ? "chevron-up" : "chevron-forward"}
               size={18}
-              color={Theme.colors.textTertiary}
+              color={colors.textTertiary}
             />
           </TouchableOpacity>
 
@@ -268,7 +311,7 @@ const SettingsView = () => {
                   <Ionicons
                     name={localPattern === opt.value ? 'checkmark-circle' : 'ellipse-outline'}
                     size={20}
-                    color={localPattern === opt.value ? Theme.comfyColors.green : Theme.colors.textTertiary}
+                    color={localPattern === opt.value ? comfyColors.green : colors.textTertiary}
                   />
                   <View style={styles.patternTextCol}>
                     <Text style={[
@@ -292,10 +335,14 @@ const SettingsView = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (
+  colors: ReturnType<typeof useTheme>['colors'],
+  comfyColors: ReturnType<typeof useTheme>['comfyColors'],
+  _comfyFontColors: ReturnType<typeof useTheme>['comfyFontColors'],
+) => StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: Theme.colors.screenBackground,
+    backgroundColor: colors.screenBackground,
   },
   scroll: {
     flex: 1,
@@ -308,7 +355,7 @@ const styles = StyleSheet.create({
   pageTitle: {
     fontSize: 28,
     fontWeight: "900",
-    color: Theme.colors.surface,
+    color: colors.surface,
     marginBottom: 24,
   },
 
@@ -316,7 +363,7 @@ const styles = StyleSheet.create({
   sectionHeader: {
     fontSize: 13,
     fontWeight: "700",
-    color: Theme.colors.textTertiary,
+    color: colors.textTertiary,
     letterSpacing: 0.8,
     marginBottom: 8,
     marginLeft: 4,
@@ -324,7 +371,7 @@ const styles = StyleSheet.create({
   },
   sectionFooter: {
     fontSize: 12,
-    color: Theme.colors.textTertiary,
+    color: colors.textTertiary,
     lineHeight: 16,
     marginTop: 6,
     marginBottom: 24,
@@ -334,10 +381,10 @@ const styles = StyleSheet.create({
 
   /* ─── Grouped section container ─── */
   section: {
-    backgroundColor: Theme.colors.cardBackground,
+    backgroundColor: colors.cardBackground,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: Theme.colors.cardBorder,
+    borderColor: colors.cardBorder,
     overflow: "hidden",
   },
 
@@ -353,19 +400,19 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     fontWeight: "600",
-    color: Theme.colors.surface,
+    color: colors.surface,
   },
   rowValue: {
     fontSize: 16,
     fontWeight: "500",
-    color: Theme.colors.textSecondary,
+    color: colors.textSecondary,
     marginRight: 8,
   },
 
   /* ─── Separator ─── */
   separator: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: Theme.colors.cardBorder,
+    backgroundColor: colors.cardBorder,
     marginLeft: 16,
   },
 
@@ -385,12 +432,12 @@ const styles = StyleSheet.create({
   applyButton: {
     backgroundColor: "#4d506c",
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: Theme.colors.cardBorder,
+    borderTopColor: colors.cardBorder,
     paddingVertical: 12,
     alignItems: "center",
   },
   applyButtonText: {
-    color: Theme.comfyColors.skyBlue,
+    color: comfyColors.skyBlue,
     fontSize: 15,
     fontWeight: "800",
   },
@@ -401,7 +448,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   globalApplyButtonText: {
-    color: Theme.comfyColors.green,
+    color: comfyColors.green,
     fontSize: 16,
     fontWeight: "800",
   },
@@ -409,7 +456,7 @@ const styles = StyleSheet.create({
   /* ─── Pattern options ─── */
   patternList: {
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: Theme.colors.cardBorder,
+    borderTopColor: colors.cardBorder,
     paddingVertical: 10,
     paddingHorizontal: 16,
   },
@@ -431,16 +478,75 @@ const styles = StyleSheet.create({
   patternLabel: {
     fontSize: 15,
     fontWeight: "700",
-    color: Theme.colors.surface,
+    color: colors.surface,
     marginBottom: 2,
   },
   patternLabelActive: {
-    color: Theme.comfyColors.green,
+    color: comfyColors.green,
   },
   patternDesc: {
     fontSize: 12,
-    color: Theme.colors.textTertiary,
+    color: colors.textTertiary,
     lineHeight: 16,
+  },
+
+  /* ─── Theme selector ─── */
+  themeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    padding: 16,
+  },
+  themeCard: {
+    width: '30%',
+    flexGrow: 1,
+    flexBasis: '30%',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 8,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+  },
+  themeCardActive: {
+    borderColor: comfyColors.green,
+    backgroundColor: 'rgba(141,255,104,0.08)',
+  },
+  themePreview: {
+    width: 64,
+    height: 56,
+    borderRadius: 12,
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  themePreviewCard: {
+    width: 44,
+    height: 30,
+    borderRadius: 8,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  themePreviewDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  themeCardLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.textSecondary,
+  },
+  themeCardLabelActive: {
+    color: comfyColors.green,
+  },
+  themeCheck: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
   },
 });
 

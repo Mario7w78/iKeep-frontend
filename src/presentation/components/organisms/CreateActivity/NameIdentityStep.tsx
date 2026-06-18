@@ -18,6 +18,7 @@ type NameIdentityStepProps = {
   onSetDeadline: (deadline: Date | null) => void;
   isAnchor?: boolean;
   onToggleAnchor?: (value: boolean) => void;
+  header?: React.ReactNode;
 };
 
 const clearTime = (date: Date) => {
@@ -174,6 +175,7 @@ export default function NameIdentityStep({
   onSetDeadline,
   isAnchor,
   onToggleAnchor,
+  header,
 }: NameIdentityStepProps) {
   const [hasDeadline, setHasDeadline] = useState(deadline !== null);
 
@@ -209,6 +211,7 @@ export default function NameIdentityStep({
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
+      {header}
       <Text style={styles.sectionTitle}>Nombre de la actividad</Text>
       <View style={styles.inputContainer}>
         <Ionicons
@@ -224,6 +227,7 @@ export default function NameIdentityStep({
           placeholderTextColor="rgba(255,255,255,0.4)"
           style={styles.nameInput}
           returnKeyType="next"
+          autoCorrect={false}
         />
       </View>
 

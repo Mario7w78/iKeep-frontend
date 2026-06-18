@@ -319,16 +319,27 @@ export default function HomeView() {
         contentContainerStyle={styles.content}
       >
         <View style={styles.header}>
-          <View style={styles.mascot}>
+          <TouchableOpacity
+            style={styles.mascot}
+            activeOpacity={0.75}
+            onPress={() => navigation.navigate("AIChatView")}
+          >
             <Image
               source={{ uri: SAPO_BASE64 }}
               style={styles.sapoMascotImage}
             />
-          </View>
-          <View>
+          </TouchableOpacity>
+          <View style={{ flex: 1 }}>
             <Text style={styles.title}>Hola, {username || "Usuario"}. Tu día está listo.</Text>
             <Text style={styles.date}>{dayFormatter.format(new Date())}</Text>
           </View>
+          <TouchableOpacity
+            style={styles.headerChatButton}
+            activeOpacity={0.75}
+            onPress={() => navigation.navigate("AIChatView")}
+          >
+            <Ionicons name="chatbubbles-outline" size={24} color={Theme.comfyColors.green} />
+          </TouchableOpacity>
         </View>
 
         <LinearGradient
@@ -645,6 +656,16 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "800",
     textAlign: "center",
+  },
+  headerChatButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: Theme.colors.cardBackground,
+    borderWidth: 1,
+    borderColor: Theme.colors.cardBorder,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   fabCreateBtn: {
     position: 'absolute',

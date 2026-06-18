@@ -15,12 +15,14 @@ import ManageActivitiesView from "../screens/Activity/ManageActivitiesView";
 import { useAppStore } from "../../infrastructure/store/useAppStore";
 import { useScheduleStore } from "../../di/Dependencies";
 import { Theme } from "../components/theme/colors";
+import AIChatView from "../screens/AIChat/AIChatView";
 
 export type RootStackParamList = {
   MainTabs: undefined;
-  CreateActivityModal: undefined;
+  CreateActivityModal?: { activityId?: string };
   OnBoardingView: undefined;
   ManageActivities: undefined;
+  AIChatView: undefined;
 };
 
 const DummyComponent = () => null;
@@ -129,6 +131,14 @@ export default function AppNavigator() {
       <Stack.Screen
         name="CreateActivityModal"
         component={CreateActivityScreen}
+        options={{
+          presentation: 'containedTransparentModal',
+          animation: 'fade',
+        }}
+      />
+      <Stack.Screen
+        name="AIChatView"
+        component={AIChatView}
         options={{
           presentation: 'containedTransparentModal',
           animation: 'fade',

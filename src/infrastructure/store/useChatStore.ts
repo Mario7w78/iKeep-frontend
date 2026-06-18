@@ -157,7 +157,7 @@ export function createChatStore(
   const greetingMessage: ChatMessage = {
     id: 'sapo-greeting',
     role: 'assistant',
-    content: '¡Hola! Soy Sapo 🐸, tu asistente virtual. Decime qué actividad querés agregar y te ayudo a organizar tu día.',
+    content: '¡Hola! Soy Sapo 🐸, tu asistente virtual. Dime qué actividad quieres agregar y te ayudo a organizar tu día.',
     timestamp: Date.now(),
   };
 

@@ -24,6 +24,16 @@ jest.mock('../atoms/CreateActivity/TypingIndicator', () => ({
   TypingIndicator: () => null,
 }));
 
+// Mock useSafeAreaInsets
+jest.mock('react-native-safe-area-context', () => ({
+  SafeAreaView: (props: any) => {
+    const { View } = require('react-native');
+    const { children, style, ...rest } = props;
+    return <View style={style} {...rest}>{children}</View>;
+  },
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+
 describe('NLConversationStep', () => {
   const mockMessages: ChatMessage[] = [
     {

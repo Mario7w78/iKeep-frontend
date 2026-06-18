@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { MessageBubble, ChatMessage } from '../../molecules/CreateActivity/MessageBubble';
 import { TypingIndicator } from '../../atoms/CreateActivity/TypingIndicator';
 import { Theme } from '../../theme/colors';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SAPO_BASE64 } from '../../sapoBase64';
 
 // Enable LayoutAnimation on Android
@@ -45,6 +46,7 @@ export const NLConversationStep: React.FC<Props> = ({
   const [inputText, setInputText] = useState('');
   const scrollRef = useRef<ScrollView>(null);
   const [showTyping, setShowTyping] = useState(false);
+  const insets = useSafeAreaInsets();
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Minimum 800ms typing display
@@ -132,7 +134,7 @@ export const NLConversationStep: React.FC<Props> = ({
       </ScrollView>
 
       {/* Input bar */}
-      <View style={styles.inputBar}>
+      <View style={[styles.inputBar, { paddingBottom: Math.max(insets.bottom, 10) }]}>
         <TextInput
           testID="chat-input"
           style={styles.textInput}
@@ -237,7 +239,6 @@ const styles = StyleSheet.create({
     borderTopColor: 'rgba(255,255,255,0.08)',
     backgroundColor: Theme.colors.screenBackground,
     gap: 8,
-    marginBottom: 20,
   },
   textInput: {
     flex: 1,

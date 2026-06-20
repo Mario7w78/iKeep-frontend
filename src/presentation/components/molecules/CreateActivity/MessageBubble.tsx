@@ -13,6 +13,7 @@ export interface ChatMessage {
   pendingActivity?: any;
   isConfirmed?: boolean;
   isCancelled?: boolean;
+  type?: 'question' | 'result' | 'chat';
 }
 
 interface Props {
@@ -39,6 +40,40 @@ const formatMins = (mins: number) => {
   const h = Math.floor(mins / 60);
   const m = mins % 60;
   return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+};
+
+const abbreviateDay = (day: string) => {
+  const d = day.trim().toLowerCase();
+  if (d.startsWith('lun')) return 'Lu';
+  if (d.startsWith('mar')) return 'Ma';
+  if (d.startsWith('mié') || d.startsWith('mie')) return 'Mi';
+  if (d.startsWith('jue')) return 'Ju';
+  if (d.startsWith('vie')) return 'Vi';
+  if (d.startsWith('sáb') || d.startsWith('sab')) return 'Sá';
+  if (d.startsWith('dom')) return 'Do';
+  return day;
+};
+
+const WEEK_DAYS = [
+  { name: 'Lunes', letter: 'L' },
+  { name: 'Martes', letter: 'M' },
+  { name: 'Miércoles', letter: 'M' },
+  { name: 'Jueves', letter: 'J' },
+  { name: 'Viernes', letter: 'V' },
+  { name: 'Sábado', letter: 'S' },
+  { name: 'Domingo', letter: 'D' },
+];
+
+const normalizeStr = (str: string) => {
+  try {
+    return str
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .trim();
+  } catch {
+    return str.toLowerCase().trim();
+  }
 };
 
 export const MessageBubble: React.FC<Props> = ({
@@ -68,35 +103,42 @@ export const MessageBubble: React.FC<Props> = ({
         style={[
           styles.bubble,
           isUser ? styles.bubbleUser : (message.isError ? styles.bubbleError : styles.bubbleAI),
+          message.pendingActivity ? styles.bubbleWithPending : null,
         ]}
       >
         <Text style={[styles.text, isUser ? styles.textUser : styles.textAI]}>
           {message.content}
         </Text>
 
-        {message.pendingActivity && (
+        {message.type !== 'chat' && message.pendingActivity && (
           <View style={styles.card}>
             {/* Header / Mode Indicator */}
             <View style={styles.cardHeader}>
               <Text style={styles.cardTitle}>
-                {message.pendingActivity.isModification
-                  ? '🔄 Confirmar Modificación'
-                  : '➕ Confirmar Creación'}
+                {message.pendingActivity.isModification ? 'Modificar Actividad' : 'Nueva Actividad'}
               </Text>
             </View>
 
-            {/* Info Fields */}
-            <View style={styles.cardBody}>
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Actividad:</Text>
-                <Text style={styles.infoValue}>
-                  {message.pendingActivity.parsedState.activityName}
-                </Text>
+            {/* Context / Modification Target */}
+            {message.pendingActivity.isModification && (
+              <View style={styles.modificationContext}>
+                <Text style={styles.contextLabel}>Actividad a editar</Text>
+                <Text style={styles.contextValue}>{message.pendingActivity.originalName}</Text>
               </View>
+            )}
 
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Categoría:</Text>
-                <Text style={styles.infoValue}>
+            {/* Activity Name */}
+            <View style={styles.nameContainer}>
+              <Text style={styles.infoLabel}>Nombre propuesto</Text>
+              <Text style={styles.cardActivityName} numberOfLines={2}>
+                {message.pendingActivity.parsedState.activityName}
+              </Text>
+            </View>
+
+            {/* Chips Container */}
+            <View style={styles.chipsContainer}>
+              <View style={styles.chip}>
+                <Text style={styles.chipText}>
                   {(() => {
                     const identity = message.pendingActivity.parsedState.identity;
                     if (identity === 'clase') return 'Clase';
@@ -106,74 +148,105 @@ export const MessageBubble: React.FC<Props> = ({
                 </Text>
               </View>
 
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Tipo de horario:</Text>
-                <Text style={styles.infoValue}>
-                  {message.pendingActivity.parsedState.isFixed
-                    ? 'Fijo (horas y días específicos)'
-                    : 'Flexible (organizado automáticamente)'}
+              <View style={styles.chip}>
+                <Text style={styles.chipText}>
+                  {message.pendingActivity.parsedState.isFixed ? 'Horario Fijo' : 'Horario Flexible'}
                 </Text>
               </View>
 
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Días:</Text>
-                <Text style={styles.infoValue}>
-                  {message.pendingActivity.parsedState.selectedDays.join(', ')}
-                </Text>
-              </View>
+              {!message.pendingActivity.parsedState.isFixed && (
+                <View style={styles.chip}>
+                  <Text style={styles.chipText}>
+                    {(() => {
+                      const p = message.pendingActivity.parsedState.priority;
+                      if (p === 'alta') return 'Prioridad Alta';
+                      if (p === 'baja') return 'Prioridad Baja';
+                      return 'Prioridad Media';
+                    })()}
+                  </Text>
+                </View>
+              )}
+            </View>
 
-              {/* Show schedule depending on fixed vs flexible */}
+            {/* Days mini-blocks row */}
+            <View style={styles.daysRowContainer}>
+              <Text style={styles.daysRowTitle}>Días asignados</Text>
+              <View style={styles.daysRowGrid}>
+                {WEEK_DAYS.map((wd) => {
+                  const isSelected = message.pendingActivity.parsedState.selectedDays.some((sd: string) => 
+                    normalizeStr(sd) === normalizeStr(wd.name)
+                  );
+                  return (
+                    <View 
+                      key={wd.name} 
+                      style={[
+                        styles.miniDayBox, 
+                        isSelected ? styles.miniDayBoxSelected : styles.miniDayBoxUnselected
+                      ]}
+                    >
+                      <Text style={[
+                        styles.miniDayText, 
+                        isSelected ? styles.miniDayTextSelected : styles.miniDayTextUnselected
+                      ]}>
+                        {wd.letter}
+                      </Text>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* Divider */}
+            <View style={styles.cardDivider} />
+
+            {/* Schedule Details Box */}
+            <View style={styles.scheduleBox}>
+              <Text style={styles.scheduleSectionTitle}>Planificación propuesta</Text>
               {message.pendingActivity.parsedState.isFixed ? (
-                <View style={styles.scheduleBlock}>
-                  <Text style={styles.infoLabel}>Horarios configurados:</Text>
+                <View style={styles.scheduleCompactList}>
                   {message.pendingActivity.parsedState.selectedDays.map((day: string) => {
                     const config = message.pendingActivity.parsedState.daysDict[day];
                     if (!config || !config.partitions || config.partitions.length === 0) return null;
                     return (
-                      <Text key={day} style={styles.scheduleDetailText}>
-                        • {day}: {config.partitions.map((p: any) => 
-                          `${formatHour(p.startHour)} - ${formatHour(p.endHour)}`
-                        ).join(', ')}
-                      </Text>
+                      <View key={day} style={styles.scheduleCompactRow}>
+                        <Text style={styles.scheduleCompactDay}>{abbreviateDay(day)}</Text>
+                        <Text style={styles.scheduleCompactTime}>
+                          {config.partitions.map((p: any) => 
+                            `${formatHour(p.startHour)} - ${formatHour(p.endHour)}`
+                          ).join(', ')}
+                        </Text>
+                      </View>
                     );
                   })}
                 </View>
               ) : (
-                <View style={styles.scheduleBlock}>
-                  <Text style={styles.infoLabel}>Preferencia de horario:</Text>
+                <View style={styles.flexibleScheduleContainer}>
                   {(() => {
                     const start = message.pendingActivity.parsedState.horaPreferidaInicio;
                     const end = message.pendingActivity.parsedState.horaPreferidaFin;
                     const duration = message.pendingActivity.parsedState.duracionMinutos;
                     
-                    const details: string[] = [];
-                    if (start !== null && end !== null) {
-                      details.push(`Entre las ${formatMins(start)} y las ${formatMins(end)}`);
-                    }
-                    if (duration) {
-                      details.push(`Duración: ${duration} minutos`);
-                    }
                     return (
-                      <Text style={styles.scheduleDetailText}>
-                        • {details.join(' | ') || 'Cualquier momento del día'}
-                      </Text>
+                      <>
+                        {start !== null && end !== null && (
+                          <View style={styles.scheduleCompactRow}>
+                            <Text style={styles.scheduleCompactDayLabel}>Rango hor. pref.</Text>
+                            <Text style={styles.scheduleCompactTime}>
+                              {formatMins(start)} a {formatMins(end)}
+                            </Text>
+                          </View>
+                        )}
+                        {duration && (
+                          <View style={styles.scheduleCompactRow}>
+                            <Text style={styles.scheduleCompactDayLabel}>Duración estimada</Text>
+                            <Text style={styles.scheduleCompactTime}>
+                              {duration} min
+                            </Text>
+                          </View>
+                        )}
+                      </>
                     );
                   })()}
-                </View>
-              )}
-
-              {/* Priority & Difficulty */}
-              {!message.pendingActivity.parsedState.isFixed && (
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>Prioridad:</Text>
-                  <Text style={styles.infoValue}>
-                    {(() => {
-                      const p = message.pendingActivity.parsedState.priority;
-                      if (p === 'alta') return 'Alta';
-                      if (p === 'baja') return 'Baja';
-                      return 'Media';
-                    })()}
-                  </Text>
                 </View>
               )}
             </View>
@@ -199,7 +272,7 @@ export const MessageBubble: React.FC<Props> = ({
             ) : (
               <View style={styles.statusContainer}>
                 <Text style={message.isConfirmed ? styles.confirmedText : styles.cancelledText}>
-                  {message.isConfirmed ? '✓ Confirmado y guardado' : '✗ Cancelado'}
+                  {message.isConfirmed ? '✓ Confirmado' : '✗ Cancelado'}
                 </Text>
               </View>
             )}
@@ -265,6 +338,9 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
+  bubbleWithPending: {
+    maxWidth: '85%',
+  },
   bubbleAI: {
     backgroundColor: colors.cardBackground,
     borderWidth: 1,
@@ -282,90 +358,231 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     borderBottomRightRadius: 4,
   },
   card: {
-    marginTop: 10,
-    padding: 12,
-    borderRadius: 12,
+    marginTop: 12,
+    padding: 16,
+    borderRadius: 16,
     backgroundColor: colors.screenBackground,
     borderWidth: 1,
     borderColor: colors.cardBorder,
-    minWidth: 220,
+    minWidth: 250,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   cardHeader: {
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
-    paddingBottom: 6,
-    marginBottom: 8,
+    paddingBottom: 8,
+    marginBottom: 12,
   },
   cardTitle: {
     color: colors.surface,
-    fontWeight: 'bold',
-    fontSize: 14,
+    fontSize: 12,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
-  cardBody: {
-    gap: 6,
+  modificationContext: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
   },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  infoLabel: {
+  contextLabel: {
     color: colors.textSecondary,
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 2,
   },
-  infoValue: {
+  contextValue: {
     color: colors.surface,
     fontSize: 13,
     fontWeight: '700',
   },
-  scheduleBlock: {
-    marginTop: 4,
+  nameContainer: {
+    marginBottom: 10,
+  },
+  infoLabel: {
+    color: colors.textSecondary,
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  cardActivityName: {
+    color: colors.surface,
+    fontSize: 16,
+    fontWeight: '800',
+    lineHeight: 22,
+  },
+  chipsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 12,
+  },
+  chip: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  chipText: {
+    color: colors.textSecondary,
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  daysRowContainer: {
+    marginBottom: 12,
+  },
+  daysRowTitle: {
+    color: colors.textSecondary,
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 6,
+  },
+  daysRowGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 4,
+  },
+  miniDayBox: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
+  miniDayBoxSelected: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+  },
+  miniDayBoxUnselected: {
+    backgroundColor: colors.cardBackground,
+    borderColor: colors.cardBorder,
+  },
+  miniDayText: {
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  miniDayTextSelected: {
+    color: colors.accentText,
+  },
+  miniDayTextUnselected: {
+    color: colors.textTertiary,
+  },
+  cardDivider: {
+    height: 1,
+    backgroundColor: colors.cardBorder,
+    marginVertical: 12,
+  },
+  scheduleBox: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    marginBottom: 4,
+  },
+  scheduleSectionTitle: {
+    color: colors.textSecondary,
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 8,
+  },
+  scheduleCompactList: {
+    gap: 6,
+  },
+  flexibleScheduleContainer: {
+    gap: 6,
+  },
+  scheduleCompactRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  scheduleCompactDay: {
+    color: colors.textTertiary,
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    width: 40,
+  },
+  scheduleCompactDayLabel: {
+    color: colors.textTertiary,
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  scheduleCompactTime: {
+    color: colors.surface,
+    fontSize: 12,
+    fontWeight: '700',
+    textAlign: 'right',
+    flex: 1,
   },
   scheduleDetailText: {
     color: colors.surface,
     fontSize: 12,
-    marginLeft: 8,
-    marginTop: 2,
+    fontWeight: '600',
+    lineHeight: 16,
   },
   actionButtonsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 12,
-    gap: 8,
+    marginTop: 16,
+    gap: 12,
   },
   actionButton: {
     flex: 1,
-    paddingVertical: 8,
-    borderRadius: 8,
+    paddingVertical: 12,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
   },
   confirmButton: {
-    backgroundColor: '#2e7d32',
+    backgroundColor: '#34C759',
   },
   cancelButton: {
-    backgroundColor: '#c62828',
+    backgroundColor: '#FF3B30',
   },
   actionButtonText: {
     color: '#ffffff',
     fontWeight: 'bold',
-    fontSize: 13,
+    fontSize: 14,
   },
   statusContainer: {
     alignItems: 'center',
-    marginTop: 10,
-    paddingVertical: 4,
+    marginTop: 14,
+    paddingVertical: 8,
   },
   confirmedText: {
-    color: '#2e7d32',
+    color: '#34C759',
     fontWeight: 'bold',
-    fontSize: 13,
+    fontSize: 14,
   },
   cancelledText: {
-    color: '#c62828',
+    color: '#FF3B30',
     fontWeight: 'bold',
-    fontSize: 13,
+    fontSize: 14,
   },
   retryButton: {
     backgroundColor: '#ff6b6b',
@@ -381,7 +598,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     fontWeight: '800',
   },
   viewActivityButton: {
-    backgroundColor: '#2e7d32',
+    backgroundColor: '#34C759',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,

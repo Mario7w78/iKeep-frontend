@@ -185,6 +185,7 @@ export function createChatStore(
     role: 'assistant',
     content: '¡Hola! Soy Sapo 🐸, tu asistente virtual. Dime qué actividad quieres agregar y te ayudo a organizar tu día.',
     timestamp: Date.now(),
+    type: 'chat',
   };
 
   return create<ChatStoreState>((set, get) => ({
@@ -218,23 +219,57 @@ export function createChatStore(
       });
 
       const activities = activityStore.getState().activities || [];
-      const activitiesList = activities.map((a: any) => a.title);
+      const descriptions = activities.map((a: any) => {
+        const isFixed = a.isFixed();
+        const parts: string[] = [];
+        parts.push(`Nombre: "${a.title}"`);
+        parts.push(`Categoría: "${a.identity || 'tarea'}"`);
+        parts.push(`Horario: ${isFixed ? 'Fijo' : 'Flexible'}`);
+        parts.push(`Días: [${a.daysEnabled ? a.daysEnabled.join(', ') : ''}]`);
+        if (isFixed) {
+          const dayTimes: string[] = [];
+          if (a.daysConfig) {
+            for (const day in a.daysConfig) {
+              const cfg = a.daysConfig[day];
+              if (cfg && cfg.partitions && cfg.partitions.length > 0) {
+                const timings = cfg.partitions.map((p: any) => {
+                  const s = minutesToTimeStr(dateToMinutes(new Date(p.startHour)));
+                  const e = minutesToTimeStr(dateToMinutes(new Date(p.endHour)));
+                  return `${s} - ${e}`;
+                }).join(', ');
+                dayTimes.push(`${day}: ${timings}`);
+              }
+            }
+          }
+          parts.push(`Horas: { ${dayTimes.join(' | ')} }`);
+        } else {
+          if (a.preferredStartTime !== null && a.preferredEndTime !== null && a.preferredStartTime !== undefined && a.preferredEndTime !== undefined) {
+            parts.push(`Rango preferido: ${minutesToTimeStr(a.preferredStartTime)} a ${minutesToTimeStr(a.preferredEndTime)}`);
+          }
+          if (a.getTotalTimeRequired) {
+            parts.push(`Duración: ${a.getTotalTimeRequired()} minutos`);
+          }
+          parts.push(`Prioridad: "${a.priority || 'media'}"`);
+        }
+        return `{ ${parts.join(' | ')} }`;
+      });
 
       const history: MessageDto[] = get().messages
         .filter((m) => !m.isError)
         .map((m) => ({
           role: m.role as 'user' | 'assistant',
           content: m.content,
+          type: m.type,
         }));
 
-      if (activitiesList.length > 0) {
+      if (descriptions.length > 0) {
         history.unshift({
           role: 'user',
-          content: `[Contexto de la agenda: Las actividades que ya existen son: ${activitiesList.map(name => `"${name}"`).join(', ')}. Si el usuario pide modificar o se refiere a alguna de ellas, devolvé su nombre exacto en el campo 'name' del resultado.]`
+          content: `[Contexto de la agenda: Las actividades que ya existen son:\n${descriptions.join('\n')}\nSi el usuario pide modificar alguna de estas actividades, debés mantener todos sus campos anteriores (categoría, horario fijo/flexible, prioridad, días, horas/rango, duración) tal cual estaban, a menos que el usuario especifique explícitamente olvidarlos o cambiarlos en su mensaje actual.]`
         });
         history.unshift({
           role: 'assistant',
-          content: `Entendido. Usaré esos nombres exactos para relacionar las modificaciones de las actividades.`
+          content: `Entendido. Para cualquier modificación de las actividades existentes, mantendré todos sus atributos previos (como categoría, tipo de horario y detalles temporales) a menos que el mensaje del usuario indique cambiar o descartar esos campos.`
         });
       }
 
@@ -242,12 +277,25 @@ export function createChatStore(
       try {
         const response = await sendConversationFn(text, history);
 
-        if (response.type === 'question') {
+        if (response.type === 'chat') {
           const aiMsg: ChatMessage = {
             id: `ai-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
             role: 'assistant',
             content: response.ai_message,
             timestamp: Date.now(),
+            type: 'chat',
+          };
+          set({
+            messages: [...get().messages, aiMsg],
+            isThinking: false,
+          });
+        } else if (response.type === 'question') {
+          const aiMsg: ChatMessage = {
+            id: `ai-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+            role: 'assistant',
+            content: response.ai_message,
+            timestamp: Date.now(),
+            type: 'question',
           };
           set({
             messages: [...get().messages, aiMsg],
@@ -258,6 +306,21 @@ export function createChatStore(
             response as unknown as ParseNLResponseDto,
             0
           );
+
+          if (!parsedState.activityName || parsedState.activityName.trim() === '') {
+            const aiMsg: ChatMessage = {
+              id: `ai-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+              role: 'assistant',
+              content: 'Entendido. Dime si quieres agendar o modificar alguna actividad.',
+              timestamp: Date.now(),
+              type: 'question',
+            };
+            set({
+              messages: [...get().messages, aiMsg],
+              isThinking: false,
+            });
+            return;
+          }
 
           // Find if there is a matching activity in the database to edit/modify
           const activities = activityStore.getState().activities || [];
@@ -323,10 +386,11 @@ export function createChatStore(
             id: `confirm-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
             role: 'assistant',
             content: matchingActivity
-              ? `Encontré la actividad "${matchingActivity.title}" en la base de datos. ¿Querés modificarla con los siguientes datos?`
-              : '¿Querés crear esta actividad con los siguientes datos?',
+              ? `Encontré la actividad "${matchingActivity.title}" en la base de datos. ¿Quieres modificarla con los siguientes datos?`
+              : '¿Quieres crear esta actividad con los siguientes datos?',
             timestamp: Date.now(),
             pendingActivity,
+            type: 'result',
           };
 
           set({

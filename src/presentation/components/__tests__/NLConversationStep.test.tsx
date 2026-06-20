@@ -180,4 +180,65 @@ describe('NLConversationStep', () => {
     const clearButton = screen.queryByTestId('clear-chat-button');
     expect(clearButton).toBeNull();
   });
+
+  it('renders a chat message of type chat correctly without activity card wrappers', async () => {
+    const chatMessages: ChatMessage[] = [
+      {
+        id: 'chat-1',
+        role: 'assistant',
+        content: 'Este es un mensaje de charla casual',
+        type: 'chat',
+        timestamp: 1000,
+        pendingActivity: {
+          id: '123',
+          isModification: false,
+          parsedState: {
+            activityName: 'Actividad fantasma',
+            selectedDays: [],
+            daysDict: {},
+            isFixed: false,
+          }
+        }
+      }
+    ];
+
+    const screen = await render(
+      <NLConversationStep
+        {...defaultProps}
+        messages={chatMessages}
+      />
+    );
+
+    // It should render the content
+    expect(screen.getByText('Este es un mensaje de charla casual')).toBeTruthy();
+
+    // It should NOT render the proposed name of the activity because it's a chat message
+    expect(screen.queryByText('Nueva Actividad')).toBeNull();
+    expect(screen.queryByText('Actividad fantasma')).toBeNull();
+  });
+
+  it('renders error messages with a retry button when isError is true', async () => {
+    const errorMessages: ChatMessage[] = [
+      {
+        id: 'error-1',
+        role: 'assistant',
+        content: 'Hubo un error de conexión',
+        isError: true,
+        timestamp: 1000,
+      }
+    ];
+
+    const onRetryMock = jest.fn();
+    const screen = await render(
+      <NLConversationStep
+        {...defaultProps}
+        messages={errorMessages}
+        onRetry={onRetryMock}
+      />
+    );
+
+    expect(screen.getByText('Hubo un error de conexión')).toBeTruthy();
+    const retryButton = screen.getByTestId('retry-button');
+    expect(retryButton).toBeTruthy();
+  });
 });

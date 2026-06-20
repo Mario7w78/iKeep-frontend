@@ -29,6 +29,7 @@ export interface ParseNLRequestDto {
 export interface MessageDto {
   role: 'user' | 'assistant';
   content: string;
+  type?: 'question' | 'result' | 'chat';
 }
 
 export interface ParseNLConversationRequestDto {
@@ -41,6 +42,10 @@ export type ParseNLConversationResponseDto =
       type: 'question';
       ai_message: string;
       missing_fields?: string[];
+    }
+  | {
+      type: 'chat';
+      ai_message: string;
     }
   | {
       type: 'result';

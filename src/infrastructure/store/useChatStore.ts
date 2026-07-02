@@ -8,6 +8,7 @@ import {
   calculateDurationAcrossMidnight,
   formatTime,
 } from '../../presentation/utils/timeUtils';
+import { OverlapError, OverlapConflictData } from '../../domain/errors/OverlapError';
 
 export interface ChatStoreState {
   messages: ChatMessage[];
@@ -45,7 +46,7 @@ const mapErrorToUserFriendlyMessage = (error: any, fallbackMessage: string): str
   const errStr = errMsg.toLowerCase();
 
   // If it's a rate limit error (429 or containing rate limit text)
-  if (errStr.includes('rate limit') || errStr.includes('limit reached') || errStr.includes('429')) {
+  if (errStr.includes('rate limit') || errStr.includes('limit reached') || errStr.includes('429') || errStr.includes('too many requests')) {
     return '¡Hasta acá llegué por hoy! 🐸 Me voy a tomar una siestita arriba de un camalote. Intentemos de nuevo en un ratito.';
   }
 
@@ -55,7 +56,10 @@ const mapErrorToUserFriendlyMessage = (error: any, fallbackMessage: string): str
     errStr.includes('network error') ||
     errStr.includes('failed to parse') ||
     errStr.includes('fetch') ||
-    errStr.includes('timeout')
+    errStr.includes('timeout') ||
+    errStr.includes('503') ||
+    errStr.includes('model not available') ||
+    errStr.includes('service unavailable')
   ) {
     return '¡Glup! 🐸 Me hundí en el agua y perdí la conexión. ¿Probamos de nuevo en unos minutos?';
   }
@@ -67,7 +71,12 @@ const mapErrorToUserFriendlyMessage = (error: any, fallbackMessage: string): str
 export function createChatStore(
   activityStore: any,
   scheduleStore: any,
-  sendConversationFn: (text: string, history: MessageDto[]) => Promise<any>
+  sendConversationFn: (
+    text: string,
+    history: MessageDto[],
+    agendaContext?: string,
+    currentDay?: string
+  ) => Promise<any>
 ): ChatStore {
   const validatePartitions = (
     parts: any[],
@@ -127,7 +136,25 @@ export function createChatStore(
             const itemEnd = timeStrToMinutes(item.assignedEndTime);
 
             if (partStart < itemEnd && partEnd > itemStart) {
-              throw new Error(`El horario del día ${day} (${formatTime(part.startHour)} - ${formatTime(part.endHour)}) se superpone con la actividad ya establecida "${item.activity?.title ?? 'Actividad sin nombre'}" (${item.assignedStartTime} - ${item.assignedEndTime}).`);
+              const fixedConflictData: OverlapConflictData = {
+                day,
+                conflictingActivity: {
+                  id: item.activity.id,
+                  title: item.activity?.title ?? 'Actividad sin nombre',
+                  startTime: item.assignedStartTime,
+                  endTime: item.assignedEndTime,
+                },
+                proposedTime: {
+                  startTime: minutesToTimeStr(dateToMinutes(new Date(part.startHour))),
+                  endTime: minutesToTimeStr(dateToMinutes(new Date(part.endHour))),
+                },
+              };
+              throw new OverlapError(
+                `El horario del día ${day} (${formatTime(part.startHour)} - ${formatTime(part.endHour)}) se superpone con la actividad ya establecida "${item.activity?.title ?? 'Actividad sin nombre'}" (${item.assignedStartTime} - ${item.assignedEndTime}).`,
+                [fixedConflictData],
+                day,
+                'fixed',
+              );
             }
           }
         }
@@ -135,6 +162,7 @@ export function createChatStore(
         if (prefStart !== null && prefEnd !== null) {
           let blockedMinutes = 0;
           let overlappingActivities: string[] = [];
+          const flexibleConflicts: OverlapConflictData[] = [];
 
           let normPrefStart = prefStart;
           let normPrefEnd = prefEnd;
@@ -163,6 +191,19 @@ export function createChatStore(
             if (overlapStart < overlapEnd) {
               blockedMinutes += (overlapEnd - overlapStart);
               overlappingActivities.push(`"${item.activity?.title ?? 'Actividad sin nombre'}" (${item.assignedStartTime} - ${item.assignedEndTime})`);
+              flexibleConflicts.push({
+                day,
+                conflictingActivity: {
+                  id: item.activity.id,
+                  title: item.activity?.title ?? 'Actividad sin nombre',
+                  startTime: item.assignedStartTime,
+                  endTime: item.assignedEndTime,
+                },
+                proposedTime: {
+                  startTime: minutesToTimeStr(prefStart),
+                  endTime: minutesToTimeStr(prefEnd),
+                },
+              });
             }
           }
 
@@ -173,7 +214,12 @@ export function createChatStore(
             const overlapText = overlappingActivities.length > 0
               ? ` debido a la superposición con: ${overlappingActivities.join(', ')}`
               : '';
-            throw new Error(`La ventana preferida el día ${day} (${minutesToTimeStr(prefStart)} - ${minutesToTimeStr(prefEnd)}) no deja suficiente tiempo libre para realizar la actividad (${duration} min)${overlapText}.`);
+            throw new OverlapError(
+              `La ventana preferida el día ${day} (${minutesToTimeStr(prefStart)} - ${minutesToTimeStr(prefEnd)}) no deja suficiente tiempo libre para realizar la actividad (${duration} min)${overlapText}.`,
+              flexibleConflicts,
+              day,
+              'flexible',
+            );
           }
         }
       }
@@ -219,7 +265,9 @@ export function createChatStore(
       });
 
       const activities = activityStore.getState().activities || [];
-      const descriptions = activities.map((a: any) => {
+      // Groq/Llama: limitar descripciones para no quemar tokens
+      const MAX_ACTIVITY_DESC = 10;
+      const descriptions = activities.slice(0, MAX_ACTIVITY_DESC).map((a: any) => {
         const isFixed = a.isFixed();
         const parts: string[] = [];
         parts.push(`Nombre: "${a.title}"`);
@@ -253,29 +301,27 @@ export function createChatStore(
         }
         return `{ ${parts.join(' | ')} }`;
       });
-
-      const history: MessageDto[] = get().messages
-        .filter((m) => !m.isError)
-        .map((m) => ({
-          role: m.role as 'user' | 'assistant',
-          content: m.content,
-          type: m.type,
-        }));
-
-      if (descriptions.length > 0) {
-        history.unshift({
-          role: 'user',
-          content: `[Contexto de la agenda: Las actividades que ya existen son:\n${descriptions.join('\n')}\nSi el usuario pide modificar alguna de estas actividades, debés mantener todos sus campos anteriores (categoría, horario fijo/flexible, prioridad, días, horas/rango, duración) tal cual estaban, a menos que el usuario especifique explícitamente olvidarlos o cambiarlos en su mensaje actual.]`
-        });
-        history.unshift({
-          role: 'assistant',
-          content: `Entendido. Para cualquier modificación de las actividades existentes, mantendré todos sus atributos previos (como categoría, tipo de horario y detalles temporales) a menos que el mensaje del usuario indique cambiar o descartar esos campos.`
-        });
+      if (activities.length > MAX_ACTIVITY_DESC) {
+        descriptions.push(`...[y ${activities.length - MAX_ACTIVITY_DESC} actividad(es) más, omitidas por brevedad]`);
       }
+
+      // Groq/Llama: contexto limitado — solo últimas 4 exchanges (8 mensajes)
+      const MAX_HISTORY_EXCHANGES = 4;
+      const trimmedMessages = get().messages.filter((m) => !m.isError);
+      const recentMessages = trimmedMessages.slice(-(MAX_HISTORY_EXCHANGES * 2));
+      const history: MessageDto[] = recentMessages.map((m) => ({
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
+        type: m.type,
+      }));
+
+      const agendaContext = descriptions.length > 0 ? descriptions.join('\n') : undefined;
+      const spanishDays = ['Domingo', 'Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado'];
+      const currentDay = spanishDays[new Date().getDay()];
 
       let creatingMsgId: string | null = null;
       try {
-        const response = await sendConversationFn(text, history);
+        const response = await sendConversationFn(text, history, agendaContext, currentDay);
 
         if (response.type === 'chat') {
           const aiMsg: ChatMessage = {
@@ -393,8 +439,16 @@ export function createChatStore(
             type: 'result',
           };
 
+          // Auto-cancelar pendings anteriores: si el usuario pidió cambios sin cancelar,
+          // los viejos botones Confirmar/Cancelar se desactivan para evitar duplicados.
+          const messagesWithCancelledPendings = get().messages.map((m) =>
+            m.pendingActivity && !m.isConfirmed && !m.isCancelled
+              ? { ...m, isCancelled: true }
+              : m
+          );
+
           set({
-            messages: [...get().messages, confirmMsg],
+            messages: [...messagesWithCancelledPendings, confirmMsg],
             isThinking: false,
           });
         }
@@ -493,11 +547,18 @@ export function createChatStore(
         const finalPriority = parsedState.isFixed ? 5 : priorityMap[priorityKey];
         const finalDifficulty = parsedState.isFixed ? 'media' : (parsedState.difficulty || 'media');
 
+        // Domain rule: al modificar, preservar identity original cuando el AI
+        // no lo haya especificado explícitamente. Al crear, default depende de isFixed:
+        // clase → fijo, tarea → flexible. Nunca clase+flexible (se corrige en parseNlMapper).
+        const resolvedIdentity = isModification && originalActivityProps
+          ? (parsedState.identity || originalActivityProps.identity)
+          : (parsedState.identity || (parsedState.isFixed ? 'clase' : 'tarea'));
+
         await activityStore.getState().handleCreateActivity({
           id,
           activityName: parsedState.activityName,
           isFixed: parsedState.isFixed,
-          identity: parsedState.identity || 'clase',
+          identity: resolvedIdentity,
           priority: finalPriority,
           difficulty: finalDifficulty,
           deadline: null,
@@ -549,24 +610,39 @@ export function createChatStore(
         });
       } catch (error: any) {
         console.error('Error confirming pending activity:', error);
-        
+
         set({
           messages: get().messages.filter((m) => m.id !== validatingMsgId),
         });
 
-        const displayMessage = mapErrorToUserFriendlyMessage(error, 'Ups, hubo un error al procesar la actividad.');
-        const errorMsg: ChatMessage = {
-          id: `error-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-          role: 'assistant',
-          content: displayMessage,
-          timestamp: Date.now(),
-          isError: true,
-        };
+        if (error instanceof OverlapError) {
+          const errorMsg: ChatMessage = {
+            id: `error-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+            role: 'assistant',
+            content: error.message,
+            timestamp: Date.now(),
+            isError: true,
+            overlapData: error.conflicts,
+          };
+          set({
+            messages: [...get().messages, errorMsg],
+            isThinking: false,
+          });
+        } else {
+          const displayMessage = mapErrorToUserFriendlyMessage(error, 'Ups, hubo un error al procesar la actividad.');
+          const errorMsg: ChatMessage = {
+            id: `error-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+            role: 'assistant',
+            content: displayMessage,
+            timestamp: Date.now(),
+            isError: true,
+          };
 
-        set({
-          messages: [...get().messages, errorMsg],
-          isThinking: false,
-        });
+          set({
+            messages: [...get().messages, errorMsg],
+            isThinking: false,
+          });
+        }
       }
     },
 

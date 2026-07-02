@@ -73,14 +73,14 @@ describe('NLConversationStep', () => {
     const screen = await render(<NLConversationStep {...defaultProps} />);
 
     expect(screen.getByText('Hablar con Sapo')).toBeTruthy();
-    expect(screen.getByText('← Volver')).toBeTruthy();
+    expect(screen.getByText('Volver')).toBeTruthy();
     expect(screen.getByText('Hola sapo')).toBeTruthy();
     expect(screen.getByText('Hola! ¿En qué te puedo ayudar hoy?')).toBeTruthy();
   });
 
   it('calls onBack when the back button is pressed', async () => {
     const screen = await render(<NLConversationStep {...defaultProps} />);
-    const backButton = screen.getByText('← Volver');
+    const backButton = screen.getByText('Volver');
     fireEvent.press(backButton);
     expect(defaultProps.onBack).toHaveBeenCalledTimes(1);
   });
@@ -240,5 +240,93 @@ describe('NLConversationStep', () => {
     expect(screen.getByText('Hubo un error de conexión')).toBeTruthy();
     const retryButton = screen.getByTestId('retry-button');
     expect(retryButton).toBeTruthy();
+  });
+
+  it('renders travel times along with duration for flexible activities', async () => {
+    const chatMessages: ChatMessage[] = [
+      {
+        id: 'confirm-1',
+        role: 'assistant',
+        content: '¿Quieres crear esta actividad?',
+        type: 'result',
+        timestamp: 1000,
+        pendingActivity: {
+          id: '123',
+          isModification: false,
+          parsedState: {
+            activityName: 'Estudiar',
+            selectedDays: ['Lunes'],
+            isFixed: false,
+            duracionMinutos: 90,
+            daysDict: {
+              'Lunes': {
+                partitions: [
+                  {
+                    startHour: new Date('2026-06-30T09:00:00Z'),
+                    endHour: new Date('2026-06-30T10:30:00Z'),
+                    durationTime: 90,
+                    travelTo: 15,
+                    travelFrom: 10,
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    ];
+
+    const screen = await render(
+      <NLConversationStep
+        {...defaultProps}
+        messages={chatMessages}
+      />
+    );
+
+    expect(screen.getByText('1 hora y 30 min')).toBeTruthy();
+    expect(screen.getByText('Traslado: 15 min ida • 10 min vuelta')).toBeTruthy();
+  });
+
+  it('renders travel times for fixed activities', async () => {
+    const chatMessages: ChatMessage[] = [
+      {
+        id: 'confirm-2',
+        role: 'assistant',
+        content: '¿Quieres crear esta actividad?',
+        type: 'result',
+        timestamp: 1000,
+        pendingActivity: {
+          id: '124',
+          isModification: false,
+          parsedState: {
+            activityName: 'Clase de Mate',
+            selectedDays: ['Martes'],
+            isFixed: true,
+            daysDict: {
+              'Martes': {
+                partitions: [
+                  {
+                    startHour: new Date('2026-06-30T09:00:00Z'),
+                    endHour: new Date('2026-06-30T10:00:00Z'),
+                    durationTime: 60,
+                    travelTo: 20,
+                    travelFrom: 0,
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    ];
+
+    const screen = await render(
+      <NLConversationStep
+        {...defaultProps}
+        messages={chatMessages}
+      />
+    );
+
+    expect(screen.getByText('Traslado: 20 min ida')).toBeTruthy();
   });
 });

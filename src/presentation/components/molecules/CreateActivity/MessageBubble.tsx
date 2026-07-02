@@ -1,7 +1,10 @@
 import React, { useMemo } from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { SAPO_BASE64 } from '../../sapoBase64';
 import { useTheme, ThemeColors } from '../../theme/colors';
+import { OverlapConflictData } from '../../../../domain/errors/OverlapError';
+import { ConflictPreview } from './ConflictPreview';
 
 export interface ChatMessage {
   id: string;
@@ -14,6 +17,7 @@ export interface ChatMessage {
   isConfirmed?: boolean;
   isCancelled?: boolean;
   type?: 'question' | 'result' | 'chat';
+  overlapData?: OverlapConflictData[];
 }
 
 interface Props {
@@ -40,6 +44,18 @@ const formatMins = (mins: number) => {
   const h = Math.floor(mins / 60);
   const m = mins % 60;
   return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+};
+
+const formatDuration = (mins: number) => {
+  if (mins > 60) {
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    if (m === 0) {
+      return `${h} ${h === 1 ? 'hora' : 'horas'}`;
+    }
+    return `${h} ${h === 1 ? 'hora' : 'horas'} y ${m} min`;
+  }
+  return `${mins} min`;
 };
 
 const abbreviateDay = (day: string) => {
@@ -87,6 +103,47 @@ export const MessageBubble: React.FC<Props> = ({
   const isUser = message.role === 'user';
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+
+  const travelTimes = useMemo(() => {
+    let travelTo: number | null = null;
+    let travelFrom: number | null = null;
+    const parsedState = message.pendingActivity?.parsedState;
+    if (parsedState?.selectedDays && parsedState.daysDict) {
+      for (const day of parsedState.selectedDays) {
+        const config = parsedState.daysDict[day];
+        if (config?.partitions) {
+          for (const p of config.partitions) {
+            if (p.travelTo !== undefined && p.travelTo !== null) {
+              travelTo = p.travelTo;
+            }
+            if (p.travelFrom !== undefined && p.travelFrom !== null) {
+              travelFrom = p.travelFrom;
+            }
+            if (travelTo !== null || travelFrom !== null) {
+              break;
+            }
+          }
+        }
+        if (travelTo !== null || travelFrom !== null) {
+          break;
+        }
+      }
+    }
+    return { travelTo, travelFrom };
+  }, [message.pendingActivity]);
+
+  const travelText = useMemo(() => {
+    const { travelTo, travelFrom } = travelTimes;
+    const parts: string[] = [];
+    if (travelTo && travelTo > 0) {
+      parts.push(`${travelTo} min ida`);
+    }
+    if (travelFrom && travelFrom > 0) {
+      parts.push(`${travelFrom} min vuelta`);
+    }
+    if (parts.length === 0) return null;
+    return parts.join(' / ');
+  }, [travelTimes]);
 
   return (
     <View style={[styles.row, isUser ? styles.rowUser : styles.rowAI]}>
@@ -170,7 +227,11 @@ export const MessageBubble: React.FC<Props> = ({
 
             {/* Days mini-blocks row */}
             <View style={styles.daysRowContainer}>
-              <Text style={styles.daysRowTitle}>Días asignados</Text>
+              <Text style={styles.daysRowTitle}>
+                {(!message.pendingActivity.parsedState.isFixed && !message.pendingActivity.parsedState.isAnchor)
+                  ? 'Días permitidos'
+                  : 'Días asignados'}
+              </Text>
               <View style={styles.daysRowGrid}>
                 {WEEK_DAYS.map((wd) => {
                   const isSelected = message.pendingActivity.parsedState.selectedDays.some((sd: string) => 
@@ -194,6 +255,11 @@ export const MessageBubble: React.FC<Props> = ({
                   );
                 })}
               </View>
+              {(!message.pendingActivity.parsedState.isFixed && !message.pendingActivity.parsedState.isAnchor) && (
+                <Text style={styles.daysHelpText}>
+                  * Se programará un solo día dentro del rango.
+                </Text>
+              )}
             </View>
 
             {/* Divider */}
@@ -218,6 +284,16 @@ export const MessageBubble: React.FC<Props> = ({
                       </View>
                     );
                   })}
+                  {travelText && (
+                    <View style={styles.travelTimeRow}>
+                      <Ionicons name="car-outline" size={16} color={colors.textSecondary} />
+                      <Text style={styles.travelTimeText}>
+                        Traslado: {travelTimes.travelTo ? `${travelTimes.travelTo} min ida` : ''}
+                        {travelTimes.travelTo && travelTimes.travelFrom ? ' • ' : ''}
+                        {travelTimes.travelFrom ? `${travelTimes.travelFrom} min vuelta` : ''}
+                      </Text>
+                    </View>
+                  )}
                 </View>
               ) : (
                 <View style={styles.flexibleScheduleContainer}>
@@ -240,7 +316,17 @@ export const MessageBubble: React.FC<Props> = ({
                           <View style={styles.scheduleCompactRow}>
                             <Text style={styles.scheduleCompactDayLabel}>Duración estimada</Text>
                             <Text style={styles.scheduleCompactTime}>
-                              {duration} min
+                              {formatDuration(duration)}
+                            </Text>
+                          </View>
+                        )}
+                        {travelText && (
+                          <View style={styles.travelTimeRow}>
+                            <Ionicons name="car-outline" size={16} color={colors.textSecondary} />
+                            <Text style={styles.travelTimeText}>
+                              Traslado: {travelTimes.travelTo ? `${travelTimes.travelTo} min ida` : ''}
+                              {travelTimes.travelTo && travelTimes.travelFrom ? ' • ' : ''}
+                              {travelTimes.travelFrom ? `${travelTimes.travelFrom} min vuelta` : ''}
                             </Text>
                           </View>
                         )}
@@ -279,6 +365,9 @@ export const MessageBubble: React.FC<Props> = ({
           </View>
         )}
 
+        {message.isError && message.overlapData && message.overlapData.length > 0 && (
+          <ConflictPreview conflicts={message.overlapData} />
+        )}
         {message.isError && onRetry && (
           <TouchableOpacity
             testID="retry-button"
@@ -457,6 +546,12 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     justifyContent: 'space-between',
     gap: 4,
   },
+  daysHelpText: {
+    color: colors.accent,
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 6,
+  },
   miniDayBox: {
     width: 28,
     height: 28,
@@ -533,6 +628,24 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     fontWeight: '700',
     textAlign: 'right',
     flex: 1,
+  },
+  travelTimeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginTop: 8,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    alignSelf: 'flex-start',
+  },
+  travelTimeText: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    fontWeight: '600',
   },
   scheduleDetailText: {
     color: colors.surface,

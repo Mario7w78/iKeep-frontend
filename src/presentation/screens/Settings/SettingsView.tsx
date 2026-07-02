@@ -171,10 +171,11 @@ const SettingsView = () => {
               <DateTimePicker
                 value={localStartTime}
                 mode="time"
-                display="spinner"
+                display={Platform.OS === 'android' ? 'default' : 'spinner'}
                 themeVariant="dark"
                 textColor={colors.surface}
                 onChange={(_, selectedDate) => {
+                  if (Platform.OS !== "ios") setShowStartPicker(false);
                   if (selectedDate) setLocalStartTime(selectedDate);
                 }}
                 style={styles.picker}
@@ -207,10 +208,11 @@ const SettingsView = () => {
               <DateTimePicker
                 value={localEndTime}
                 mode="time"
-                display="spinner"
+                display={Platform.OS === 'android' ? 'default' : 'spinner'}
                 themeVariant="dark"
                 textColor={colors.surface}
                 onChange={(_, selectedDate) => {
+                  if (Platform.OS !== "ios") setShowEndPicker(false);
                   if (selectedDate) setLocalEndTime(selectedDate);
                 }}
                 style={styles.picker}

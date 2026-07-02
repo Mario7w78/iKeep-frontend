@@ -69,7 +69,7 @@ describe('CreateActivityView - Manual Wizard Flow', () => {
 
     // Verify that manual step 1 elements are directly visible
     expect(getByText('Nombre de la actividad')).toBeTruthy();
-    expect(getByPlaceholderText('Ej. Seminario de investigación o Trabajo')).toBeTruthy();
+    expect(getByPlaceholderText('Ej. Seminario, Trabajo...')).toBeTruthy();
 
     // Verify choose mode step options are NOT visible
     expect(queryByText('Texto libre')).toBeNull();

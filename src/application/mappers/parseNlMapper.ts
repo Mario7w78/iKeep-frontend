@@ -56,6 +56,21 @@ const normalizeDayName = (day: any): DayOfWeek => {
   return NORMALIZE_DAY[clean] || 'Lunes';
 };
 
+/**
+ * Normaliza valores horarios que el AI devuelve en formato inconsistente.
+ * valores ≤ 1440 (24*60) → minutos desde medianoche, se usan tal cual.
+ * valores > 1440 → probablemente HHMM (ej: 2400 = 24:00 = medianoche).
+ *   Se interpreta como horas*60 + minutos.
+ */
+function normalizeTime(value: number | null): number | null {
+  if (value === null || value === undefined) return value;
+  if (value <= 1440) return value;
+  const hours = Math.floor(value / 100);
+  const minutes = value % 100;
+  const asMinutes = hours * 60 + minutes;
+  return asMinutes <= 1440 ? asMinutes : 1440;
+}
+
 export function mapParsedResponseToFormState(
   response: ParseNLResponseDto,
   currentNextGroupId: number,
@@ -90,6 +105,12 @@ export function mapParsedResponseToFormState(
     state.identity = response.activity_type;
   }
 
+  // Domain rule: una actividad flexible (optimizable) NO puede ser "clase".
+  // "clase" implica horario fijo. Si el AI devuelve clase+flexible, corregimos a tarea.
+  if (!state.isFixed && state.identity === 'clase') {
+    state.identity = 'tarea';
+  }
+
   // Difficulty
   if (response.difficulty && !missingFields.includes('difficulty')) {
     state.difficulty = response.difficulty;
@@ -98,6 +119,18 @@ export function mapParsedResponseToFormState(
   // Priority
   if (response.priority && !missingFields.includes('priority')) {
     state.priority = response.priority;
+  }
+
+  // Preferred time window (top-level fields, independientes de schedule)
+  if (!missingFields.includes('start_time')) {
+    state.horaPreferidaInicio = normalizeTime(response.hora_preferida_inicio) ?? null;
+  } else {
+    state.horaPreferidaInicio = null;
+  }
+  if (!missingFields.includes('end_time')) {
+    state.horaPreferidaFin = normalizeTime(response.hora_preferida_fin) ?? null;
+  } else {
+    state.horaPreferidaFin = null;
   }
 
   // Schedule → daysDict + selectedDays
@@ -123,19 +156,20 @@ export function mapParsedResponseToFormState(
     // Use duracion_minutos if specified, otherwise default to 60 min (user can edit in wizard)
     if (dayOnlySlots.length > 0) {
       state.duracionMinutos = response.duracion_minutos ?? null;
-      state.horaPreferidaInicio = response.hora_preferida_inicio ?? null;
-      state.horaPreferidaFin = response.hora_preferida_fin ?? null;
       let groupIdCounter = currentNextGroupId;
       const newDaysDict: ParsedFormState['daysDict'] = {};
       const duration = response.duracion_minutos ?? 60;
 
       for (const day of dayOnlySlots) {
+        // Usar hora_preferida_inicio como base para startHour/endHour
+        // para evitar mandar medianoche al backend via scheduleMapper
+        const prefStart = response.hora_preferida_inicio ?? 0;
         const partition: PartitionConfig = {
-          startHour: minutesToDate(0),
-          endHour: minutesToDate(0),
+          startHour: minutesToDate(prefStart),
+          endHour: minutesToDate(prefStart + duration),
           durationTime: duration,
-          travelTo: null,
-          travelFrom: null,
+          travelTo: response.travel_to ?? null,
+          travelFrom: response.travel_from ?? null,
         };
 
         newDaysDict[day] = {
@@ -164,14 +198,14 @@ export function mapParsedResponseToFormState(
       for (const day of days) {
         const slots = scheduleByDay[day] || [];
         const partitions: PartitionConfig[] = slots.map((slot: any) => {
-          const sTime = typeof slot.start_time === 'number' ? slot.start_time : 0;
-          const eTime = typeof slot.end_time === 'number' ? slot.end_time : (sTime + 60);
+          const sTime = normalizeTime(typeof slot.start_time === 'number' ? slot.start_time : 0) ?? 0;
+          const eTime = normalizeTime(typeof slot.end_time === 'number' ? slot.end_time : undefined) ?? (sTime + 60);
           return {
             startHour: minutesToDate(sTime),
             endHour: minutesToDate(eTime),
             durationTime: Math.max(0, eTime - sTime),
-            travelTo: null,
-            travelFrom: null,
+            travelTo: response.travel_to ?? null,
+            travelFrom: response.travel_from ?? null,
           };
         });
 

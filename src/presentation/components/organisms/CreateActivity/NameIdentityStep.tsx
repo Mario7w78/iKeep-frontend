@@ -227,7 +227,7 @@ export default function NameIdentityStep({
         <TextInput
           value={activityName}
           onChangeText={onSetActivityName}
-          placeholder="Ej. Seminario de investigación o Trabajo"
+          placeholder="Ej. Seminario, Trabajo..."
           placeholderTextColor="rgba(255,255,255,0.4)"
           style={styles.nameInput}
           returnKeyType="next"
@@ -543,6 +543,8 @@ function createStyles(colors: ThemeColors, comfyColors: Record<string, string>, 
     fontSize: 16,
     fontWeight: "800",
     paddingVertical: 14,
+    includeFontPadding: false,
+    textAlignVertical: "center",
   },
   twoColumnGrid: {
     flexDirection: "row",

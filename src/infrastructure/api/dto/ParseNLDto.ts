@@ -18,6 +18,8 @@ export interface ParseNLResponseDto {
   hora_preferida_inicio: number | null;
   hora_preferida_fin: number | null;
   location: string | null;
+  travel_to?: number | null;
+  travel_from?: number | null;
   confidence: number;
   missing_fields: string[];
 }
@@ -35,7 +37,10 @@ export interface MessageDto {
 export interface ParseNLConversationRequestDto {
   text: string;
   history: MessageDto[];
+  agenda_context?: string;
+  current_day?: string;
 }
+
 
 export type ParseNLConversationResponseDto =
   | {
@@ -64,6 +69,8 @@ export type ParseNLConversationResponseDto =
       hora_preferida_inicio: number | null;
       hora_preferida_fin: number | null;
       location: string | null;
+      travel_to?: number | null;
+      travel_from?: number | null;
       confidence: number;
       missing_fields: string[];
     };

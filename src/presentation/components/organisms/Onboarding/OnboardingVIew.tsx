@@ -200,7 +200,7 @@ export default function OnBoardingView() {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <FlatList
         ref={flatListRef}

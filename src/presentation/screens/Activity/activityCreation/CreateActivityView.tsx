@@ -183,8 +183,11 @@ export default function CreateActivityView({ navigation, route }: any) {
       const act = existingActivity;
       setActivityId(act.id);
       setActivityName(act.title);
-      setIsFixed(act.isFixed());
+      // handleSetIdentity auto-set. isFixed según identidad (ej: "clase" → fijo),
+      // pero al editar la actividad puede tener identidad "clase" sin ser fija.
+      // Primero identity, después isFixed para que este último prevalezca.
       setIdentity(act.identity);
+      setIsFixed(act.isFixed());
       setPriority(act.priority === 5 ? "alta" : act.priority === 3 ? "media" : "baja");
       setDifficulty(act.difficulty);
       setDeadline(act.deadline ? new Date(act.deadline) : null);

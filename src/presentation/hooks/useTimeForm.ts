@@ -353,6 +353,10 @@ export default function useTimeForm() {
     const finalDayTo = overrides.dayTo !== undefined ? overrides.dayTo : dayTo;
     const finalIsAnchor = overrides.isAnchor !== undefined ? overrides.isAnchor : isAnchor;
 
+    // Domain rule: una actividad flexible NO puede ser "clase" — clase siempre es fija.
+    const sanitizedIdentity: 'clase' | 'trabajo' | 'tarea' =
+      !finalIsFixed && finalIdentity === 'clase' ? 'tarea' : finalIdentity;
+
     if (!finalName.trim()) {
       const errorMsg = "Ingresa un nombre para la actividad";
       if (silent) throw new Error(errorMsg);
@@ -434,7 +438,7 @@ export default function useTimeForm() {
       id: finalId,
       activityName: finalName,
       isFixed: finalIsFixed,
-      identity: finalIdentity,
+      identity: sanitizedIdentity,
       priority: finalPriority,
       difficulty: finalDifficulty,
       deadline: finalDeadline ? finalDeadline.toISOString() : null,

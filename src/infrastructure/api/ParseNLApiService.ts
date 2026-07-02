@@ -7,7 +7,7 @@ import type {
 
 const API_BASE_URL = 'https://ikeep-backend.onrender.com/api/v1/horarios';
 const MAX_RETRIES = 2;
-const TIMEOUT_MS = 30000;
+const TIMEOUT_MS = 20000;
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -135,9 +135,16 @@ export const ParseNLApiService = async (
 
 export async function sendConversation(
   text: string,
-  history: MessageDto[]
+  history: MessageDto[],
+  agendaContext?: string,
+  currentDay?: string
 ): Promise<ParseNLConversationResponseDto> {
-  const body: ParseNLConversationRequestDto = { text, history };
+  const body: ParseNLConversationRequestDto = {
+    text,
+    history,
+    agenda_context: agendaContext,
+    current_day: currentDay,
+  };
 
   return withRetry(
     () =>
@@ -149,3 +156,4 @@ export async function sendConversation(
     30_000
   );
 }
+

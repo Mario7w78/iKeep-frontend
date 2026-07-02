@@ -90,6 +90,13 @@ describe('useChatStore', () => {
     expect(store.getState().messages.length).toBe(3);
     expect(store.getState().messages[2].content).toBe('¿De qué color es la actividad?');
     expect(store.getState().messages[2].role).toBe('assistant');
+
+    expect(mockSendConversation).toHaveBeenCalledWith(
+      'Quiero estudiar inglés',
+      expect.any(Array),
+      undefined,
+      expect.stringMatching(/^(Lunes|Martes|Miercoles|Jueves|Viernes|Sabado|Domingo)$/)
+    );
   });
 
   it('handles result response, queues activity, and calls saves on confirm', async () => {

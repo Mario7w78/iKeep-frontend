@@ -58,6 +58,8 @@ export const NLConversationStep: React.FC<Props> = ({
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const containerRef = useRef<View>(null);
   const [verticalOffset, setVerticalOffset] = useState(0);
+  const inputRef = useRef<TextInput>(null);
+  const inputTextRef = useRef('');
 
   const handleLayout = useCallback(() => {
     if (verticalOffset > 0) return;
@@ -115,26 +117,36 @@ export const NLConversationStep: React.FC<Props> = ({
     }, 100);
   }, [messages.length, showTyping]);
 
+  // Sync ref on every change so handleSend never reads stale inputText
+  const handleInputChange = useCallback((text: string) => {
+    setInputText(text);
+    inputTextRef.current = text;
+  }, []);
+
   const handleSend = useCallback(() => {
-    const trimmed = inputText.trim();
+    const trimmed = inputTextRef.current.trim();
     if (!trimmed || isThinking) return;
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     onSend(trimmed);
     setInputText('');
-  }, [inputText, isThinking, onSend]);
+    inputTextRef.current = '';
+    // Native clear as fallback — bypasses any React stale-state race
+    inputRef.current?.clear();
+  }, [isThinking, onSend]);
 
   return (
     <KeyboardAvoidingView
       ref={containerRef}
       onLayout={handleLayout}
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? verticalOffset : 0}
     >
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
-          <Text style={styles.backText}>← Volver</Text>
+          <Ionicons name="arrow-back" size={20} color={colors.iconPrimary} />
+          <Text style={styles.backText}>Volver</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Hablar con Sapo</Text>
         {onClear ? (
@@ -183,10 +195,11 @@ export const NLConversationStep: React.FC<Props> = ({
       {/* Input bar */}
       <View style={[styles.inputBar, { paddingBottom: isKeyboardVisible ? 10 : Math.max(insets.bottom, 10) }]}>
         <TextInput
+          ref={inputRef}
           testID="chat-input"
           style={styles.textInput}
           value={inputText}
-          onChangeText={setInputText}
+          onChangeText={handleInputChange}
           placeholder="Escribe más detalles..."
           placeholderTextColor="rgba(255,255,255,0.35)"
           multiline
@@ -200,7 +213,7 @@ export const NLConversationStep: React.FC<Props> = ({
           onPress={handleSend}
           disabled={!inputText.trim() || isThinking}
         >
-          <Text style={styles.sendText}>→</Text>
+          <Ionicons name="arrow-forward" size={20} color="#fff" />
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
@@ -223,8 +236,11 @@ function createStyles(colors: ThemeColors, _comfyColors: Record<string, string>,
       borderBottomColor: 'rgba(255,255,255,0.08)',
     },
     backButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
       paddingVertical: 4,
       paddingRight: 12,
+      gap: 4,
     },
     backText: {
       color: colors.iconPrimary,

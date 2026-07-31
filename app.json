@@ -1,9 +1,9 @@
 {
   "expo": {
-    "name": "ikeep-app",
-    "slug": "ikeep-app",
+    "name": "kerotime-app",
+    "slug": "kerotime-app",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
@@ -29,7 +29,8 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "expo-notifications"
     ],
     "extra": {
       "eas": {

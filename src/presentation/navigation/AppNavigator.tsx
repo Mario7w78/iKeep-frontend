@@ -1,9 +1,10 @@
 import React, { useEffect } from "react";
-import { StyleSheet } from "react-native";
+import { StyleSheet, useWindowDimensions, View, ActivityIndicator } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as ScreenOrientation from "expo-screen-orientation";
 
 import OnBoardingView from "../components/organisms/Onboarding/OnboardingVIew";
 import HomeScreen from "../screens/Home/HomeView";
@@ -12,8 +13,11 @@ import StatsView from "../screens/Stats/StatsView";
 import CreateActivityScreen from "../screens/Activity/activityCreation/CreateActivityView";
 import SettingsView from "../screens/Settings/SettingsView";
 import ManageActivitiesView from "../screens/Activity/ManageActivitiesView";
+import LoginView from "../screens/Auth/LoginView";
+import SignUpView from "../screens/Auth/SignUpView";
 import { useAppStore } from "../../infrastructure/store/useAppStore";
-import { useScheduleStore } from "../../di/Dependencies";
+import { useAuthStore } from "../../infrastructure/store/useAuthStore";
+import { useScheduleStore, notificationScheduler } from "../../di/Dependencies";
 import { Theme, useTheme, ThemeProvider, applyThemeToStaticTheme } from "../components/theme/colors";
 import AIChatView from "../screens/AIChat/AIChatView";
 
@@ -23,6 +27,11 @@ export type RootStackParamList = {
   OnBoardingView: undefined;
   ManageActivities: undefined;
   AIChatView: undefined;
+};
+
+export type AuthStackParamList = {
+  Login: undefined;
+  SignUp: undefined;
 };
 
 const DummyComponent = () => null;
@@ -37,6 +46,16 @@ export type MainTabParamList = {
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
+const AuthStack = createNativeStackNavigator<AuthStackParamList>();
+
+function AuthNavigator() {
+  return (
+    <AuthStack.Navigator screenOptions={{ headerShown: false }}>
+      <AuthStack.Screen name="Login" component={LoginView} />
+      <AuthStack.Screen name="SignUp" component={SignUpView} />
+    </AuthStack.Navigator>
+  );
+}
 
 const TAB_ICONS: Record<keyof MainTabParamList, [string, string]> = {
   Home: ["home", "home-outline"],
@@ -49,6 +68,12 @@ const TAB_ICONS: Record<keyof MainTabParamList, [string, string]> = {
 function TabNavigator() {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
+  // Landscape is only ever active on the Schedule screen (see ScheduleView),
+  // which uses it to show the full week. Hiding the tab bar there reclaims
+  // real vertical space for the calendar instead of wasting it on navigation
+  // the user can't even reach without rotating back to portrait first.
+  const { width, height } = useWindowDimensions();
+  const isLandscape = width > height;
 
   return (
     <Tab.Navigator
@@ -69,14 +94,16 @@ function TabNavigator() {
             />
           );
         },
-        tabBarStyle: [
-          styles.tabBar,
-          {
-            height: 50 + insets.bottom,
-            paddingBottom: Math.max(insets.bottom, 10),
-            backgroundColor: colors.tabBarBackground,
-          },
-        ],
+        tabBarStyle: isLandscape
+          ? { display: 'none' }
+          : [
+              styles.tabBar,
+              {
+                height: 50 + insets.bottom,
+                paddingBottom: Math.max(insets.bottom, 10),
+                backgroundColor: colors.tabBarBackground,
+              },
+            ],
         tabBarLabelStyle: styles.tabLabel,
         tabBarItemStyle: styles.tabItem,
       })}
@@ -111,15 +138,54 @@ export default function AppNavigator() {
   const loadDayLimits = useScheduleStore((s) => s.loadDayLimits);
   const loadSchedule = useScheduleStore((s) => s.loadSchedule);
 
+  const initializeAuth = useAuthStore((s) => s.initialize);
+  const session = useAuthStore((s) => s.session);
+  const authLoading = useAuthStore((s) => s.isLoading);
+
   useEffect(() => {
-    loadDayLimits();
-    loadSchedule();
-  }, [loadDayLimits, loadSchedule]);
+    initializeAuth();
+  }, [initializeAuth]);
+
+  // Los datos (actividades, horario, configuración) viven en Supabase detrás
+  // de RLS — no tiene sentido pedirlos sin sesión, y fallarían igual.
+  useEffect(() => {
+    if (!session) return;
+    (async () => {
+      await notificationScheduler.requestPermissions();
+      await loadDayLimits();
+      await loadSchedule();
+    })();
+  }, [session, loadDayLimits, loadSchedule]);
+
+  // App-wide default: portrait only. The Schedule screen is the single
+  // exception — it unlocks orientation while focused (see ScheduleView) and
+  // relocks portrait when the user navigates away.
+  useEffect(() => {
+    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+  }, []);
 
   // Sync static Theme on mount (for components that import Theme directly)
   useEffect(() => {
     applyThemeToStaticTheme(themeId);
   }, [themeId]);
+
+  if (authLoading) {
+    return (
+      <ThemeProvider>
+        <View style={styles.splash}>
+          <ActivityIndicator size="large" color={Theme.colors.surface} />
+        </View>
+      </ThemeProvider>
+    );
+  }
+
+  if (!session) {
+    return (
+      <ThemeProvider>
+        <AuthNavigator />
+      </ThemeProvider>
+    );
+  }
 
   return (
     <ThemeProvider>
@@ -152,6 +218,12 @@ export default function AppNavigator() {
 }
 
 const styles = StyleSheet.create({
+  splash: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Theme.colors.screenBackground,
+  },
   tabBar: {
     backgroundColor: Theme.colors.tabBarBackground,
     borderTopWidth: 0,

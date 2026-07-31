@@ -1,10 +1,11 @@
 import { create, StoreApi, UseBoundStore } from 'zustand';
 import { Alert } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Schedule, ScheduleProps } from '../../domain/entities/Schedule';
 import { Activity, DayOfWeek } from '../../domain/entities/Activity';
 import { ActivityRepository } from '../../application/ports/out/ActivityRepository';
 import { JS_DAY_TO_DAYOFWEEK } from '../../presentation/utils/scheduleUtils';
+import { supabase } from '../supabase/client';
+import { restoreDaysConfig } from '../repositories/SupabaseActivityRepository';
 import { GenerateSchedulePort, GenerateScheduleOptions } from '../../application/ports/in/GenerateSchedulePort';
 import { ReschedulePort } from '../../application/ports/in/ReschedulePort';
 import { SuggestTaskPort } from '../../application/ports/in/SuggestTaskPort';
@@ -13,6 +14,8 @@ import { RescheduleRequestDto } from '../api/dto/RescheduleRequestDto';
 import { ScheduleResponseDto, ScheduleEstado } from '../api/dto/ScheduleResponseDto';
 import { scheduleToBloqueTiempo } from '../api/mappers/rescheduleMapper';
 import { EnergyRecord, getEnergyHistory, getEnergyPatternOverride, saveEnergyPatternOverride } from '../persistence/EnergyHistoryService';
+import { NotificationScheduler } from '../../application/ports/out/NotificationScheduler';
+import { syncActivityNotifications } from '../notifications/ActivityNotificationSync';
 
 interface DayLimitPersistence {
   getStartHour: () => Promise<number>;
@@ -65,23 +68,38 @@ export function createScheduleStore(
   dayLimitPersistence: DayLimitPersistence,
   activityRepository: ActivityRepository,
   rescheduleUseCase?: ReschedulePort,
-  suggestTaskUseCase?: SuggestTaskPort
+  suggestTaskUseCase?: SuggestTaskPort,
+  notificationScheduler?: NotificationScheduler
 ): ScheduleStore {
+  const syncNotifications = (schedule: Schedule | null): void => {
+    if (notificationScheduler) {
+      void syncActivityNotifications(schedule, notificationScheduler);
+    }
+  };
   const saveScheduleToStorage = async (schedule: Schedule | null): Promise<void> => {
     try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+
       if (!schedule) {
-        await AsyncStorage.removeItem('@schedule');
+        const { error } = await supabase.from('schedules').delete().eq('user_id', user.id);
+        if (error) throw error;
         return;
       }
-      const propsToSave = {
-        id: schedule.id,
-        userId: schedule.userId,
-        createdAt: schedule.createdAt,
-        estado: schedule.estado,
-        mensaje: schedule.mensaje,
+
+      // No se envía `id`: la tabla hace upsert por `user_id` (índice único,
+      // "el" horario vigente de un usuario) y Postgres es dueño de su propio
+      // `id` — el `Schedule.id` del dominio ("schedule-<timestamp>") no es
+      // un uuid válido para esa columna.
+      const row = {
+        user_id: user.id,
+        estado: schedule.estado ?? null,
+        mensaje: schedule.mensaje ?? null,
         recomendaciones: schedule.recomendaciones,
-        tareasOmitidas: schedule.tareasOmitidas,
-        scheduledActivities: schedule.getAllItems().map(item => ({
+        tareas_omitidas: schedule.tareasOmitidas,
+        scheduled_activities: schedule.getAllItems().map(item => ({
           activity: item.activity ? {
             id: String(item.activity.id),
             title: item.activity.title,
@@ -101,11 +119,12 @@ export function createScheduleStore(
           assignedEndTime: item.assignedEndTime,
           day: item.day,
           tipo: item.tipo,
-        }))
+        })),
       };
-      await AsyncStorage.setItem('@schedule', JSON.stringify(propsToSave));
+      const { error } = await supabase.from('schedules').upsert(row, { onConflict: 'user_id' });
+      if (error) throw error;
     } catch (e) {
-      console.error('Error guardando horario en almacenamiento local:', e);
+      console.error('Error guardando horario en Supabase:', e);
     }
   };
 
@@ -164,10 +183,20 @@ export function createScheduleStore(
 
     loadSchedule: async () => {
       try {
-        const stored = await AsyncStorage.getItem('@schedule');
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          const scheduledActivities = (parsed.scheduledActivities || []).map((item: any) => ({
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data: parsed, error } = await supabase
+          .from('schedules')
+          .select('*')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        if (error) throw error;
+
+        if (parsed) {
+          const scheduledActivities = (parsed.scheduled_activities || []).map((item: any) => ({
             activity: item.activity ? new Activity({
               id: String(item.activity.id),
               title: item.activity.title,
@@ -177,7 +206,7 @@ export function createScheduleStore(
               difficulty: item.activity.difficulty,
               deadline: item.activity.deadline,
               daysEnabled: item.activity.daysEnabled,
-              daysConfig: item.activity.daysConfig,
+              daysConfig: restoreDaysConfig(item.activity.daysConfig),
               optionalDay: item.activity.optionalDay ?? false,
               dayFrom: item.activity.dayFrom !== undefined ? item.activity.dayFrom : undefined,
               dayTo: item.activity.dayTo !== undefined ? item.activity.dayTo : undefined,
@@ -191,19 +220,20 @@ export function createScheduleStore(
 
           const loadedSchedule = new Schedule({
             id: parsed.id,
-            userId: parsed.userId,
-            createdAt: new Date(parsed.createdAt),
+            userId: parsed.user_id,
+            createdAt: new Date(parsed.created_at),
             estado: parsed.estado,
             mensaje: parsed.mensaje,
             recomendaciones: parsed.recomendaciones ?? [],
-            tareasOmitidas: parsed.tareasOmitidas ?? [],
+            tareasOmitidas: parsed.tareas_omitidas ?? [],
             scheduledActivities
           });
 
           set({ schedule: loadedSchedule });
+          syncNotifications(loadedSchedule);
         }
       } catch (e) {
-        console.error('Error cargando horario de almacenamiento local:', e);
+        console.error('Error cargando horario de Supabase:', e);
       } finally {
         set({ isLoadedFromStorage: true });
       }
@@ -214,6 +244,7 @@ export function createScheduleStore(
       if (existingActivities.length === 0) {
         set({ schedule: null });
         await saveScheduleToStorage(null);
+        syncNotifications(null);
         return;
       }
 
@@ -234,6 +265,7 @@ export function createScheduleStore(
         const generated = await generateScheduleUseCase.execute(startHour, endHour, options);
         set({ schedule: generated });
         await saveScheduleToStorage(generated);
+        syncNotifications(generated);
         if (showSuccessAlert) {
           Alert.alert(
             'Horario generado',
@@ -351,6 +383,7 @@ export function createScheduleStore(
         const newSchedule = await rescheduleUseCase.execute(request);
         set({ schedule: newSchedule });
         await saveScheduleToStorage(newSchedule);
+        syncNotifications(newSchedule);
       } catch (e) {
         console.error('Error replanificando horario:', e);
       } finally {

@@ -13,6 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useTheme, getThemePresets } from "../../components/theme/colors";
 import { useScheduleStore } from "../../../di/Dependencies";
+import { useAuthStore } from "../../../infrastructure/store/useAuthStore";
 import {
   dateToMinutes,
   minutesToDate,
@@ -27,20 +28,20 @@ const PATTERN_OPTIONS = [
   {
     value: null as string | null,
     label: 'Automático',
-    desc: 'Deja que iKeep decida según tu historial de los últimos 14 días',
+    desc: 'Deja que KeroTime decida según tu historial de los últimos 14 días',
   },
   {
-    value: 'TRANSCRIPTORIO',
+    value: 'transcriptoriano',
     label: 'Normal',
     desc: 'Tu energía es normal, día a día variable. Sin restricciones extra.',
   },
   {
-    value: 'TENDENCIA',
+    value: 'tendencia',
     label: 'Últimamente bajo',
     desc: 'Vienes con menos energía — el scheduler limita a 1 tarea pesada por día',
   },
   {
-    value: 'CRONICO',
+    value: 'cronico',
     label: 'Siempre bajo',
     desc: 'Tu energía es consistentemente baja — el scheduler es más conservador con tareas difíciles',
   },
@@ -57,6 +58,7 @@ const SettingsView = () => {
     setCustomEnergyPattern,
   } = useScheduleStore();
 
+  const signOut = useAuthStore((s) => s.signOut);
   const { themeId, setThemeId, colors, comfyColors, comfyFontColors } = useTheme();
   const themePresets = getThemePresets();
   const styles = useMemo(() => createStyles(colors, comfyColors, comfyFontColors), [colors]);
@@ -332,6 +334,23 @@ const SettingsView = () => {
         <Text style={styles.sectionFooter}>
           El scheduler usa tu nivel de energía para distribuir tareas pesadas sin saturarte.
         </Text>
+
+        {/* ═══════════════ CUENTA ═══════════════ */}
+        <Text style={styles.sectionHeader}>CUENTA</Text>
+        <View style={styles.section}>
+          <TouchableOpacity
+            style={styles.row}
+            activeOpacity={0.7}
+            onPress={() => {
+              Alert.alert("Cerrar sesión", "¿Seguro que querés cerrar sesión?", [
+                { text: "Cancelar", style: "cancel" },
+                { text: "Cerrar sesión", style: "destructive", onPress: () => signOut() },
+              ]);
+            }}
+          >
+            <Text style={[styles.rowLabel, { color: "#e0555b" }]}>Cerrar sesión</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );

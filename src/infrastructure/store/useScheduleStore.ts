@@ -285,19 +285,23 @@ export function createScheduleStore(
 
     setSelectedDay: (day) => set({ selectedDay: day }),
 
+    // El estado en memoria se actualiza antes de persistir, no despues: la
+    // hora que el usuario acaba de elegir no deberia depender de que la red
+    // responda. Si la escritura falla, la UI ya refleja su eleccion y el
+    // valor se reintenta en el proximo cambio.
     setStartHour: async (hour) => {
+      set({ startHour: hour });
       try {
         await dayLimitPersistence.setStartHour(hour);
-        set({ startHour: hour });
       } catch (e) {
         console.error('Error guardando hora de inicio:', e);
       }
     },
 
     setEndHour: async (hour) => {
+      set({ endHour: hour });
       try {
         await dayLimitPersistence.setEndHour(hour);
-        set({ endHour: hour });
       } catch (e) {
         console.error('Error guardando hora de fin:', e);
       }

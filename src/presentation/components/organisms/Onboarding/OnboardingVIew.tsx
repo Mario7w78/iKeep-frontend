@@ -13,15 +13,11 @@ import {
   TextInput,
   KeyboardAvoidingView,
 } from "react-native";
-import { NavigationProp, useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useAppStore } from "../../../../infrastructure/store/useAppStore";
-import { RootStackParamList } from "../../../navigation/AppNavigator";
 import { useTheme, ThemeColors } from "../../theme/colors";
-import { useScheduleStore } from "../../../../di/Dependencies";
 import { dateToMinutes, formatTime } from "../../../utils/timeUtils";
-import { onboardingDayLimitPersistence } from "../../../../infrastructure/persistence/OnboardingDayLimitPersistence";
 
 const { width } = Dimensions.get("window");
 
@@ -77,14 +73,13 @@ const SLIDES = [
 export default function OnBoardingView() {
   const { colors, comfyColors, comfyFontColors } = useTheme();
   const styles = useMemo(() => createStyles(colors, comfyColors, comfyFontColors), [colors]);
-  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const setHasSeenOnboarding = useAppStore((s) => s.setHasSeenOnboarding);
   const username = useAppStore((s) => s.username);
   const setUsername = useAppStore((s) => s.setUsername);
+  const setPendingDayLimits = useAppStore((s) => s.setPendingDayLimits);
   const [activeIndex, setActiveIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
 
-  const { setStartHour, setEndHour } = useScheduleStore();
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [endTime, setEndTime] = useState<Date | null>(null);
 
@@ -136,16 +131,14 @@ export default function OnBoardingView() {
       return;
     }
 
-    try {
-      await onboardingDayLimitPersistence.saveDayLimits(startMin, endMin);
-    } catch (e) {
-      console.error("Error guardando límites del día:", e);
-    }
-
-    setStartHour(startMin);
-    setEndHour(endMin);
+    // El onboarding corre antes de iniciar sesion, asi que todavia no hay a
+    // quien asociarle estos horarios: user_settings se filtra por auth.uid()
+    // y la escritura seria rechazada. Quedan pendientes y AppNavigator los
+    // vuelca en cuanto aparece la sesion.
+    setPendingDayLimits({ startHour: startMin, endHour: endMin });
     setHasSeenOnboarding(true);
-    navigation.navigate("MainTabs");
+    // Sin navigation.navigate: la pantalla siguiente la decide AppNavigator a
+    // partir del estado, y con este flag ya deja de mostrar el onboarding.
   };
 
   const getSlideIcon = (id: string) => {

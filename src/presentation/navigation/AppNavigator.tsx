@@ -24,7 +24,6 @@ import AIChatView from "../screens/AIChat/AIChatView";
 export type RootStackParamList = {
   MainTabs: undefined;
   CreateActivityModal?: { activityId?: string };
-  OnBoardingView: undefined;
   ManageActivities: undefined;
   AIChatView: undefined;
 };
@@ -135,8 +134,12 @@ function TabNavigator() {
 export default function AppNavigator() {
   const hasSeenOnboarding = useAppStore((s) => s.hasSeenOnboarding);
   const themeId = useAppStore((s) => s.themeId);
+  const pendingDayLimits = useAppStore((s) => s.pendingDayLimits);
+  const clearPendingDayLimits = useAppStore((s) => s.clearPendingDayLimits);
   const loadDayLimits = useScheduleStore((s) => s.loadDayLimits);
   const loadSchedule = useScheduleStore((s) => s.loadSchedule);
+  const setStartHour = useScheduleStore((s) => s.setStartHour);
+  const setEndHour = useScheduleStore((s) => s.setEndHour);
 
   const initializeAuth = useAuthStore((s) => s.initialize);
   const session = useAuthStore((s) => s.session);
@@ -152,9 +155,21 @@ export default function AppNavigator() {
     if (!session) return;
     (async () => {
       await notificationScheduler.requestPermissions();
+      // Lo que el usuario eligió en el onboarding se guarda recién acá: ese
+      // paso corre antes de iniciar sesión y no tenía a quién asociarlo.
+      // Va antes de loadDayLimits para que no lo pise con los valores por
+      // defecto de una cuenta recién creada.
+      if (pendingDayLimits) {
+        await setStartHour(pendingDayLimits.startHour);
+        await setEndHour(pendingDayLimits.endHour);
+        clearPendingDayLimits();
+      }
       await loadDayLimits();
       await loadSchedule();
     })();
+    // pendingDayLimits queda fuera de las dependencias a propósito: se limpia
+    // dentro del efecto y volver a dispararlo sería un ciclo.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, loadDayLimits, loadSchedule]);
 
   // App-wide default: portrait only. The Schedule screen is the single
@@ -179,6 +194,17 @@ export default function AppNavigator() {
     );
   }
 
+  // El onboarding va antes de pedir credenciales: el usuario ve para qué
+  // sirve la app antes de tener que registrarse. No toca la base de datos —
+  // lo que elige queda pendiente hasta que haya sesión.
+  if (!hasSeenOnboarding) {
+    return (
+      <ThemeProvider>
+        <OnBoardingView />
+      </ThemeProvider>
+    );
+  }
+
   if (!session) {
     return (
       <ThemeProvider>
@@ -191,9 +217,8 @@ export default function AppNavigator() {
     <ThemeProvider>
       <Stack.Navigator
         screenOptions={{ headerShown: false }}
-        initialRouteName={hasSeenOnboarding ? "MainTabs" : "OnBoardingView"}
+        initialRouteName="MainTabs"
       >
-        <Stack.Screen name="OnBoardingView" component={OnBoardingView} />
         <Stack.Screen name="MainTabs" component={TabNavigator} />
         <Stack.Screen name="ManageActivities" component={ManageActivitiesView} />
         <Stack.Screen

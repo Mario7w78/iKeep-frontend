@@ -15,15 +15,31 @@ export const COLD_START_TIMEOUT_MS = 60_000;
 export const WARM_TIMEOUT_MS = 25_000;
 
 /**
+ * Shortest gap between two warm-up pings.
+ *
+ * The instance only sleeps after ~15 minutes idle, so pinging more often than
+ * this buys nothing. It matters because the app warms up from several places
+ * — launch, returning to the foreground, opening the chat — and a user
+ * switching apps back and forth would otherwise fire a burst of requests.
+ */
+export const WARM_UP_THROTTLE_MS = 60_000;
+
+let lastWarmUpAt = 0;
+
+/**
  * Fire-and-forget ping to wake the instance.
  *
- * Called when a screen that will need the backend opens. The user takes at
- * least a few seconds to type, and that is the window we use to boot the
- * server so their first real request does not eat the cold start.
+ * Called whenever the user is about to need the backend. The seconds they
+ * spend navigating or typing are the window used to boot the server, so their
+ * first real request does not have to absorb the cold start.
  *
  * Never throws: a failed warm-up is not an error the user should see.
  */
 export function warmUpBackend(): void {
+  const now = Date.now();
+  if (now - lastWarmUpAt < WARM_UP_THROTTLE_MS) return;
+  lastWarmUpAt = now;
+
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), COLD_START_TIMEOUT_MS);
 

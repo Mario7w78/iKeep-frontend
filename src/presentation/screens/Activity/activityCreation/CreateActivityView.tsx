@@ -13,12 +13,14 @@ import {
   Alert,
   Platform,
   ScrollView,
+  BackHandler,
 } from "react-native";
+import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 
 import { DayOfWeek } from "../../../../domain/entities/Activity";
-import { calculateEndTime } from "../../../utils/timeUtils";
+import { calculateEndTime, nextRoundHour } from "../../../utils/timeUtils";
 import { useTheme, ThemeColors } from "../../../components/theme/colors";
 import { useActivityStore } from "../../../../di/Dependencies";
 
@@ -34,6 +36,8 @@ import SummaryStep from "../../../components/organisms/CreateActivity/SummarySte
 const TOTAL_STEPS = 4;
 const SHEET_HEIGHT = Dimensions.get("window").height * 0.88;
 const DISMISS_DISTANCE = 130;
+/** How long the success state stays up before the sheet closes itself. */
+const SUCCESS_FEEDBACK_MS = 750;
 
 const WEEKDAY_ORDER: DayOfWeek[] = [
   "Lunes",
@@ -59,6 +63,7 @@ export default function CreateActivityView({ navigation, route }: any) {
 
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
+  const [justSaved, setJustSaved] = useState(false);
   const [activeDay, setActiveDay] = useState<DayOfWeek | null>(null);
   const translateY = useRef(new Animated.Value(SHEET_HEIGHT)).current;
   
@@ -85,6 +90,22 @@ export default function CreateActivityView({ navigation, route }: any) {
     }).start(() => navigation.goBack());
   };
 
+  // The sheet can be dismissed three ways — the X, the backdrop, and a 130px
+  // swipe — and none of them used to warn, so any of the three silently threw
+  // away everything the user had entered. There is no draft persistence yet
+  // (that lands with the wizard redesign), so a confirmation is the guard.
+  const requestCloseRef = useRef<() => void>(closeSheet);
+  const isDirtyRef = useRef(false);
+
+  const settleSheet = (onDone?: () => void) => {
+    Animated.spring(translateY, {
+      toValue: 0,
+      useNativeDriver: true,
+      damping: 22,
+      stiffness: 180,
+    }).start(() => onDone?.());
+  };
+
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, gesture) =>
@@ -94,15 +115,16 @@ export default function CreateActivityView({ navigation, route }: any) {
       },
       onPanResponderRelease: (_, gesture) => {
         if (gesture.dy > DISMISS_DISTANCE || gesture.vy > 0.8) {
-          closeSheet();
+          if (!isDirtyRef.current) {
+            closeSheet();
+            return;
+          }
+          // Snap back before asking, so the sheet is not left mid-gesture
+          // while the prompt is up or if the user chooses to keep editing.
+          settleSheet(() => requestCloseRef.current());
           return;
         }
-        Animated.spring(translateY, {
-          toValue: 0,
-          useNativeDriver: true,
-          damping: 22,
-          stiffness: 180,
-        }).start();
+        settleSheet();
       },
     }),
   ).current;
@@ -305,15 +327,18 @@ export default function CreateActivityView({ navigation, route }: any) {
 
       const defaultPartitions = existingConfig && !isFixed
         ? existingConfig.partitions.map(p => ({ ...p, startHour: new Date(p.startHour), endHour: new Date(p.endHour) }))
-        : [
-            {
-              startHour: new Date(),
-              endHour: calculateEndTime(new Date(), 60),
-              durationTime: 60,
-              travelTo: null,
-              travelFrom: null,
-            },
-          ];
+        : (() => {
+            const start = nextRoundHour();
+            return [
+              {
+                startHour: start,
+                endHour: calculateEndTime(start, 60),
+                durationTime: 60,
+                travelTo: 0,
+                travelFrom: 0,
+              },
+            ];
+          })();
 
       const prefStart = existingConfig && !isFixed ? existingConfig.preferredStartTime : undefined;
       const prefEnd = existingConfig && !isFixed ? existingConfig.preferredEndTime : undefined;
@@ -469,6 +494,53 @@ export default function CreateActivityView({ navigation, route }: any) {
     }
   };
 
+  const isDirty = useMemo(() => {
+    if (activityIdParam) {
+      // Editing: treat a renamed activity or any forward navigation as work
+      // in progress worth protecting.
+      return step > 1 || activityName.trim() !== (existingActivity?.title ?? "").trim();
+    }
+    return activityName.trim().length > 0 || selectedDays.length > 0 || step > 1;
+  }, [activityIdParam, existingActivity, activityName, selectedDays, step]);
+
+  const requestClose = useCallback(() => {
+    if (!isDirty) {
+      closeSheet();
+      return;
+    }
+    Alert.alert(
+      activityIdParam ? "¿Descartar los cambios?" : "¿Descartar la actividad?",
+      "Perderás lo que llevas configurado.",
+      [
+        { text: "Seguir editando", style: "cancel" },
+        { text: "Descartar", style: "destructive", onPress: closeSheet },
+      ],
+    );
+  }, [isDirty, activityIdParam]);
+
+  // The PanResponder and the back handler are both created once, so they read
+  // current values through refs rather than capturing the first render.
+  const stepRef = useRef(step);
+  const backPressRef = useRef(handleBackPress);
+  isDirtyRef.current = isDirty;
+  requestCloseRef.current = requestClose;
+  stepRef.current = step;
+  backPressRef.current = handleBackPress;
+
+  // Android's hardware back would otherwise pop the screen straight past the
+  // guard. Within the wizard it should step backwards, not exit.
+  useEffect(() => {
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      if (stepRef.current > 1) {
+        backPressRef.current();
+      } else {
+        requestCloseRef.current();
+      }
+      return true;
+    });
+    return () => sub.remove();
+  }, []);
+
   const handleCreate = async () => {
     if (!activityName.trim()) {
       showAlert("Ingresa un nombre para la actividad");
@@ -520,12 +592,15 @@ export default function CreateActivityView({ navigation, route }: any) {
         daysDict,
         selectedDays,
       });
-      closeSheet();
+      // Until now the sheet just vanished, with no sign the save had worked.
+      // Hold the overlay on a confirmation beat before dismissing.
+      setJustSaved(true);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
+      setTimeout(closeSheet, SUCCESS_FEEDBACK_MS);
     } catch (e) {
       console.error("Error saving activity:", e);
-      showAlert("Hubo un error al guardar la actividad. Por favor intenta de nuevo.");
-    } finally {
       setIsLoading(false);
+      showAlert("Hubo un error al guardar la actividad. Por favor intenta de nuevo.");
     }
   };
 
@@ -674,7 +749,7 @@ export default function CreateActivityView({ navigation, route }: any) {
   return (
     <View style={styles.container}>
       <Animated.View style={[styles.backdrop, { opacity: backdropOpacity }]} pointerEvents="auto">
-        <Pressable style={StyleSheet.absoluteFill} onPress={closeSheet} />
+        <Pressable style={StyleSheet.absoluteFill} onPress={requestClose} />
       </Animated.View>
       <Animated.View style={[styles.sheet, { transform: [{ translateY }] }]}>
         <View style={styles.dragArea} {...panResponder.panHandlers}>
@@ -686,7 +761,7 @@ export default function CreateActivityView({ navigation, route }: any) {
             <Text style={styles.title}>{headerTitle}</Text>
             {headerSubtitle && <Text style={styles.stepText}>{headerSubtitle}</Text>}
           </View>
-          <TouchableOpacity style={styles.closeButton} onPress={closeSheet}>
+          <TouchableOpacity style={styles.closeButton} onPress={requestClose}>
             <Ionicons
               name="close"
               size={32}
@@ -727,8 +802,18 @@ export default function CreateActivityView({ navigation, route }: any) {
 
       {isLoading && (
         <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color={colors.secondaryAccent} />
-          <Text style={styles.loadingText}>Guardando actividad...</Text>
+          {justSaved ? (
+            <Ionicons name="checkmark-circle" size={56} color={colors.secondaryAccent} />
+          ) : (
+            <ActivityIndicator size="large" color={colors.secondaryAccent} />
+          )}
+          <Text style={styles.loadingText}>
+            {justSaved
+              ? activityId
+                ? "¡Cambios guardados!"
+                : "¡Actividad creada!"
+              : "Guardando actividad..."}
+          </Text>
         </View>
       )}
     </View>

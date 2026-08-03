@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { Alert } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { DayOfWeek, ActivityType } from "../../domain/entities/Activity";
-import { calculateEndTime, areOverlapping, dateToMinutes, formatTime, calculateDurationAcrossMidnight } from "../../presentation/utils/timeUtils";
+import { calculateEndTime, areOverlapping, dateToMinutes, formatTime, calculateDurationAcrossMidnight, nextRoundHour } from "../../presentation/utils/timeUtils";
 import { timeType } from "../../domain/entities/activity.types";
 import { useActivityStore, useScheduleStore } from "../../di/Dependencies";
 import { PartitionConfig } from "../../domain/entities/activity.types";
@@ -29,23 +29,30 @@ export default function useTimeForm() {
   const [selectedTimeTypeTravel, setSelectedTimeTypeTravel] =
     useState<timeType>(timeType.both);
 
-  const [partitions, setPartitions] = useState<PartitionConfig[]>([
-    {
-      startHour: new Date(),
-      endHour: calculateEndTime(new Date(), 60),
-      durationTime: 60,
-      travelTo: null,
-      travelFrom: null,
-    },
-  ]);
+  // travelTo/travelFrom default to 0 ("no travel") rather than null: the chip
+  // row compares `partition.travelTo === chip.value`, so null left every chip
+  // — including "Sin" — looking unselected, which reads as a pending required
+  // field when the value is in fact already settled.
+  const [partitions, setPartitions] = useState<PartitionConfig[]>(() => {
+    const start = nextRoundHour();
+    return [
+      {
+        startHour: start,
+        endHour: calculateEndTime(start, 60),
+        durationTime: 60,
+        travelTo: 0,
+        travelFrom: 0,
+      },
+    ];
+  });
   const [activePartitionIndex, setActivePartitionIndex] = useState(0);
 
   const activePartition = partitions[activePartitionIndex] || partitions[0] || {
-    startHour: new Date(),
-    endHour: new Date(),
+    startHour: nextRoundHour(),
+    endHour: calculateEndTime(nextRoundHour(), 60),
     durationTime: 60,
-    travelTo: null,
-    travelFrom: null,
+    travelTo: 0,
+    travelFrom: 0,
   };
 
   const durationTimeValue = activePartition.durationTime ?? 60;
@@ -63,11 +70,13 @@ export default function useTimeForm() {
       setPriority("alta");
       setDifficulty("media");
       setPartitions((prev) =>
-        prev.map((p) => {
-          const diffMs = p.endHour.getTime() - p.startHour.getTime();
-          const diffMin = Math.max(0, Math.round(diffMs / 60000));
-          return { ...p, durationTime: diffMin };
-        })
+        prev.map((p) => ({
+          ...p,
+          durationTime: calculateDurationAcrossMidnight(
+            dateToMinutes(new Date(p.startHour)),
+            dateToMinutes(new Date(p.endHour)),
+          ),
+        }))
       );
     } else {
       setPartitions((prev) =>
@@ -95,9 +104,15 @@ export default function useTimeForm() {
         if (i === idx) {
           const updated = { ...p, ...updates };
           if (isFixed) {
-            const diffMs = updated.endHour.getTime() - updated.startHour.getTime();
-            const diffMin = Math.max(0, Math.round(diffMs / 60000));
-            updated.durationTime = Math.max(0, diffMin);
+            // Both pickers sit on today's date, so a slot that runs past
+            // midnight (23:00 -> 01:00) yields a negative raw difference.
+            // Clamping that to 0 silently produced empty blocks; the rest of
+            // the codebase (areOverlapping, the solver) already handles wrap,
+            // so compute the duration the same way here.
+            updated.durationTime = calculateDurationAcrossMidnight(
+              dateToMinutes(new Date(updated.startHour)),
+              dateToMinutes(new Date(updated.endHour)),
+            );
           } else {
             if (updates.startHour || updates.durationTime !== undefined) {
               updated.endHour = calculateEndTime(
@@ -212,6 +227,16 @@ export default function useTimeForm() {
       for (let i = 0; i < parts.length; i++) {
         const sMin = dateToMinutes(new Date(parts[i].startHour));
         const eMin = dateToMinutes(new Date(parts[i].endHour));
+
+        // A slot that starts and ends at the same time has no duration and
+        // would be saved as an empty block the solver cannot place.
+        if (sMin === eMin) {
+          const errorMsg = `El horario del día ${days.join(", ")} empieza y termina a la misma hora (${formatTime(new Date(parts[i].startHour))}). Ajusta la hora de fin.`;
+          if (silent) throw new Error(errorMsg);
+          Alert.alert("Atención", errorMsg);
+          return false;
+        }
+
         for (let j = i + 1; j < parts.length; j++) {
           const sMin2 = dateToMinutes(new Date(parts[j].startHour));
           const eMin2 = dateToMinutes(new Date(parts[j].endHour));

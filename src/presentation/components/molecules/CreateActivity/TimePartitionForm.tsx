@@ -304,6 +304,7 @@ export default function TimePartitionForm({
                       mode="time"
                       display="spinner"
                       themeVariant="dark"
+                      minuteInterval={5}
                       textColor={colors.surface}
                       onChange={(_, selectedDate) => {
                         if (selectedDate) onSetEndTime(selectedDate);

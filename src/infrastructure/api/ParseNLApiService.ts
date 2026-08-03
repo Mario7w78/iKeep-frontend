@@ -5,7 +5,12 @@ import type {
   ParseNLConversationResponseDto,
 } from './dto/ParseNLDto';
 
-const API_BASE_URL = 'https://ikeep-backend.onrender.com/api/v1/horarios';
+import {
+  API_BASE_URL,
+  COLD_START_TIMEOUT_MS,
+  WARM_TIMEOUT_MS,
+} from './apiConfig';
+
 const MAX_RETRIES = 2;
 const TIMEOUT_MS = 20000;
 
@@ -16,11 +21,12 @@ interface ParseNLRequest {
 }
 
 const apiClient = {
-  post: async <T>(url: string, body: unknown): Promise<T> => {
+  post: async <T>(url: string, body: unknown, signal?: AbortSignal): Promise<T> => {
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
+      signal,
     });
 
     if (!response.ok) {
@@ -47,21 +53,20 @@ const apiClient = {
 };
 
 const withRetry = async <T>(
-  fn: () => Promise<T>,
-  retries: number,
-  timeoutMs: number
+  fn: (signal: AbortSignal) => Promise<T>,
+  retries: number
 ): Promise<T> => {
   let lastError: Error | null = null;
 
   for (let attempt = 0; attempt <= retries; attempt++) {
+    // The first attempt may have to wait out a Render cold start; by the time
+    // we retry the instance is awake, so a short budget is right.
+    const timeoutMs = attempt === 0 ? COLD_START_TIMEOUT_MS : WARM_TIMEOUT_MS;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
-      // We pass the signal through a header convention — the apiClient will
-      // need to accept it if we want true per-call timeout. For now we rely
-      // on the existing per-fn timeout pattern.
-      return await fn();
+      return await fn(controller.signal);
     } catch (e: any) {
       lastError = e;
       if (attempt < retries && (e.name === 'AbortError' || e.message === 'Network request failed')) {
@@ -147,13 +152,13 @@ export async function sendConversation(
   };
 
   return withRetry(
-    () =>
+    (signal) =>
       apiClient.post<ParseNLConversationResponseDto>(
         `${API_BASE_URL}/parse-nl-conversation`,
-        body
+        body,
+        signal
       ),
-    2,
-    30_000
+    2
   );
 }
 

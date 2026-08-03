@@ -30,16 +30,23 @@ export default function DayButton({
       onPress={onPress}
       style={[
         styles.button,
+        // The border marks "this day already has a time configured"; the fill
+        // marks "this day is selected right now". Keeping them on separate
+        // channels is what makes deselecting visible — previously `configured`
+        // won over `selected`, so tapping a configured day to remove it left
+        // the button looking identical and the tap seemed to do nothing.
         configured && styles.buttonConfigured,
-        configured && configuredColor
-          ? { backgroundColor: configuredColor }
-          : selected && styles.buttonSelected,
+        selected
+          ? configuredColor
+            ? { backgroundColor: configuredColor }
+            : styles.buttonSelected
+          : null,
       ]}
     >
       <Text
         style={[
           styles.letter,
-          configured && configuredTextColor
+          selected && configuredTextColor
             ? { color: configuredTextColor }
             : selected && styles.textSelected,
         ]}
@@ -49,7 +56,7 @@ export default function DayButton({
       <Text
         style={[
           styles.name,
-          configured && configuredTextColor
+          selected && configuredTextColor
             ? { color: configuredTextColor }
             : selected && styles.textSelected,
         ]}

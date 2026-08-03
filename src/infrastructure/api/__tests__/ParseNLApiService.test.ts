@@ -1,4 +1,4 @@
-import { ParseNLApiService } from '../ParseNLApiService';
+import { ParseNLApiService, sendConversation } from '../ParseNLApiService';
 
 const mockFetch = jest.fn();
 (globalThis as any).fetch = mockFetch;
@@ -87,4 +87,68 @@ describe('ParseNLApiService', () => {
     // Called initial + 2 retries = 3 total
     expect(mockFetch).toHaveBeenCalledTimes(3);
   }, 10000);
+});
+
+describe('sendConversation', () => {
+  beforeEach(() => {
+    jest.resetAllMocks();
+  });
+
+  it('passes an abort signal to fetch so the timeout can actually fire', async () => {
+    // Regression: the signal used to be created and then dropped, leaving
+    // the conversation endpoint with no timeout at all.
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ type: 'chat', ai_message: 'hola' }),
+    });
+
+    await sendConversation('hola', []);
+
+    const [url, options] = mockFetch.mock.calls[0];
+    expect(url).toContain('/parse-nl-conversation');
+    expect(options.signal).toBeInstanceOf(AbortSignal);
+    expect(options.signal.aborted).toBe(false);
+  });
+
+  it('aborts the request once the timeout elapses', async () => {
+    jest.useFakeTimers();
+
+    let captured: AbortSignal | undefined;
+    mockFetch.mockImplementationOnce((_url: string, options: any) => {
+      captured = options.signal;
+      return new Promise(() => {
+        // Never settles: stands in for a backend that is still asleep.
+      });
+    });
+
+    void sendConversation('hola', []);
+    await Promise.resolve();
+
+    expect(captured?.aborted).toBe(false);
+    // First attempt gets the cold-start budget.
+    jest.advanceTimersByTime(60_000);
+    expect(captured?.aborted).toBe(true);
+
+    jest.useRealTimers();
+  });
+
+  it('sends history and agenda context in the body', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ type: 'chat', ai_message: 'ok' }),
+    });
+
+    await sendConversation(
+      'agrega algebra',
+      [{ role: 'user', content: 'hola' }],
+      'Nombre: "Cálculo"',
+      'Martes'
+    );
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.text).toBe('agrega algebra');
+    expect(body.history).toHaveLength(1);
+    expect(body.agenda_context).toBe('Nombre: "Cálculo"');
+    expect(body.current_day).toBe('Martes');
+  });
 });

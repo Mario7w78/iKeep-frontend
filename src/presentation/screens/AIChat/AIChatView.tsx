@@ -1,10 +1,18 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useChatStore } from '../../../di/Dependencies';
+import { warmUpBackend } from '../../../infrastructure/api/apiConfig';
 import { NLConversationStep } from '../../components/organisms/CreateActivity/NLConversationStep';
 
 export default function AIChatView({ navigation }: any) {
+  // The backend sleeps after ~15 min of inactivity and takes 20-50s to wake.
+  // Ping it while the user is still typing so their first message does not
+  // have to absorb the cold start.
+  useEffect(() => {
+    warmUpBackend();
+  }, []);
+
   const messages = useChatStore((s) => s.messages);
   const isThinking = useChatStore((s) => s.isThinking);
   const sendMessage = useChatStore((s) => s.sendMessage);

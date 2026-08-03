@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useMemo } from "react";
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, Animated } from "react-native";
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { DayOfWeek } from "../../../../domain/entities/Activity";
 import { PartitionConfig, DayConfig } from "../../../../domain/entities/activity.types";
@@ -100,30 +100,10 @@ export default function TimeConfigStep({
   );
 
   const visitedTabs = useRef<Set<DayOfWeek>>(new Set(activeDay ? [activeDay] : [])).current;
-  const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     if (activeDay) visitedTabs.add(activeDay);
   }, [activeDay, visitedTabs]);
-
-  useEffect(() => {
-    const animation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 0.4,
-          duration: 700,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 700,
-          useNativeDriver: true,
-        }),
-      ]),
-    );
-    animation.start();
-    return () => animation.stop();
-  }, [pulseAnim]);
 
   return (
     <ScrollView
@@ -158,35 +138,26 @@ export default function TimeConfigStep({
                   ]}
                   onPress={() => onSwitchDay(day)}
                 >
-                  {!isVisited && !isActive ? (
-                    <Animated.View style={{ opacity: pulseAnim }}>
-                      <Text style={styles.tabButtonText}>
-                        {getDayAbbreviation(day)}
-                      </Text>
-                      <Text style={styles.tabButtonMinutes}>
-                        {totalMin} min
-                      </Text>
-                    </Animated.View>
-                  ) : (
-                    <>
-                      <Text
-                        style={[
-                          styles.tabButtonText,
-                          isActive && styles.tabButtonTextActive,
-                        ]}
-                      >
-                        {getDayAbbreviation(day)}
-                      </Text>
-                      <Text
-                        style={[
-                          styles.tabButtonMinutes,
-                          isActive && styles.tabButtonMinutesActive,
-                        ]}
-                      >
-                        {totalMin} min
-                      </Text>
-                    </>
-                  )}
+                  {/* Unvisited days used to blink forever via an infinite
+                      opacity loop, with nothing explaining why. A static dot
+                      says the same thing without nagging. */}
+                  {!isVisited && !isActive && <View style={styles.tabPendingDot} />}
+                  <Text
+                    style={[
+                      styles.tabButtonText,
+                      isActive && styles.tabButtonTextActive,
+                    ]}
+                  >
+                    {getDayAbbreviation(day)}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.tabButtonMinutes,
+                      isActive && styles.tabButtonMinutesActive,
+                    ]}
+                  >
+                    {totalMin} min
+                  </Text>
                 </TouchableOpacity>
               );
             })}
@@ -322,6 +293,16 @@ function createStyles(colors: ThemeColors, comfyColors: Record<string, string>, 
       borderWidth: 2,
       alignItems: "center",
       minWidth: 64,
+      position: "relative",
+    },
+    tabPendingDot: {
+      position: "absolute",
+      top: 6,
+      right: 6,
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: colors.secondaryAccent,
     },
     tabButtonActive: {
       backgroundColor: colors.secondaryAccent,

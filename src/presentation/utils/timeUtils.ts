@@ -2,6 +2,19 @@ export const calculateEndTime = (start: Date, duration: number): Date => {
   return new Date(start.getTime() + duration * 60000);
 };
 
+/** Next o'clock after `from` — 15:47 becomes 16:00, 15:00 becomes 16:00.
+ *
+ *  Used as the seed value for a new time slot. Seeding with the raw clock
+ *  produced times like 15:47, which read as a real choice the user had made
+ *  and forced them to correct both spinner wheels every single time.
+ */
+export const nextRoundHour = (from: Date = new Date()): Date => {
+  const date = new Date(from);
+  date.setMinutes(0, 0, 0);
+  date.setHours(date.getHours() + 1);
+  return date;
+};
+
 export const formatString = (mins: number) => {
   const h = Math.floor(mins / 60);
   const m = mins % 60;

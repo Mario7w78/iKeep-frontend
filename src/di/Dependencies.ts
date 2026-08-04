@@ -15,6 +15,7 @@ import { NotificationScheduler } from '../application/ports/out/NotificationSche
 
 import { SupabaseActivityRepository } from '../infrastructure/repositories/SupabaseActivityRepository';
 import { ApiActivityRepository } from '../infrastructure/repositories/ApiActivityRepository';
+import { CachedActivityRepository } from '../infrastructure/repositories/CachedActivityRepository';
 import { SupabaseUserRepository } from '../infrastructure/repositories/SupabaseUserRepository';
 import { ApiScheduleGenerator } from '../infrastructure/repositories/ApiScheduleGenerator';
 import { ApiRescheduleGenerator } from '../infrastructure/repositories/ApiRescheduleGenerator';
@@ -50,8 +51,11 @@ import { createChatStore, ChatStore } from '../infrastructure/store/useChatStore
  */
 export const USA_BACKEND_PARA_DATOS = false;
 
+// La cache solo envuelve al camino por el backend. Con Supabase directo no
+// hace falta: responde en ~100ms y una copia local solo agregaria una forma
+// de mostrar datos viejos sin ninguna espera que ahorrar.
 const activityRepository: ActivityRepository = USA_BACKEND_PARA_DATOS
-  ? new ApiActivityRepository()
+  ? new CachedActivityRepository(new ApiActivityRepository())
   : new SupabaseActivityRepository();
 const userRepository: UserRepository = new SupabaseUserRepository();
 const scheduleGenerator: ScheduleGenerator = new ApiScheduleGenerator();

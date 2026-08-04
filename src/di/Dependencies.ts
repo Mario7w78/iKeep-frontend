@@ -14,6 +14,7 @@ import { TaskSuggester } from '../application/ports/out/TaskSuggester';
 import { NotificationScheduler } from '../application/ports/out/NotificationScheduler';
 
 import { SupabaseActivityRepository } from '../infrastructure/repositories/SupabaseActivityRepository';
+import { ApiActivityRepository } from '../infrastructure/repositories/ApiActivityRepository';
 import { SupabaseUserRepository } from '../infrastructure/repositories/SupabaseUserRepository';
 import { ApiScheduleGenerator } from '../infrastructure/repositories/ApiScheduleGenerator';
 import { ApiRescheduleGenerator } from '../infrastructure/repositories/ApiRescheduleGenerator';
@@ -36,7 +37,22 @@ import { supabaseDayLimitPersistence } from '../infrastructure/persistence/Supab
 import { sendConversation } from '../infrastructure/api/ParseNLApiService';
 import { createChatStore, ChatStore } from '../infrastructure/store/useChatStore';
 
-const activityRepository: ActivityRepository = new SupabaseActivityRepository();
+/**
+ * Si el acceso a datos pasa por el backend o va directo a Supabase.
+ *
+ * Existe para poder volver atras sin revertir codigo: los adaptadores nuevos
+ * implementan los mismos puertos, asi que cambiar este valor cambia el camino
+ * entero sin tocar casos de uso ni stores.
+ *
+ * Sigue en false hasta que la cache local este lista: hoy las lecturas van a
+ * Supabase en ~100ms, y pasarlas al backend sin cache expondria el arranque
+ * en frio de Render justo al abrir la app.
+ */
+export const USA_BACKEND_PARA_DATOS = false;
+
+const activityRepository: ActivityRepository = USA_BACKEND_PARA_DATOS
+  ? new ApiActivityRepository()
+  : new SupabaseActivityRepository();
 const userRepository: UserRepository = new SupabaseUserRepository();
 const scheduleGenerator: ScheduleGenerator = new ApiScheduleGenerator();
 const rescheduleGenerator: RescheduleGenerator = new ApiRescheduleGenerator();

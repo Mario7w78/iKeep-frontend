@@ -2,21 +2,11 @@ import { ActivityRepository } from '../../application/ports/out/ActivityReposito
 import { Activity, ActivityType, DayOfWeek } from '../../domain/entities/Activity';
 import { DayConfig } from '../../domain/entities/activity.types';
 import { supabase } from '../supabase/client';
+import { restoreDaysConfig } from './daysConfigMapper';
 
-export function restoreDaysConfig(raw: Record<string, any> | null | undefined): Partial<Record<DayOfWeek, DayConfig>> {
-  const restored: Record<string, any> = raw ? { ...raw } : {};
-  Object.keys(restored).forEach((day) => {
-    const config = restored[day];
-    if (config?.partitions) {
-      config.partitions = config.partitions.map((p: any) => ({
-        ...p,
-        startHour: new Date(p.startHour),
-        endHour: new Date(p.endHour),
-      }));
-    }
-  });
-  return restored;
-}
+// Se re-exporta porque varios modulos ya la importaban desde aca.
+export { restoreDaysConfig };
+
 
 function rowToActivity(row: any): Activity {
   return new Activity({

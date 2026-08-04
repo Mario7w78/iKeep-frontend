@@ -4,7 +4,7 @@ import { Schedule, ScheduleProps } from '../../domain/entities/Schedule';
 import { Activity, DayOfWeek } from '../../domain/entities/Activity';
 import { ActivityRepository } from '../../application/ports/out/ActivityRepository';
 import { JS_DAY_TO_DAYOFWEEK } from '../../presentation/utils/scheduleUtils';
-import { supabase } from '../supabase/client';
+import { schedulePersistence } from '../persistence/SchedulePersistenceAdapters';
 import { restoreDaysConfig } from '../repositories/SupabaseActivityRepository';
 import { GenerateSchedulePort, GenerateScheduleOptions } from '../../application/ports/in/GenerateSchedulePort';
 import { ReschedulePort } from '../../application/ports/in/ReschedulePort';
@@ -78,14 +78,8 @@ export function createScheduleStore(
   };
   const saveScheduleToStorage = async (schedule: Schedule | null): Promise<void> => {
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return;
-
       if (!schedule) {
-        const { error } = await supabase.from('schedules').delete().eq('user_id', user.id);
-        if (error) throw error;
+        await schedulePersistence.clear();
         return;
       }
 
@@ -94,7 +88,6 @@ export function createScheduleStore(
       // `id` — el `Schedule.id` del dominio ("schedule-<timestamp>") no es
       // un uuid válido para esa columna.
       const row = {
-        user_id: user.id,
         estado: schedule.estado ?? null,
         mensaje: schedule.mensaje ?? null,
         recomendaciones: schedule.recomendaciones,
@@ -121,10 +114,9 @@ export function createScheduleStore(
           tipo: item.tipo,
         })),
       };
-      const { error } = await supabase.from('schedules').upsert(row, { onConflict: 'user_id' });
-      if (error) throw error;
+      await schedulePersistence.save(row);
     } catch (e) {
-      console.error('Error guardando horario en Supabase:', e);
+      console.error('Error guardando horario:', e);
     }
   };
 
@@ -183,17 +175,7 @@ export function createScheduleStore(
 
     loadSchedule: async () => {
       try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (!user) return;
-
-        const { data: parsed, error } = await supabase
-          .from('schedules')
-          .select('*')
-          .eq('user_id', user.id)
-          .maybeSingle();
-        if (error) throw error;
+        const parsed = await schedulePersistence.load();
 
         if (parsed) {
           const scheduledActivities = (parsed.scheduled_activities || []).map((item: any) => ({
@@ -219,11 +201,16 @@ export function createScheduleStore(
           }));
 
           const loadedSchedule = new Schedule({
-            id: parsed.id,
-            userId: parsed.user_id,
-            createdAt: new Date(parsed.created_at),
-            estado: parsed.estado,
-            mensaje: parsed.mensaje,
+            // Los identificadores los asigna el servidor. Los fallbacks
+            // cubren respuestas que no los traen —el backend no expone el id
+            // de la fila— sin dejar que un undefined llegue a la entidad.
+            id: parsed.id ?? `schedule-${Date.now()}`,
+            userId: parsed.user_id ?? '',
+            // Puede faltar en filas viejas; sin fallback quedaria un
+            // Invalid Date que se propaga en silencio.
+            createdAt: parsed.created_at ? new Date(parsed.created_at) : new Date(),
+            estado: parsed.estado ?? undefined,
+            mensaje: parsed.mensaje ?? undefined,
             recomendaciones: parsed.recomendaciones ?? [],
             tareasOmitidas: parsed.tareas_omitidas ?? [],
             scheduledActivities
@@ -233,7 +220,7 @@ export function createScheduleStore(
           syncNotifications(loadedSchedule);
         }
       } catch (e) {
-        console.error('Error cargando horario de Supabase:', e);
+        console.error('Error cargando horario:', e);
       } finally {
         set({ isLoadedFromStorage: true });
       }

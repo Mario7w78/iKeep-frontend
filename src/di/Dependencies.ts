@@ -37,19 +37,13 @@ import { createUserStore, UserStore } from '../infrastructure/store/useUserStore
 import { supabaseDayLimitPersistence } from '../infrastructure/persistence/SupabaseDayLimitPersistence';
 import { sendConversation } from '../infrastructure/api/ParseNLApiService';
 import { createChatStore, ChatStore } from '../infrastructure/store/useChatStore';
+import { USA_BACKEND_PARA_DATOS } from '../config/featureFlags';
+import { ApiUserRepository } from '../infrastructure/repositories/ApiUserRepository';
+import { apiDayLimitPersistence } from '../infrastructure/persistence/ApiDayLimitPersistence';
 
-/**
- * Si el acceso a datos pasa por el backend o va directo a Supabase.
- *
- * Existe para poder volver atras sin revertir codigo: los adaptadores nuevos
- * implementan los mismos puertos, asi que cambiar este valor cambia el camino
- * entero sin tocar casos de uso ni stores.
- *
- * Sigue en false hasta que la cache local este lista: hoy las lecturas van a
- * Supabase en ~100ms, y pasarlas al backend sin cache expondria el arranque
- * en frio de Render justo al abrir la app.
- */
-export const USA_BACKEND_PARA_DATOS = false;
+// Se re-exporta porque el flag se leia desde aca antes de tener su modulo.
+export { USA_BACKEND_PARA_DATOS };
+
 
 // La cache solo envuelve al camino por el backend. Con Supabase directo no
 // hace falta: responde en ~100ms y una copia local solo agregaria una forma
@@ -57,7 +51,12 @@ export const USA_BACKEND_PARA_DATOS = false;
 const activityRepository: ActivityRepository = USA_BACKEND_PARA_DATOS
   ? new CachedActivityRepository(new ApiActivityRepository())
   : new SupabaseActivityRepository();
-const userRepository: UserRepository = new SupabaseUserRepository();
+const userRepository: UserRepository = USA_BACKEND_PARA_DATOS
+  ? new ApiUserRepository()
+  : new SupabaseUserRepository();
+const dayLimitPersistence = USA_BACKEND_PARA_DATOS
+  ? apiDayLimitPersistence
+  : supabaseDayLimitPersistence;
 const scheduleGenerator: ScheduleGenerator = new ApiScheduleGenerator();
 const rescheduleGenerator: RescheduleGenerator = new ApiRescheduleGenerator();
 const taskSuggester: TaskSuggester = new ApiTaskSuggester();
@@ -90,7 +89,7 @@ export const useActivityStore: ActivityStore = createActivityStore(
 
 export const useScheduleStore: ScheduleStore = createScheduleStore(
   generateScheduleUseCase,
-  supabaseDayLimitPersistence,
+  dayLimitPersistence,
   activityRepository,
   rescheduleUseCase,
   suggestTaskUseCase,

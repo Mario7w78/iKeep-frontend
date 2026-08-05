@@ -121,6 +121,13 @@ export function mapParsedResponseToFormState(
     state.priority = response.priority;
   }
 
+  // Va antes del bloque de schedule y fuera de el: una actividad flexible
+  // pura —"estudiar una hora, cuando encaje"— no tiene horario ni dias, asi
+  // que nunca entraba a ese bloque y perdia la duracion, que es justamente
+  // su unico dato de tiempo. Los consumidores solo la leen en el camino
+  // flexible, asi que completarla tambien para las fijas es inocuo.
+  state.duracionMinutos = response.duracion_minutos ?? null;
+
   // Preferred time window (top-level fields, independientes de schedule)
   if (!missingFields.includes('start_time')) {
     state.horaPreferidaInicio = normalizeTime(response.hora_preferida_inicio) ?? null;
@@ -155,7 +162,6 @@ export function mapParsedResponseToFormState(
     // Day-only slots (anchor): populate daysDict so Confirmar works
     // Use duracion_minutos if specified, otherwise default to 60 min (user can edit in wizard)
     if (dayOnlySlots.length > 0) {
-      state.duracionMinutos = response.duracion_minutos ?? null;
       let groupIdCounter = currentNextGroupId;
       const newDaysDict: ParsedFormState['daysDict'] = {};
       const duration = response.duracion_minutos ?? 60;

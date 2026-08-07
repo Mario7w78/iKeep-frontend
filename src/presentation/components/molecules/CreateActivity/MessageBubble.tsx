@@ -104,6 +104,45 @@ export const MessageBubble: React.FC<Props> = ({
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
+  // Eliminar y regenerar no construyen una actividad: no traen parsedState,
+  // asi que la tarjeta de detalles no aplica y accederle reventaria.
+  const accionSimple: 'eliminar' | 'regenerar' | null =
+    message.pendingActivity?.kind === 'eliminar' ||
+    message.pendingActivity?.kind === 'regenerar'
+      ? message.pendingActivity.kind
+      : null;
+
+  /**
+   * Los botones son los mismos para los tres tipos de propuesta, asi que se
+   * definen una vez. Solo cambia el verbo: "Confirmar" no dice nada cuando lo
+   * que esta en juego es borrar algo.
+   */
+  const renderAcciones = (textoConfirmar: string = 'Confirmar') =>
+    !message.isConfirmed && !message.isCancelled ? (
+      <View style={styles.actionButtonsContainer}>
+        <TouchableOpacity
+          testID="confirm-activity-button"
+          style={[styles.actionButton, styles.confirmButton]}
+          onPress={() => onConfirmPending?.(message.id)}
+        >
+          <Text style={styles.actionButtonText}>{textoConfirmar}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          testID="cancel-activity-button"
+          style={[styles.actionButton, styles.cancelButton]}
+          onPress={() => onCancelPending?.(message.id)}
+        >
+          <Text style={styles.actionButtonText}>Cancelar</Text>
+        </TouchableOpacity>
+      </View>
+    ) : (
+      <View style={styles.statusContainer}>
+        <Text style={message.isConfirmed ? styles.confirmedText : styles.cancelledText}>
+          {message.isConfirmed ? '✓ Confirmado' : '✗ Cancelado'}
+        </Text>
+      </View>
+    );
+
   const travelTimes = useMemo(() => {
     let travelTo: number | null = null;
     let travelFrom: number | null = null;
@@ -167,7 +206,34 @@ export const MessageBubble: React.FC<Props> = ({
           {message.content}
         </Text>
 
-        {message.type !== 'chat' && message.pendingActivity && (
+        {message.type !== 'chat' && message.pendingActivity && accionSimple && (
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Text style={styles.cardTitle}>
+                {accionSimple === 'eliminar' ? 'Eliminar actividad' : 'Reorganizar horario'}
+              </Text>
+            </View>
+
+            <View style={styles.simpleActionBody}>
+              <Ionicons
+                name={accionSimple === 'eliminar' ? 'trash-outline' : 'refresh-outline'}
+                size={20}
+                color={accionSimple === 'eliminar' ? '#e0555b' : colors.textSecondary}
+              />
+              <Text style={styles.simpleActionText}>
+                {accionSimple === 'eliminar'
+                  ? message.pendingActivity.originalName ?? 'Esta actividad'
+                  : 'Se recalculan todos tus bloques de la semana.'}
+              </Text>
+            </View>
+
+            {/* El verbo importa: un boton que dice "Confirmar" no advierte de
+                que lo que sigue es irreversible. */}
+            {renderAcciones(accionSimple === 'eliminar' ? 'Eliminar' : 'Reorganizar')}
+          </View>
+        )}
+
+        {message.type !== 'chat' && message.pendingActivity && !accionSimple && (
           <View style={styles.card}>
             {/* Header / Mode Indicator */}
             <View style={styles.cardHeader}>
@@ -337,31 +403,7 @@ export const MessageBubble: React.FC<Props> = ({
               )}
             </View>
 
-            {/* Confirmation / Cancellation Actions */}
-            {!message.isConfirmed && !message.isCancelled ? (
-              <View style={styles.actionButtonsContainer}>
-                <TouchableOpacity
-                  testID="confirm-activity-button"
-                  style={[styles.actionButton, styles.confirmButton]}
-                  onPress={() => onConfirmPending?.(message.id)}
-                >
-                  <Text style={styles.actionButtonText}>Confirmar</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  testID="cancel-activity-button"
-                  style={[styles.actionButton, styles.cancelButton]}
-                  onPress={() => onCancelPending?.(message.id)}
-                >
-                  <Text style={styles.actionButtonText}>Cancelar</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <View style={styles.statusContainer}>
-                <Text style={message.isConfirmed ? styles.confirmedText : styles.cancelledText}>
-                  {message.isConfirmed ? '✓ Confirmado' : '✗ Cancelado'}
-                </Text>
-              </View>
-            )}
+            {renderAcciones()}
           </View>
         )}
 
@@ -394,6 +436,19 @@ export const MessageBubble: React.FC<Props> = ({
 };
 
 const createStyles = (colors: ThemeColors) => StyleSheet.create({
+  simpleActionBody: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 4,
+  },
+  simpleActionText: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.surface,
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'flex-end',

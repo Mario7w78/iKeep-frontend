@@ -51,6 +51,14 @@ export const NLConversationStep: React.FC<Props> = ({
   const { colors, comfyColors, comfyFontColors } = useTheme();
   const styles = useMemo(() => createStyles(colors, comfyColors, comfyFontColors), [colors]);
   const [inputText, setInputText] = useState('');
+
+  /**
+   * Solo mientras la conversacion no arranco y el campo esta vacio. Despues
+   * estorban: el usuario ya sabe que puede escribir, y ocupan el lugar donde
+   * mira las respuestas.
+   */
+  const mostrarSugerencias =
+    !inputText.trim() && !isThinking && messages.filter((m) => m.role === 'user').length === 0;
   const scrollRef = useRef<ScrollView>(null);
   const [showTyping, setShowTyping] = useState(false);
   const insets = useSafeAreaInsets();
@@ -192,6 +200,27 @@ export const NLConversationStep: React.FC<Props> = ({
         )}
       </ScrollView>
 
+      {/* Sugerencias
+          El asistente sabe consultar la agenda, eliminar y reorganizar, pero
+          nada en la pantalla lo dice: sin esto el usuario asume que solo
+          crea, que es lo unico que hacia antes. Se ocultan apenas escribe o
+          apenas empieza la conversacion, para no competir con lo que esta
+          haciendo. */}
+      {mostrarSugerencias && (
+        <View style={styles.sugerencias} testID="chat-suggestions">
+          {SUGERENCIAS.map((s: string) => (
+            <TouchableOpacity
+              key={s}
+              style={styles.chipSugerencia}
+              onPress={() => onSend(s)}
+              disabled={isThinking}
+            >
+              <Text style={styles.textoSugerencia}>{s}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+
       {/* Input bar */}
       <View style={[styles.inputBar, { paddingBottom: isKeyboardVisible ? 10 : Math.max(insets.bottom, 10) }]}>
         <TextInput
@@ -220,8 +249,38 @@ export const NLConversationStep: React.FC<Props> = ({
   );
 };
 
+/**
+ * Ejemplos de lo que el asistente sabe hacer ademas de crear. Son tres a
+ * proposito: mas se leen como un menu y menos no alcanzan para sugerir que
+ * hay variedad.
+ */
+const SUGERENCIAS = [
+  'Que tengo manana?',
+  'Tengo 2 horas libres',
+  'Reorganiza mi semana',
+];
+
 function createStyles(colors: ThemeColors, _comfyColors: Record<string, string>, _comfyFontColors: Record<string, string>) {
   return StyleSheet.create({
+    sugerencias: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+      paddingHorizontal: 16,
+      paddingBottom: 8,
+    },
+    chipSugerencia: {
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      backgroundColor: colors.cardBackground,
+    },
+    textoSugerencia: {
+      fontSize: 13,
+      color: colors.textSecondary,
+    },
     container: {
       flex: 1,
       backgroundColor: colors.screenBackground,

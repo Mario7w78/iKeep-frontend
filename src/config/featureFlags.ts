@@ -10,3 +10,15 @@
  * tenerlo alli crearia un ciclo.
  */
 export const USA_BACKEND_PARA_DATOS = false;
+
+/**
+ * Si el chat usa el motor conversacional nuevo.
+ *
+ * El endpoint viejo sigue montado, asi que volver atras es cambiar este
+ * valor: no hay que revertir codigo ni redeployar el backend.
+ *
+ * Arranca apagado hasta probarlo en dispositivo. El motor esta verificado con
+ * conversaciones doradas contra modelos reales, pero eso mide la conversacion,
+ * no la pantalla.
+ */
+export const USA_ASISTENTE_V2 = false;

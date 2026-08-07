@@ -36,6 +36,7 @@ import { createScheduleStore, ScheduleStore } from '../infrastructure/store/useS
 import { createUserStore, UserStore } from '../infrastructure/store/useUserStore';
 import { supabaseDayLimitPersistence } from '../infrastructure/persistence/SupabaseDayLimitPersistence';
 import { sendConversation } from '../infrastructure/api/ParseNLApiService';
+import { conversarConAsistente } from '../infrastructure/api/AssistantApiService';
 import { createChatStore, ChatStore } from '../infrastructure/store/useChatStore';
 import { USA_BACKEND_PARA_DATOS } from '../config/featureFlags';
 import { ApiUserRepository } from '../infrastructure/repositories/ApiUserRepository';
@@ -104,5 +105,8 @@ export const useUserStore: UserStore = createUserStore(
 export const useChatStore: ChatStore = createChatStore(
   useActivityStore,
   useScheduleStore,
-  sendConversation
+  sendConversation,
+  // El motor nuevo se elige dentro del store segun USA_ASISTENTE_V2; se
+  // inyectan los dos para poder cambiar sin tocar el cableado.
+  conversarConAsistente
 );

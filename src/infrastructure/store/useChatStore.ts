@@ -2,6 +2,14 @@ import { create, StoreApi, UseBoundStore } from 'zustand';
 import { ChatMessage } from '../../presentation/components/molecules/CreateActivity/MessageBubble';
 import { MessageDto, ParseNLResponseDto } from '../api/dto/ParseNLDto';
 import { mapParsedResponseToFormState } from '../../application/mappers/parseNlMapper';
+import { draftToFormState } from '../../application/mappers/draftToFormState';
+import {
+  Borrador,
+  LlmTurno,
+  Propuesta,
+  RespuestaAsistente,
+} from '../../domain/entities/conversation.types';
+import { USA_ASISTENTE_V2 } from '../../config/featureFlags';
 import {
   dateToMinutes,
   areOverlapping,
@@ -15,12 +23,25 @@ export interface ChatStoreState {
   isThinking: boolean;
   inputText: string;
   createdActivityId: string | null;
+  /**
+   * La memoria del asistente. El backend es stateless: el borrador y los
+   * turnos viajan en cada peticion y vuelven en cada respuesta.
+   *
+   * `llmTurns` corre en paralelo a `messages` y NO se deriva de el. Son dos
+   * representaciones distintas: `messages` es lo que se muestra, `llmTurns`
+   * es lo que ve el modelo, con sus invocaciones y resultados verbatim.
+   * Reconstruir una parseando la otra es exactamente el error que causaba el
+   * "se olvida".
+   */
+  borrador: Borrador;
+  llmTurns: LlmTurno[];
 
   addMessage: (message: ChatMessage) => void;
   setThinking: (thinking: boolean) => void;
   setInputText: (text: string) => void;
   clearChat: () => void;
   sendMessage: (text: string) => Promise<void>;
+  cancelMessage: () => void;
   retry: () => void;
   confirmPendingActivity: (messageId: string) => Promise<void>;
   cancelPendingActivity: (messageId: string) => void;
@@ -68,6 +89,237 @@ const mapErrorToUserFriendlyMessage = (error: any, fallbackMessage: string): str
   return errMsg || fallbackMessage;
 };
 
+
+/**
+ * Un turno con el motor conversacional nuevo.
+ *
+ * Vive fuera de createChatStore porque no necesita nada de su clausura, y
+ * porque el sendMessage viejo ya tiene doscientas lineas: mezclarlos haria
+ * ilegibles a los dos.
+ *
+ * La diferencia de fondo con el camino anterior es lo que NO hace: no
+ * serializa la agenda, no recorta el historial y no adivina si el usuario
+ * quiere editar buscando "modific" en su texto. El backend arma el contexto
+ * desde la base y el modelo decide con tools.
+ */
+async function conversarConElAsistente(
+  text: string,
+  set: (partial: Partial<ChatStoreState>) => void,
+  get: () => ChatStoreState,
+  conversarFn: (peticion: {
+    mensaje: string;
+    borrador?: Borrador;
+    turnos?: LlmTurno[];
+  }) => Promise<RespuestaAsistente>,
+  activityStore: any
+): Promise<void> {
+  try {
+    const respuesta = await conversarFn({
+      mensaje: text,
+      borrador: get().borrador,
+      turnos: get().llmTurns,
+    });
+
+    // El borrador y los turnos se guardan siempre, incluso cuando la
+    // respuesta es una pregunta: son la memoria, y perderlos aca es
+    // exactamente el bug que vino a arreglar todo esto.
+    set({ borrador: respuesta.borrador ?? {}, llmTurns: respuesta.turnos ?? [] });
+
+    if (respuesta.tipo !== 'propuesta' || !respuesta.propuesta) {
+      set({
+        messages: [
+          ...get().messages,
+          {
+            id: `ai-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+            role: 'assistant',
+            content: respuesta.mensaje || 'Contame un poco mas.',
+            timestamp: Date.now(),
+            type: respuesta.tipo === 'charla' ? 'chat' : 'question',
+          },
+        ],
+        isThinking: false,
+      });
+      return;
+    }
+
+    const confirmMsg = mensajeDePropuesta(respuesta.propuesta, respuesta.mensaje, activityStore);
+
+    // Se desactivan las tarjetas anteriores sin confirmar: si el usuario pidio
+    // cambios en vez de confirmar, dejar vivos los botones viejos permitiria
+    // crear la actividad dos veces.
+    const conPendientesCancelados = get().messages.map((m) =>
+      m.pendingActivity && !m.isConfirmed && !m.isCancelled
+        ? { ...m, isCancelled: true }
+        : m
+    );
+
+    set({
+      messages: [...conPendientesCancelados, confirmMsg],
+      isThinking: false,
+    });
+  } catch (error: any) {
+    console.error('Error hablando con el asistente:', error);
+    set({
+      messages: [
+        ...get().messages,
+        {
+          id: `error-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+          role: 'assistant',
+          content: mapErrorToUserFriendlyMessage(
+            error,
+            'Ups, hubo un error al conectar con la IA.'
+          ),
+          timestamp: Date.now(),
+          isError: true,
+        },
+      ],
+      isThinking: false,
+    });
+  }
+}
+
+/** Arma la tarjeta de confirmacion segun lo que se este proponiendo. */
+function mensajeDePropuesta(
+  propuesta: Propuesta,
+  mensaje: string | null | undefined,
+  activityStore: any
+): ChatMessage {
+  const base = {
+    id: `confirm-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+    role: 'assistant' as const,
+    timestamp: Date.now(),
+    type: 'result' as const,
+  };
+
+  if (propuesta.tipo === 'regenerar') {
+    return {
+      ...base,
+      content: mensaje || 'Voy a reorganizar tu horario. Confirmas?',
+      pendingActivity: { kind: 'regenerar', id: `regen-${Date.now()}` },
+    } as ChatMessage;
+  }
+
+  const actividades = activityStore.getState().activities || [];
+  // El id lo da el backend, que lo obtuvo con buscar_actividad. Reemplaza el
+  // match por substring del cliente, donde "matematica" no encontraba
+  // "Matemática" y cualquier nombre corto podia apuntar a la actividad
+  // equivocada.
+  const objetivo = propuesta.activity_id
+    ? actividades.find((a: any) => String(a.id) === String(propuesta.activity_id))
+    : null;
+
+  if (propuesta.tipo === 'eliminar') {
+    return {
+      ...base,
+      content: objetivo
+        ? mensaje || `Elimino "${objetivo.title}"?`
+        : 'No encontre esa actividad. Podes decirme el nombre exacto?',
+      pendingActivity: objetivo
+        ? { kind: 'eliminar', id: String(objetivo.id), originalName: objetivo.title }
+        : undefined,
+    } as ChatMessage;
+  }
+
+  const parsedState = draftToFormState(propuesta.borrador ?? {}, 0);
+  const esModificacion = propuesta.tipo === 'modificar' && !!objetivo;
+
+  return {
+    ...base,
+    content:
+      mensaje ||
+      (esModificacion
+        ? `Encontre "${objetivo.title}". Queres modificarla con estos datos?`
+        : 'Queres crear esta actividad con los siguientes datos?'),
+    pendingActivity: {
+      kind: esModificacion ? 'modificar' : 'crear',
+      id: esModificacion ? String(objetivo.id) : Date.now().toString(),
+      isModification: esModificacion,
+      originalName: esModificacion ? objetivo.title : null,
+      originalActivityProps: esModificacion ? propsDeActividad(objetivo) : null,
+      parsedState,
+    },
+  } as ChatMessage;
+}
+
+/**
+ * Ejecuta las propuestas que no construyen una actividad.
+ *
+ * Las dos terminan regenerando el horario, porque quitar o reorganizar
+ * actividades deja el horario vigente desactualizado.
+ */
+async function ejecutarAccionSimple(
+  kind: 'eliminar' | 'regenerar',
+  pendingActivity: any,
+  messageId: string,
+  set: (partial: Partial<ChatStoreState>) => void,
+  get: () => ChatStoreState,
+  activityStore: any,
+  scheduleStore: any
+): Promise<void> {
+  set({ isThinking: true });
+
+  try {
+    if (kind === 'eliminar') {
+      await activityStore.getState().handleDeleteActivity(pendingActivity.id);
+    }
+    await scheduleStore.getState().handleGenerateSchedule();
+
+    set({
+      messages: get().messages.map((m) =>
+        m.id === messageId
+          ? { ...m, isConfirmed: true }
+          : m
+      ).concat({
+        id: `ok-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+        role: 'assistant',
+        content:
+          kind === 'eliminar'
+            ? `Listo, elimine "${pendingActivity.originalName ?? 'la actividad'}" y reorganice tu horario.`
+            : 'Listo, reorganice tu horario.',
+        timestamp: Date.now(),
+      } as ChatMessage),
+      isThinking: false,
+    });
+  } catch (error: any) {
+    console.error(`Error al ${kind}:`, error);
+    set({
+      messages: [
+        ...get().messages,
+        {
+          id: `error-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+          role: 'assistant',
+          content: mapErrorToUserFriendlyMessage(
+            error,
+            `No pude ${kind === 'eliminar' ? 'eliminar la actividad' : 'reorganizar el horario'}.`
+          ),
+          timestamp: Date.now(),
+          isError: true,
+        } as ChatMessage,
+      ],
+      isThinking: false,
+    });
+  }
+}
+
+/** Snapshot para poder revertir si el guardado falla a mitad de camino. */
+function propsDeActividad(actividad: any) {
+  return {
+    id: actividad.id,
+    activityName: actividad.title,
+    isFixed: actividad.isFixed(),
+    identity: actividad.identity,
+    priority: actividad.priority,
+    difficulty: actividad.difficulty,
+    deadline: actividad.deadline,
+    daysConfig: actividad.daysConfig,
+    days: actividad.daysEnabled,
+    preferredStartTime: actividad.preferredStartTime,
+    preferredEndTime: actividad.preferredEndTime,
+    optionalDay: actividad.optionalDay,
+    isAnchor: actividad.isAnchor,
+  };
+}
+
 export function createChatStore(
   activityStore: any,
   scheduleStore: any,
@@ -76,7 +328,13 @@ export function createChatStore(
     history: MessageDto[],
     agendaContext?: string,
     currentDay?: string
-  ) => Promise<any>
+  ) => Promise<any>,
+  // Se inyecta igual que la anterior, para poder probar el store sin red.
+  conversarFn?: (peticion: {
+    mensaje: string;
+    borrador?: Borrador;
+    turnos?: LlmTurno[];
+  }) => Promise<RespuestaAsistente>
 ): ChatStore {
   const validatePartitions = (
     parts: any[],
@@ -239,6 +497,8 @@ export function createChatStore(
     isThinking: false,
     inputText: '',
     createdActivityId: null,
+    borrador: {},
+    llmTurns: [],
 
     addMessage: (message) => set({ messages: [...get().messages, message] }),
     setThinking: (thinking) => set({ isThinking: thinking }),
@@ -250,7 +510,18 @@ export function createChatStore(
         isThinking: false,
         inputText: '',
         createdActivityId: null,
+        // Sin esto, empezar de cero dejaria al asistente arrastrando la
+        // actividad de la conversacion anterior.
+        borrador: {},
+        llmTurns: [],
       }),
+
+    cancelMessage: () => {
+      // El aborto real lo hace el AbortController de backendClient cuando se
+      // agota el timeout. Aca solo se deja de esperar del lado de la UI: la
+      // respuesta que llegue tarde se descarta porque el turno ya cerro.
+      set({ isThinking: false });
+    },
 
     sendMessage: async (text: string) => {
       const userMsg: ChatMessage = {
@@ -263,6 +534,11 @@ export function createChatStore(
         messages: [...get().messages, userMsg],
         isThinking: true,
       });
+
+      if (USA_ASISTENTE_V2 && conversarFn) {
+        await conversarConElAsistente(text, set, get, conversarFn, activityStore);
+        return;
+      }
 
       const activities = activityStore.getState().activities || [];
       // Groq/Llama: limitar descripciones para no quemar tokens
@@ -477,6 +753,25 @@ export function createChatStore(
       if (!msg || !msg.pendingActivity) return;
 
       const { pendingActivity } = msg;
+
+      // Eliminar y regenerar son caminos nuevos y cortos. Crear y modificar
+      // siguen por el de siempre, que ya resuelve validacion de solapamientos,
+      // guardado y rollback: reescribirlo seria arriesgar lo unico que hoy
+      // funciona bien.
+      const kind = (pendingActivity as any).kind;
+      if (kind === 'eliminar' || kind === 'regenerar') {
+        await ejecutarAccionSimple(
+          kind,
+          pendingActivity,
+          messageId,
+          set,
+          get,
+          activityStore,
+          scheduleStore
+        );
+        return;
+      }
+
       const { parsedState, id, isModification, originalActivityProps } = pendingActivity;
 
       set({ isThinking: true });

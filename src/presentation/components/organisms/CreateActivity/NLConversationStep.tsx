@@ -19,6 +19,7 @@ import { TypingIndicator } from '../../atoms/CreateActivity/TypingIndicator';
 import { useTheme, ThemeColors } from '../../theme/colors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SAPO_BASE64 } from '../../sapoBase64';
+import { Sapo } from '../../atoms/Mascot/Sapo';
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -187,10 +188,13 @@ export const NLConversationStep: React.FC<Props> = ({
         {showTyping && (
           <View style={styles.typingRow}>
             <View style={styles.avatarContainer}>
-              <Image
+              {/* El sapo espera junto al indicador. Cuando exista la
+                  animacion de 'thinking' se ve sola: hoy cae a reposo, que
+                  sigue leyendose como que esta ahi esperando. */}
+              <Sapo
                 testID="sapo-avatar-typing"
-                source={{ uri: SAPO_BASE64 }}
-                style={styles.typingAvatar}
+                estado="thinking"
+                tamano={32}
               />
             </View>
             <View style={styles.typingBubble}>

@@ -18,6 +18,7 @@ import {
 import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { Sapo } from "../../../components/atoms/Mascot/Sapo";
 
 import { DayOfWeek } from "../../../../domain/entities/Activity";
 import { calculateEndTime, nextRoundHour } from "../../../utils/timeUtils";
@@ -803,7 +804,10 @@ export default function CreateActivityView({ navigation, route }: any) {
       {isLoading && (
         <View style={styles.loadingOverlay}>
           {justSaved ? (
-            <Ionicons name="checkmark-circle" size={56} color={colors.secondaryAccent} />
+            // El sapo celebra el guardado. Es el unico momento del wizard con
+            // algo que celebrar, y la Fase 0 ya habia puesto aca el check y la
+            // haptica: la animacion completa ese gesto en vez de agregar otro.
+            <Sapo estado="happy" tamano={96} />
           ) : (
             <ActivityIndicator size="large" color={colors.secondaryAccent} />
           )}

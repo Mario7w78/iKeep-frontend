@@ -17,6 +17,7 @@ import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useAppStore } from "../../../../infrastructure/store/useAppStore";
 import { useTheme, ThemeColors } from "../../theme/colors";
+import { Sapo } from "../../atoms/Mascot/Sapo";
 import { dateToMinutes, formatTime } from "../../../utils/timeUtils";
 
 const { width } = Dimensions.get("window");
@@ -210,21 +211,30 @@ export default function OnBoardingView() {
 
           return (
             <View style={styles.slide}>
-              <View
-                style={[
-                  styles.illustration,
-                  {
-                    backgroundColor: iconConfig.bg,
-                    borderColor: iconConfig.color,
-                  },
-                ]}
-              >
-                <Ionicons
-                  name={iconConfig.name as any}
-                  size={80}
-                  color={iconConfig.color}
-                />
-              </View>
+              {/* El sapo saluda solo en la primera pantalla: es la unica vez
+                  que el usuario lo conoce, y repetir el saludo en cada slide
+                  lo convertiria en decoracion. El resto conserva su icono. */}
+              {item.id === "username" ? (
+                <View style={styles.illustrationMascota}>
+                  <Sapo estado="waving" tamano={140} />
+                </View>
+              ) : (
+                <View
+                  style={[
+                    styles.illustration,
+                    {
+                      backgroundColor: iconConfig.bg,
+                      borderColor: iconConfig.color,
+                    },
+                  ]}
+                >
+                  <Ionicons
+                    name={iconConfig.name as any}
+                    size={80}
+                    color={iconConfig.color}
+                  />
+                </View>
+              )}
               <Text style={styles.title}>{item.title}</Text>
               <Text style={styles.description}>{item.description}</Text>
 
@@ -349,6 +359,11 @@ export default function OnBoardingView() {
 
 function createStyles(colors: ThemeColors, comfyColors: Record<string, string>, comfyFontColors: Record<string, string>) {
   return StyleSheet.create({
+    illustrationMascota: {
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: 24,
+    },
   container: { flex: 1, backgroundColor: colors.screenBackground },
   slide: {
     width,

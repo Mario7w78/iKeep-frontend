@@ -255,7 +255,7 @@ export const NLConversationStep: React.FC<Props> = ({
  * hay variedad.
  */
 const SUGERENCIAS = [
-  'Que tengo manana?',
+  '¿Qué tengo mañana?',
   'Tengo 2 horas libres',
   'Reorganiza mi semana',
 ];

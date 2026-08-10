@@ -132,7 +132,7 @@ async function conversarConElAsistente(
           {
             id: `ai-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
             role: 'assistant',
-            content: respuesta.mensaje || 'Contame un poco mas.',
+            content: respuesta.mensaje || 'Cuéntame un poco más.',
             timestamp: Date.now(),
             type: respuesta.tipo === 'charla' ? 'chat' : 'question',
           },
@@ -194,7 +194,7 @@ function mensajeDePropuesta(
   if (propuesta.tipo === 'regenerar') {
     return {
       ...base,
-      content: mensaje || 'Voy a reorganizar tu horario. Confirmas?',
+      content: mensaje || 'Voy a reorganizar tu horario. ¿Confirmas?',
       pendingActivity: { kind: 'regenerar', id: `regen-${Date.now()}` },
     } as ChatMessage;
   }
@@ -212,8 +212,8 @@ function mensajeDePropuesta(
     return {
       ...base,
       content: objetivo
-        ? mensaje || `Elimino "${objetivo.title}"?`
-        : 'No encontre esa actividad. Podes decirme el nombre exacto?',
+        ? mensaje || `¿Elimino "${objetivo.title}"?`
+        : 'No encontré esa actividad. ¿Puedes decirme el nombre exacto?',
       pendingActivity: objetivo
         ? { kind: 'eliminar', id: String(objetivo.id), originalName: objetivo.title }
         : undefined,
@@ -228,8 +228,8 @@ function mensajeDePropuesta(
     content:
       mensaje ||
       (esModificacion
-        ? `Encontre "${objetivo.title}". Queres modificarla con estos datos?`
-        : 'Queres crear esta actividad con los siguientes datos?'),
+        ? `Encontré "${objetivo.title}". ¿Quieres modificarla con estos datos?`
+        : '¿Quieres crear esta actividad con estos datos?'),
     pendingActivity: {
       kind: esModificacion ? 'modificar' : 'crear',
       id: esModificacion ? String(objetivo.id) : Date.now().toString(),
@@ -274,8 +274,8 @@ async function ejecutarAccionSimple(
         role: 'assistant',
         content:
           kind === 'eliminar'
-            ? `Listo, elimine "${pendingActivity.originalName ?? 'la actividad'}" y reorganice tu horario.`
-            : 'Listo, reorganice tu horario.',
+            ? `Listo, eliminé "${pendingActivity.originalName ?? 'la actividad'}" y reorganicé tu horario.`
+            : 'Listo, reorganicé tu horario.',
         timestamp: Date.now(),
       } as ChatMessage),
       isThinking: false,

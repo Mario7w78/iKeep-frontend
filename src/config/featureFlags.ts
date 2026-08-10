@@ -9,7 +9,7 @@
  * el propio Dependencies importa —EnergyHistoryService, entre otros— y
  * tenerlo alli crearia un ciclo.
  */
-export const USA_BACKEND_PARA_DATOS = false;
+export const USA_BACKEND_PARA_DATOS = true;
 
 /**
  * Si el chat usa el motor conversacional nuevo.
@@ -21,4 +21,4 @@ export const USA_BACKEND_PARA_DATOS = false;
  * conversaciones doradas contra modelos reales, pero eso mide la conversacion,
  * no la pantalla.
  */
-export const USA_ASISTENTE_V2 = false;
+export const USA_ASISTENTE_V2 = true;

@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { SAPO_BASE64 } from '../../sapoBase64';
+import { Sapo } from '../../atoms/Mascot/Sapo';
 import { useTheme, ThemeColors } from '../../theme/colors';
 import { OverlapConflictData } from '../../../../domain/errors/OverlapError';
 import { ConflictPreview } from './ConflictPreview';
@@ -188,11 +188,10 @@ export const MessageBubble: React.FC<Props> = ({
     <View style={[styles.row, isUser ? styles.rowUser : styles.rowAI]}>
       {!isUser && (
         <View style={styles.avatarContainer}>
-          <Image
-            testID="sapo-avatar"
-            source={{ uri: SAPO_BASE64 }}
-            style={styles.avatar}
-          />
+          {/* Solo el ultimo se mueve: un LottieView animandose por cada
+              mensaje seria caro en gama media, y la conversacion se siente
+              viva igual porque el movimiento esta donde el usuario mira. */}
+          <Sapo testID="sapo-avatar" estado="idle" tamano={32} animar={isLatest} />
         </View>
       )}
       <View

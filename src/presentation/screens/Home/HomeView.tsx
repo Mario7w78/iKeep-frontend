@@ -19,7 +19,7 @@ import { useAppStore } from "../../../infrastructure/store/useAppStore";
 import { ScheduledActivity } from "../../../domain/entities/Schedule";
 import { JS_DAY_TO_DAYOFWEEK } from "../../utils/scheduleUtils";
 import { useTheme } from "../../components/theme/colors";
-import { SAPO_BASE64 } from "../../components/sapoBase64";
+import { Sapo } from "../../components/atoms/Mascot/Sapo";
 import { ActivityDetailModal } from "../../components/organisms/Schedule/ActivityDetailModal";
 import {
   saveEnergyRecord,
@@ -341,10 +341,9 @@ export default function HomeView() {
             activeOpacity={0.75}
             onPress={() => navigation.navigate("AIChatView")}
           >
-            <Image
-              source={{ uri: SAPO_BASE64 }}
-              style={styles.sapoMascotImage}
-            />
+            {/* La pantalla que el usuario abre todos los dias, y ya era
+                el atajo al chat: es donde la mascota mas se ve. */}
+            <Sapo estado="idle" tamano={72} />
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
             <Text style={styles.title}>Hola, {username || "Usuario"}. Tu día está listo.</Text>

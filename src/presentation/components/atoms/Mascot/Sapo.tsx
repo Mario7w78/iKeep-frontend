@@ -10,6 +10,13 @@ interface Props {
   /** Lado del cuadrado en el que se dibuja. */
   tamano?: number;
   style?: StyleProp<ViewStyle>;
+  /**
+   * Si se reproduce o queda en un cuadro fijo.
+   *
+   * Un LottieView animandose por cada mensaje del chat seria caro en gama
+   * media: los avatares viejos se congelan y solo el ultimo se mueve.
+   */
+  animar?: boolean;
   /** Se dispara al terminar, solo en los estados que no se repiten. */
   onFinish?: () => void;
   testID?: string;
@@ -33,6 +40,7 @@ export const Sapo: React.FC<Props> = ({
   estado = 'idle',
   tamano = TAMANO_POR_DEFECTO,
   style,
+  animar = true,
   onFinish,
   testID = 'sapo',
 }) => {
@@ -44,8 +52,11 @@ export const Sapo: React.FC<Props> = ({
       key={estado}
       testID={testID}
       source={fuente as any}
-      autoPlay
-      loop={enBucle}
+      autoPlay={animar}
+      loop={animar && enBucle}
+      // progress fija el cuadro cuando no se anima; sin esto quedaria en
+      // negro hasta que algo lo reprodujera.
+      progress={animar ? undefined : 0}
       onAnimationFinish={enBucle ? undefined : onFinish}
       resizeMode="contain"
       style={[{ width: tamano, height: tamano }, style] as any}

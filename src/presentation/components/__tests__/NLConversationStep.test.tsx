@@ -2,7 +2,6 @@ import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import { NLConversationStep } from '../organisms/CreateActivity/NLConversationStep';
 import { ChatMessage } from '../molecules/CreateActivity/MessageBubble';
-import { SAPO_BASE64 } from '../sapoBase64';
 
 import { LayoutAnimation } from 'react-native';
 
@@ -121,7 +120,9 @@ describe('NLConversationStep', () => {
     // Find assistant avatar by testID
     const avatarImages = screen.queryAllByTestId('sapo-avatar');
     expect(avatarImages.length).toBe(1);
-    expect(avatarImages[0].props.source.uri).toBe(SAPO_BASE64);
+    // El avatar dejo de ser una imagen base64: ahora es la mascota
+    // animada, que se verifica en Sapo.test.tsx.
+    expect(avatarImages.length).toBeGreaterThan(0);
   });
 
   it('handles disabled state and prevents inputs/sending when thinking', async () => {

@@ -108,3 +108,24 @@ describe('Sapo', () => {
     expect(vista.getByTestId('sapo').props.resizeMode).toBe('contain');
   });
 });
+
+describe('Sapo sin animar', () => {
+  it('no reproduce cuando se le pide quieto', async () => {
+    const vista = await render(<Sapo estado="idle" animar={false} />);
+
+    expect(vista.getByTestId('sapo').props.autoPlay).toBe(false);
+    expect(vista.getByTestId('sapo').props.loop).toBe(false);
+  });
+
+  it('queda en un cuadro fijo, no en negro', async () => {
+    const vista = await render(<Sapo estado="idle" animar={false} />);
+
+    expect(vista.getByTestId('sapo').props.progress).toBe(0);
+  });
+
+  it('animado no fija el cuadro', async () => {
+    const vista = await render(<Sapo estado="idle" />);
+
+    expect(vista.getByTestId('sapo').props.progress).toBeUndefined();
+  });
+});

@@ -18,7 +18,6 @@ import { MessageBubble, ChatMessage } from '../../molecules/CreateActivity/Messa
 import { TypingIndicator } from '../../atoms/CreateActivity/TypingIndicator';
 import { useTheme, ThemeColors } from '../../theme/colors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { SAPO_BASE64 } from '../../sapoBase64';
 import { Sapo } from '../../atoms/Mascot/Sapo';
 
 // Enable LayoutAnimation on Android

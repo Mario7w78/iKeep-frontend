@@ -38,7 +38,14 @@ const TOTAL_STEPS = 4;
 const SHEET_HEIGHT = Dimensions.get("window").height * 0.88;
 const DISMISS_DISTANCE = 130;
 /** How long the success state stays up before the sheet closes itself. */
-const SUCCESS_FEEDBACK_MS = 750;
+// El overlay ocupa la pantalla entera, asi que la mascota se mide contra
+// ella: un tamano fijo se veia perdido en el medio. Se acota para que en
+// tablets no quede desproporcionada.
+const TAMANO_CELEBRACION = Math.min(Dimensions.get("window").width * 0.6, 320);
+
+// Cuanto se muestra la celebracion antes de cerrar. Da tiempo a ver el gesto
+// completo sin que el usuario sienta que la app dejo de responderle.
+const SUCCESS_FEEDBACK_MS = 1600;
 
 const WEEKDAY_ORDER: DayOfWeek[] = [
   "Lunes",
@@ -807,7 +814,7 @@ export default function CreateActivityView({ navigation, route }: any) {
             // El sapo celebra el guardado. Es el unico momento del wizard con
             // algo que celebrar, y la Fase 0 ya habia puesto aca el check y la
             // haptica: la animacion completa ese gesto en vez de agregar otro.
-            <Sapo estado="happy" tamano={96} />
+            <Sapo estado="happy" tamano={TAMANO_CELEBRACION} />
           ) : (
             <ActivityIndicator size="large" color={colors.secondaryAccent} />
           )}

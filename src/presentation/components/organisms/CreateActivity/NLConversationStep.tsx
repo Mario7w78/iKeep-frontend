@@ -209,6 +209,15 @@ export const NLConversationStep: React.FC<Props> = ({
           crea, que es lo unico que hacia antes. Se ocultan apenas escribe o
           apenas empieza la conversacion, para no competir con lo que esta
           haciendo. */}
+      {/* Antes del primer mensaje hay pantalla de sobra y nada que
+          competir: es donde la mascota puede verse grande. Al arrancar la
+          conversacion desaparece para dejarle el lugar a las respuestas. */}
+      {mostrarSugerencias && (
+        <View style={styles.mascotaGrande}>
+          <Sapo estado="idle" tamano={140} />
+        </View>
+      )}
+
       {mostrarSugerencias && (
         <View style={styles.sugerencias} testID="chat-suggestions">
           {SUGERENCIAS.map((s: string) => (
@@ -265,6 +274,11 @@ const SUGERENCIAS = [
 
 function createStyles(colors: ThemeColors, _comfyColors: Record<string, string>, _comfyFontColors: Record<string, string>) {
   return StyleSheet.create({
+    mascotaGrande: {
+      alignItems: "center",
+      justifyContent: "center",
+      paddingBottom: 4,
+    },
     sugerencias: {
       flexDirection: 'row',
       flexWrap: 'wrap',

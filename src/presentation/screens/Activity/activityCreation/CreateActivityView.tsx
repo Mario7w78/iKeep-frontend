@@ -220,9 +220,9 @@ export default function CreateActivityView({ navigation, route }: any) {
       const act = existingActivity;
       setActivityId(act.id);
       setActivityName(act.title);
-      // handleSetIdentity auto-set. isFixed según identidad (ej: "clase" → fijo),
-      // pero al editar la actividad puede tener identidad "clase" sin ser fija.
-      // Primero identity, después isFixed para que este último prevalezca.
+      // El orden ya no importa: la identidad dejo de arrastrar el
+      // comportamiento, asi que una clase puede ser flexible y una tarea
+      // puede tener hora fija, que es como la gente realmente las usa.
       setIdentity(act.identity);
       setIsFixed(act.isFixed());
       setPriority(act.priority === 5 ? "alta" : act.priority === 3 ? "media" : "baja");

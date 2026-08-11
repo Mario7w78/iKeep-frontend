@@ -7,6 +7,11 @@ import { timeType } from "../../domain/entities/activity.types";
 import { useActivityStore, useScheduleStore } from "../../di/Dependencies";
 import { PartitionConfig } from "../../domain/entities/activity.types";
 import { saveActivityProps } from "./props";
+import {
+  aBanderas,
+  ComportamientoActividad,
+  desdeBanderas,
+} from "../../domain/entities/activityBehavior";
 
 export default function useTimeForm() {
   const [activityName, setActivityName] = useState("");
@@ -66,9 +71,16 @@ export default function useTimeForm() {
 
   const handleSetIsFixed = (fixed: boolean) => {
     setIsFixed(fixed);
+    // Ya no se tocan prioridad ni dificultad. Antes pasar a fija las ponia en
+    // "alta" y "media" pisando lo que el usuario habia elegido, sin avisar y
+    // ademas ocultando la seccion donde las habia elegido: el usuario volvia
+    // y encontraba otros valores sin saber por que.
+    //
+    // Lo que sigue si corresponde: es una conversion de representacion, no
+    // una preferencia. Una actividad fija describe su tiempo con inicio y
+    // fin; una flexible, con una duracion. Al cambiar de una a otra hay que
+    // derivar el dato que falta del que sobra.
     if (fixed) {
-      setPriority("alta");
-      setDifficulty("media");
       setPartitions((prev) =>
         prev.map((p) => ({
           ...p,
@@ -88,13 +100,33 @@ export default function useTimeForm() {
     }
   };
 
+  /**
+   * La identidad es solo una etiqueta: icono y color.
+   *
+   * Antes elegir "Clase" ponia la actividad en fija y "Tarea" en flexible, de
+   * forma invisible. Eso convertia una eleccion estetica en una decision de
+   * comportamiento, y dejaba al usuario sin forma de tener una clase flexible
+   * o una tarea a hora fija, que son casos perfectamente normales.
+   */
   const handleSetIdentity = (newIdentity: "clase" | "trabajo" | "tarea") => {
     setIdentity(newIdentity);
-    if (newIdentity === "tarea") {
-      handleSetIsFixed(false);
-    } else if (newIdentity === "clase") {
-      handleSetIsFixed(true);
-    }
+  };
+
+  /**
+   * El eje unico, derivado de las dos banderas que espera el solver.
+   *
+   * Se expone asi para que el formulario haga una sola pregunta en vez de
+   * dos, sin tener que cambiar como se guarda la actividad.
+   */
+  const comportamiento = desdeBanderas(isFixed, isAnchor);
+
+  const setComportamiento = (nuevo: ComportamientoActividad) => {
+    const banderas = aBanderas(nuevo);
+    // handleSetIsFixed y no setIsFixed: al cambiar entre hora fija y las
+    // otras hay que convertir la representacion del tiempo, que es lo unico
+    // que ese metodo sigue haciendo.
+    handleSetIsFixed(banderas.isFixed);
+    setIsAnchor(banderas.isAnchor);
   };
 
   const updateActivePartition = (updates: Partial<PartitionConfig>, index?: number) => {
@@ -519,6 +551,8 @@ export default function useTimeForm() {
     optionalDay,
     setActivityName,
     setIsFixed: handleSetIsFixed,
+    comportamiento,
+    setComportamiento,
     setIdentity: handleSetIdentity,
     setPriority,
     setDifficulty,

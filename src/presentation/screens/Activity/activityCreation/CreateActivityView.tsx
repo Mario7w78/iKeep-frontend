@@ -35,6 +35,8 @@ import { TimesAndReviewStep } from "../../../components/organisms/CreateActivity
 import { useFormErrors, CampoConError } from "../../../hooks/useFormErrors";
 import { WhatAndWhenStep } from "../../../components/organisms/CreateActivity/WhatAndWhenStep";
 import { useWizardDraftStore } from "../../../../infrastructure/store/useWizardDraftStore";
+import { wizardStateToParsed } from "../../../../application/mappers/wizardStateToParsed";
+import { useChatStore } from "../../../../di/Dependencies";
 
 const TOTAL_STEPS = 2;
 const SHEET_HEIGHT = Dimensions.get("window").height * 0.88;
@@ -65,6 +67,8 @@ export default function CreateActivityView({ navigation, route }: any) {
   const insets = useSafeAreaInsets();
   const { activities } = useActivityStore();
   const activityIdParam = route.params?.activityId;
+  /** El mensaje del chat cuya propuesta se vino a ajustar, si vino de ahi. */
+  const origenChatId = route.params?.origenChatId;
 
   const existingActivity = useMemo(() => {
     if (!activityIdParam) return null;
@@ -510,12 +514,23 @@ export default function CreateActivityView({ navigation, route }: any) {
   const { guardar: guardarBorrador, recuperar: recuperarBorrador, limpiar: limpiarBorrador } =
     useWizardDraftStore();
 
+  const resolverPropuestaDesdeWizard = useChatStore((s: any) => s.resolverPropuestaDesdeWizard);
+
   // Solo al crear. Editando ya hay una actividad de la cual partir, y
   // restaurar encima seria mezclar dos cosas distintas.
   const esCreacion = !activityIdParam;
 
+  /**
+   * Viniendo del chat si se restaura encima de una actividad existente.
+   *
+   * No es mezclar dos cosas: la propuesta describe justamente como deberia
+   * quedar esa actividad. Sin esto, ajustar una modificacion abria el
+   * formulario con los valores viejos y perdia lo que el asistente entendio.
+   */
+  const restauraBorrador = esCreacion || !!origenChatId;
+
   useEffect(() => {
-    if (!esCreacion) return;
+    if (!restauraBorrador) return;
     const previo = recuperarBorrador();
     if (!previo) return;
 
@@ -673,6 +688,25 @@ export default function CreateActivityView({ navigation, route }: any) {
       // Until now the sheet just vanished, with no sign the save had worked.
       // Hold the overlay on a confirmation beat before dismissing.
       setJustSaved(true);
+
+      // Cerrar la propuesta del chat es parte de guardar, no un extra: si la
+      // tarjeta queda pendiente con los valores viejos, confirmarla crea una
+      // segunda actividad identica a la que se acaba de guardar.
+      if (origenChatId) {
+        resolverPropuestaDesdeWizard(
+          origenChatId,
+          wizardStateToParsed({
+            activityName,
+            identity,
+            comportamiento,
+            selectedDays,
+            daysDict,
+            difficulty,
+            priority,
+          })
+        );
+      }
+
       // La actividad ya existe: conservar el borrador haria que la proxima
       // creacion arrancara con los datos de esta.
       limpiarBorrador();

@@ -44,6 +44,8 @@ export interface ChatStoreState {
   cancelMessage: () => void;
   retry: () => void;
   confirmPendingActivity: (messageId: string) => Promise<void>;
+  /** Cierra una propuesta que el usuario termino de ajustar en el wizard. */
+  resolverPropuestaDesdeWizard: (messageId: string, cambios: Record<string, any>) => void;
   cancelPendingActivity: (messageId: string) => void;
 }
 
@@ -746,6 +748,56 @@ export function createChatStore(
           isThinking: false,
         });
       }
+    },
+
+    /**
+     * La propuesta ya no esta pendiente: el usuario la termino en el wizard.
+     *
+     * Sin esto la tarjeta se quedaba con los valores viejos y con los botones
+     * vivos, asi que confirmarla creaba una segunda actividad identica a la
+     * que el formulario acababa de guardar.
+     *
+     * Se actualiza `parsedState` ademas de marcarla confirmada porque la
+     * tarjeta dibuja desde ahi: mostrarla como hecha pero con los datos que el
+     * usuario justo corrigio seria mentirle.
+     */
+    resolverPropuestaDesdeWizard: (messageId, cambios) => {
+      const msg = get().messages.find((m) => m.id === messageId);
+      if (!msg || !msg.pendingActivity) return;
+
+      const yaCerrada = msg.isConfirmed || msg.isCancelled;
+
+      set({
+        messages: get().messages.map((m) =>
+          m.id === messageId
+            ? {
+                ...m,
+                isConfirmed: true,
+                pendingActivity: {
+                  ...m.pendingActivity,
+                  parsedState: { ...m.pendingActivity.parsedState, ...cambios },
+                },
+              }
+            : m
+        ),
+      });
+
+      // Si ya estaba cerrada, el usuario no hizo nada nuevo desde el chat:
+      // avisar otra vez seria ruido.
+      if (yaCerrada) return;
+
+      set({
+        messages: [
+          ...get().messages,
+          {
+            id: `wizard-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+            role: 'assistant',
+            content: '¡Listo! La guardé con los ajustes que hiciste.',
+            timestamp: Date.now(),
+            isCreated: true,
+          } as ChatMessage,
+        ],
+      });
     },
 
     confirmPendingActivity: async (messageId: string) => {

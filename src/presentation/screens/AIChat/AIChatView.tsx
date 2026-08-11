@@ -30,7 +30,16 @@ export default function AIChatView({ navigation }: any) {
     if (!parsedState) return;
 
     guardarBorrador(formStateToDraft(parsedState));
-    navigation.navigate("CreateActivityModal");
+
+    // Si la propuesta era sobre una actividad que ya existe, el wizard tiene
+    // que abrirla y no crear otra: sin esto, ajustar una modificacion
+    // terminaba en dos actividades con el mismo nombre.
+    navigation.navigate("CreateActivityModal", {
+      origenChatId: messageId,
+      activityId: mensaje?.pendingActivity?.isModification
+        ? mensaje.pendingActivity.id
+        : undefined,
+    });
   };
 
   const messages = useChatStore((s) => s.messages);

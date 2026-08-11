@@ -23,7 +23,17 @@ import AIChatView from "../screens/AIChat/AIChatView";
 
 export type RootStackParamList = {
   MainTabs: undefined;
-  CreateActivityModal?: { activityId?: string };
+  CreateActivityModal?: {
+    activityId?: string;
+    /**
+     * El mensaje del chat cuya propuesta se vino a ajustar.
+     *
+     * Va por parametro y no por el borrador persistido a proposito: el
+     * vinculo con un mensaje concreto no deberia sobrevivir a un reinicio de
+     * la app, aunque los valores si.
+     */
+    origenChatId?: string;
+  };
   ManageActivities: undefined;
   AIChatView: undefined;
 };

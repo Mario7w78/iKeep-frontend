@@ -7,13 +7,20 @@
  * exista, sin tocar quien la usa.
  */
 
+// El mock reenvia el ref y expone play(): el componente lo usa para
+// reproducir solo un tramo, y sin eso el render explota.
 jest.mock('lottie-react-native', () => {
   const React = require('react');
   const { View } = require('react-native');
-  return {
-    __esModule: true,
-    default: (props: any) => React.createElement(View, { ...props, testID: props.testID }),
-  };
+  const Mock = React.forwardRef((props: any, ref: any) => {
+    React.useImperativeHandle(ref, () => ({
+      play: jest.fn(),
+      pause: jest.fn(),
+      reset: jest.fn(),
+    }));
+    return React.createElement(View, { ...props, testID: props.testID });
+  });
+  return { __esModule: true, default: Mock };
 });
 
 import React from 'react';
@@ -21,7 +28,7 @@ import { StyleSheet } from 'react-native';
 import { render } from '@testing-library/react-native';
 
 import { Sapo } from '../Sapo';
-import { animacionDe, ESTADOS_CON_ANIMACION, esEnBucle } from '../sapoStates';
+import { animacionDe, ESTADOS_CON_ANIMACION, esEnBucle, rangoDe } from '../sapoStates';
 
 describe('animacionDe', () => {
   it('devuelve la animación propia cuando existe', () => {
@@ -127,5 +134,33 @@ describe('Sapo sin animar', () => {
     const vista = await render(<Sapo estado="idle" />);
 
     expect(vista.getByTestId('sapo').props.progress).toBeUndefined();
+  });
+});
+
+describe('recorte de la celebracion', () => {
+  it('la celebracion declara el tramo util', () => {
+    /** success dura 7s pero la celebracion ocurre en los primeros 3: el
+     *  resto son pausas y el personaje volviendo a su pose. */
+    expect(rangoDe('happy')).toEqual([0, 192]);
+    expect(rangoDe('celebrating')).toEqual([0, 192]);
+  });
+
+  it('los demas estados se reproducen enteros', () => {
+    expect(rangoDe('idle')).toBeNull();
+    expect(rangoDe('waving')).toBeNull();
+  });
+
+  it('un estado con rango no usa autoPlay', async () => {
+    /** autoPlay siempre va del frame 0 al final, que es justo lo que hay
+     *  que evitar cuando el archivo trae cola larga. */
+    const vista = await render(<Sapo estado="happy" />);
+
+    expect(vista.getByTestId('sapo').props.autoPlay).toBe(false);
+  });
+
+  it('un estado sin rango si lo usa', async () => {
+    const vista = await render(<Sapo estado="waving" />);
+
+    expect(vista.getByTestId('sapo').props.autoPlay).toBe(true);
   });
 });

@@ -48,6 +48,28 @@ const ANIMACIONES: Partial<Record<SapoState, unknown>> = {
  */
 const EN_BUCLE: SapoState[] = ['idle', 'thinking', 'sleeping'];
 
+/**
+ * Tramo de la animación que se reproduce, en frames.
+ *
+ * `success` dura 7 segundos pero la celebración ocurre en los primeros 3: el
+ * resto es un remate ralo, con pausas de más de medio segundo donde nada se
+ * mueve, y el personaje volviendo despacio a su pose inicial. En la
+ * previsualización de la herramienta no se nota porque ahí loopea y la cola
+ * enlaza con el principio; suelta, se ve como si la animación se trabara y se
+ * desarmara.
+ *
+ * Recortar aquí y no en el archivo deja el original intacto: si mañana se
+ * reexporta más corta, se borra esta entrada y nada más cambia.
+ */
+const RANGOS: Partial<Record<SapoState, [number, number]>> = {
+  happy: [0, 192],
+  celebrating: [0, 192],
+};
+
+export function rangoDe(estado: SapoState): [number, number] | null {
+  return RANGOS[estado] ?? null;
+}
+
 export function animacionDe(estado: SapoState): unknown {
   return ANIMACIONES[estado] ?? idle;
 }

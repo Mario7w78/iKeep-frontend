@@ -1,8 +1,8 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { StyleProp, ViewStyle } from 'react-native';
 import LottieView from 'lottie-react-native';
 
-import { animacionDe, esEnBucle, SapoState } from './sapoStates';
+import { animacionDe, esEnBucle, rangoDe, SapoState } from './sapoStates';
 
 interface Props {
   /** Qué está haciendo la mascota. Los estados sin animación caen a reposo. */
@@ -46,13 +46,25 @@ export const Sapo: React.FC<Props> = ({
 }) => {
   const fuente = useMemo(() => animacionDe(estado), [estado]);
   const enBucle = esEnBucle(estado);
+  const rango = rangoDe(estado);
+  const ref = useRef<LottieView>(null);
+
+  // Con rango se reproduce a mano en vez de con autoPlay: autoPlay siempre
+  // arranca desde el frame 0 hasta el final, que es justo lo que hay que
+  // evitar cuando el archivo trae una cola larga.
+  useEffect(() => {
+    if (animar && rango) {
+      ref.current?.play(rango[0], rango[1]);
+    }
+  }, [animar, estado]);
 
   return (
     <LottieView
       key={estado}
+      ref={ref}
       testID={testID}
       source={fuente as any}
-      autoPlay={animar}
+      autoPlay={animar && !rango}
       loop={animar && enBucle}
       // progress fija el cuadro cuando no se anima; sin esto quedaria en
       // negro hasta que algo lo reprodujera.

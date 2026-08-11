@@ -100,3 +100,72 @@ describe('limpiar', () => {
     expect(useWizardDraftStore.getState().recuperar()).toBeNull();
   });
 });
+
+describe('las horas de los turnos', () => {
+  /**
+   * El borrador viaja por AsyncStorage, asi que pasa por JSON y los Date
+   * llegan como texto ISO. El DateTimePicker exige un Date de verdad: con el
+   * texto crudo revienta con "`value` prop must be an instance of Date
+   * object" en cuanto el usuario toca una hora.
+   */
+  const CON_TURNOS = {
+    ...BASE,
+    daysDict: {
+      Martes: {
+        groupId: 1,
+        partitions: [
+          {
+            startHour: '2026-08-11T15:00:00.000Z',
+            endHour: '2026-08-11T17:00:00.000Z',
+            durationTime: 120,
+          },
+        ],
+      },
+    },
+  };
+
+  it('vuelven a ser Date y no texto', () => {
+    useWizardDraftStore.getState().guardar(CON_TURNOS);
+
+    const particion = useWizardDraftStore.getState().recuperar()!.daysDict.Martes
+      .partitions[0];
+
+    expect(particion.startHour).toBeInstanceOf(Date);
+    expect(particion.endHour).toBeInstanceOf(Date);
+  });
+
+  it('conservan la hora que representaban', () => {
+    useWizardDraftStore.getState().guardar(CON_TURNOS);
+
+    const particion = useWizardDraftStore.getState().recuperar()!.daysDict.Martes
+      .partitions[0];
+
+    expect(particion.startHour.toISOString()).toBe('2026-08-11T15:00:00.000Z');
+  });
+
+  it('un Date que nunca se serializo sigue siendo Date', () => {
+    // El puente del chat guarda y recupera sin pasar por disco.
+    useWizardDraftStore.getState().guardar({
+      ...BASE,
+      daysDict: {
+        Martes: {
+          groupId: 1,
+          partitions: [
+            { startHour: new Date(), endHour: new Date(), durationTime: 60 },
+          ],
+        },
+      },
+    });
+
+    const particion = useWizardDraftStore.getState().recuperar()!.daysDict.Martes
+      .partitions[0];
+
+    expect(particion.startHour).toBeInstanceOf(Date);
+  });
+
+  it('sin dias configurados no rompe', () => {
+    useWizardDraftStore.getState().guardar(BASE);
+
+    expect(useWizardDraftStore.getState().recuperar()!.daysDict).toEqual({});
+  });
+});

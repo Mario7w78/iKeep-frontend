@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { ComportamientoActividad } from '../../domain/entities/activityBehavior';
+import { restoreDaysConfig } from '../repositories/daysConfigMapper';
 
 /**
  * Lo que el usuario llevaba escrito en el wizard.
@@ -70,7 +71,17 @@ export const useWizardDraftStore = create<WizardDraftState>()(
           return null;
         }
 
-        return actual;
+        // Las horas de los turnos vuelven a ser Date antes de salir de acá.
+        // El borrador viaja por AsyncStorage, así que pasa por JSON y los
+        // Date llegan como texto ISO. El DateTimePicker exige un Date de
+        // verdad: con el texto crudo revienta al tocar una hora.
+        //
+        // Se restaura en el store y no en quien lo consume porque olvidarlo
+        // es justamente lo que pasó, y acá hay un solo lugar donde hacerlo.
+        return {
+          ...actual,
+          daysDict: restoreDaysConfig(actual.daysDict) as Record<string, any>,
+        };
       },
 
       limpiar: () => set({ borrador: null }),

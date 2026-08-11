@@ -35,6 +35,7 @@ import TimeConfigStep from "../../../components/organisms/CreateActivity/TimeCon
 import SummaryStep from "../../../components/organisms/CreateActivity/SummaryStep";
 import { useFormErrors, CampoConError } from "../../../hooks/useFormErrors";
 import { WhatAndWhenStep } from "../../../components/organisms/CreateActivity/WhatAndWhenStep";
+import { useWizardDraftStore } from "../../../../infrastructure/store/useWizardDraftStore";
 
 const TOTAL_STEPS = 3;
 const SHEET_HEIGHT = Dimensions.get("window").height * 0.88;
@@ -520,6 +521,60 @@ export default function CreateActivityView({ navigation, route }: any) {
     setStep((s) => Math.max(s - 1, 1));
   };
 
+  const { guardar: guardarBorrador, recuperar: recuperarBorrador, limpiar: limpiarBorrador } =
+    useWizardDraftStore();
+
+  // Solo al crear. Editando ya hay una actividad de la cual partir, y
+  // restaurar encima seria mezclar dos cosas distintas.
+  const esCreacion = !activityIdParam;
+
+  useEffect(() => {
+    if (!esCreacion) return;
+    const previo = recuperarBorrador();
+    if (!previo) return;
+
+    setActivityName(previo.activityName);
+    setIdentity(previo.identity);
+    setComportamiento(previo.comportamiento);
+    setSelectedDays(previo.selectedDays as DayOfWeek[]);
+    setDaysDict(previo.daysDict);
+    setDifficulty(previo.difficulty);
+    setPriority(previo.priority);
+    setDeadline(previo.deadline ? new Date(previo.deadline) : null);
+    // Solo al montar: reaplicarlo en cada cambio pisaria lo que el usuario
+    // acaba de escribir con lo que habia guardado antes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!esCreacion) return;
+    // Sin nombre no hay nada que valga la pena restaurar, y guardar un
+    // formulario vacio haria que la proxima apertura ofreciera basura.
+    if (!activityName.trim()) return;
+
+    guardarBorrador({
+      activityName,
+      identity,
+      comportamiento,
+      selectedDays,
+      daysDict,
+      difficulty,
+      priority,
+      deadline: deadline ? deadline.toISOString() : null,
+    });
+  }, [
+    esCreacion,
+    activityName,
+    identity,
+    comportamiento,
+    selectedDays,
+    daysDict,
+    difficulty,
+    priority,
+    deadline,
+    guardarBorrador,
+  ]);
+
   const isDirty = useMemo(() => {
     if (activityIdParam) {
       // Editing: treat a renamed activity or any forward navigation as work
@@ -534,8 +589,19 @@ export default function CreateActivityView({ navigation, route }: any) {
       closeSheet();
       return;
     }
+
+    // Al crear, cerrar dejo de ser destructivo: el borrador queda guardado y
+    // al volver esta todo donde estaba. Preguntar aqui —y avisar de una
+    // perdida que no ocurre— seria un obstaculo sobre algo que ya no pasa.
+    if (!activityIdParam) {
+      closeSheet();
+      return;
+    }
+
+    // Editando si se pierde: el borrador solo cubre la creacion, porque
+    // restaurarlo sobre una actividad existente mezclaria dos cosas.
     Alert.alert(
-      activityIdParam ? "¿Descartar los cambios?" : "¿Descartar la actividad?",
+      "¿Descartar los cambios?",
       "Perderás lo que llevas configurado.",
       [
         { text: "Seguir editando", style: "cancel" },
@@ -621,6 +687,9 @@ export default function CreateActivityView({ navigation, route }: any) {
       // Until now the sheet just vanished, with no sign the save had worked.
       // Hold the overlay on a confirmation beat before dismissing.
       setJustSaved(true);
+      // La actividad ya existe: conservar el borrador haria que la proxima
+      // creacion arrancara con los datos de esta.
+      limpiarBorrador();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
       setTimeout(closeSheet, SUCCESS_FEEDBACK_MS);
     } catch (e) {

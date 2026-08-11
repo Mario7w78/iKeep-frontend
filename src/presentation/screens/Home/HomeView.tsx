@@ -20,6 +20,10 @@ import { ScheduledActivity } from "../../../domain/entities/Schedule";
 import { JS_DAY_TO_DAYOFWEEK } from "../../utils/scheduleUtils";
 import { useTheme } from "../../components/theme/colors";
 import { Sapo } from "../../components/atoms/Mascot/Sapo";
+import { DailyProgress } from "../../components/atoms/Rewards/DailyProgress";
+import { CompleteToggle } from "../../components/atoms/Rewards/CompleteToggle";
+import { StreakBadge } from "../../components/atoms/Rewards/StreakBadge";
+import { useRewardsStore } from "../../../infrastructure/store/useRewardsStore";
 import { ActivityDetailModal } from "../../components/organisms/Schedule/ActivityDetailModal";
 import {
   saveEnergyRecord,
@@ -91,6 +95,18 @@ export default function HomeView() {
   const perDayStartHours = useScheduleStore((s) => s.perDayStartHours);
   const activities = useActivityStore((s) => s.activities);
   const loadActivities = useActivityStore((s) => s.loadActivities);
+  const racha = useRewardsStore((s) => s.racha);
+  const progreso = useRewardsStore((s) => s.progreso);
+  const cargarLogros = useRewardsStore((s) => s.cargar);
+  const completadas = useRewardsStore((s) => s.progreso.completadosIds);
+  const alternarCompletada = useRewardsStore((s) => s.alternar);
+
+  // Al montar y nada mas: la racha cambia cuando el usuario marca algo, y
+  // ese camino ya recarga por su cuenta.
+  useEffect(() => {
+    cargarLogros();
+  }, [cargarLogros]);
+
   const [energyIndex, setEnergyIndex] = useState(0);
   const [savedEnergyIndex, setSavedEnergyIndex] = useState(0);
   const [selectedActivity, setSelectedActivity] = useState<ScheduledActivity | null>(null);
@@ -349,6 +365,17 @@ export default function HomeView() {
             <Text style={styles.title}>Hola, {username || "Usuario"}. Tu día está listo.</Text>
             <Text style={styles.date}>{dayFormatter.format(new Date())}</Text>
           </View>
+          {/* La racha vive en el encabezado y no en una pantalla aparte: si
+              hay que ir a buscarla, deja de ser un motivo para volver. */}
+          <StreakBadge dias={racha.actual} enRiesgo={racha.enRiesgo} />
+        </View>
+
+        <View style={styles.progresoDelDia}>
+          <DailyProgress
+            completadas={progreso.completadas}
+            total={progreso.total}
+            fraccion={progreso.fraccion}
+          />
         </View>
 
         <LinearGradient
@@ -520,11 +547,30 @@ export default function HomeView() {
                     activeOpacity={0.75}
                     onPress={() => item.activity && setSelectedActivity(item)}
                   >
-                    <View>
+                    {/* La casilla va acá y no en una pantalla aparte: se
+                        marca al pasar, muchas veces caminando. Si hay que
+                        entrar a buscarla, no se marca nada. */}
+                    {item.activity && (
+                      <CompleteToggle
+                        completada={completadas.includes(String(item.activity.id))}
+                        nombre={item.activity.title}
+                        onToggle={() => alternarCompletada(String(item.activity!.id))}
+                      />
+                    )}
+                    <View style={{ flex: 1 }}>
                       <Text style={styles.nextTime}>
                         {item.assignedStartTime} - {item.assignedEndTime}
                       </Text>
-                      <Text style={styles.nextTitle}>{item.activity?.title ?? (item.tipo === 'trabajo' || item.tipo === 'viaje' ? '🚗 Viaje' : 'Actividad')}</Text>
+                      <Text
+                        style={[
+                          styles.nextTitle,
+                          item.activity &&
+                            completadas.includes(String(item.activity.id)) &&
+                            styles.nextTitleHecha,
+                        ]}
+                      >
+                        {item.activity?.title ?? (item.tipo === 'trabajo' || item.tipo === 'viaje' ? '🚗 Viaje' : 'Actividad')}
+                      </Text>
                     </View>
                     <Ionicons name="chevron-forward" size={20} color={colors.iconSecondary} />
                   </TouchableOpacity>
@@ -606,6 +652,13 @@ const createStyles = (
   safe: {
     flex: 1,
     backgroundColor: colors.screenBackground,
+  },
+  progresoDelDia: {
+    marginBottom: 18,
+  },
+  nextTitleHecha: {
+    textDecorationLine: 'line-through',
+    opacity: 0.55,
   },
   content: {
     paddingHorizontal: 20,
@@ -877,7 +930,9 @@ const createStyles = (
     paddingVertical: 12,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    // Con la casilla delante, el hueco lo pone el gap y no el space-between:
+    // asi el titulo se queda pegado a su casilla en vez de irse al centro.
+    gap: 12,
   },
   nextDayLabel: {
     color: comfyColors.skyBlue,

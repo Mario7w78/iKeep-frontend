@@ -223,7 +223,11 @@ export default function CreateActivityView({ navigation, route }: any) {
     setDayFrom,
     setDayTo,
     setIsAnchor,
-  } = useTimeForm();
+  } = useTimeForm(
+    // Los errores de validacion del hook van al mismo lugar que los de la
+    // pantalla: bajo el campo, y no a un popup que tapa lo que hay que ver.
+    (campo, mensaje) => formErrors.setError(campo, mensaje),
+  );
 
   // Load existing activity for editing
   useEffect(() => {

@@ -12,8 +12,19 @@ import {
   ComportamientoActividad,
   desdeBanderas,
 } from "../../domain/entities/activityBehavior";
+import { CampoConError } from "./useFormErrors";
 
-export default function useTimeForm() {
+/**
+ * @param reportarError Donde mostrar los errores de validacion. Por defecto
+ *   sigue siendo Alert.alert, para que cualquier llamador que no lo pase no
+ *   cambie de comportamiento. La pantalla de crear actividad le pasa el
+ *   reportador de errores por campo, que los deja bajo el control afectado en
+ *   vez de taparlos con un popup que desaparece al tocarlo.
+ */
+export default function useTimeForm(
+  reportarError: (campo: CampoConError, mensaje: string) => void = (_campo, mensaje) =>
+    Alert.alert("Atención", mensaje),
+) {
   const [activityName, setActivityName] = useState("");
   const [activityId, setActivityId] = useState<string | null>(null);
   const [isFixed, setIsFixed] = useState(true);
@@ -265,7 +276,7 @@ export default function useTimeForm() {
         if (sMin === eMin) {
           const errorMsg = `El horario del día ${days.join(", ")} empieza y termina a la misma hora (${formatTime(new Date(parts[i].startHour))}). Ajusta la hora de fin.`;
           if (silent) throw new Error(errorMsg);
-          Alert.alert("Atención", errorMsg);
+          reportarError("horario", errorMsg);
           return false;
         }
 
@@ -275,7 +286,7 @@ export default function useTimeForm() {
           if (areOverlapping(sMin, eMin, sMin2, eMin2)) {
             const errorMsg = `Los bloques horarios para el día ${days.join(", ")} no pueden superponerse.`;
             if (silent) throw new Error(errorMsg);
-            Alert.alert("Atención", errorMsg);
+            reportarError("horario", errorMsg);
             return false;
           }
         }
@@ -331,7 +342,7 @@ export default function useTimeForm() {
             if (partStart < itemEnd && partEnd > itemStart) {
               const errorMsg = `El horario del día ${day} (${formatTime(part.startHour)} - ${formatTime(part.endHour)}) se superpone con la actividad ya establecida "${item.activity?.title ?? 'Actividad sin nombre'}" (${item.assignedStartTime} - ${item.assignedEndTime}).`;
               if (silent) throw new Error(errorMsg);
-              Alert.alert("Conflicto de Horario", errorMsg);
+              reportarError("horario", errorMsg);
               return false;
             }
           }
@@ -384,7 +395,7 @@ export default function useTimeForm() {
               : "";
             const errorMsg = `La ventana preferida el día ${day} (${minutesToTimeStr(prefStart)} - ${minutesToTimeStr(prefEnd)}) no deja suficiente tiempo libre para realizar la actividad (${duration} min)${overlapText}.`;
             if (silent) throw new Error(errorMsg);
-            Alert.alert("Conflicto de Horario", errorMsg);
+            reportarError("ventana", errorMsg);
             return false;
           }
         }
@@ -417,14 +428,14 @@ export default function useTimeForm() {
     if (!finalName.trim()) {
       const errorMsg = "Ingresa un nombre para la actividad";
       if (silent) throw new Error(errorMsg);
-      Alert.alert("Atención", errorMsg);
+      reportarError("nombre", errorMsg);
       return;
     }
 
     if (configuredDays.length === 0) {
       const errorMsg = "Guarda la configuración de al menos un día";
       if (silent) throw new Error(errorMsg);
-      Alert.alert("Atención", errorMsg);
+      reportarError("nombre", errorMsg);
       return;
     }
 
@@ -460,7 +471,7 @@ export default function useTimeForm() {
         if (calculateDurationAcrossMidnight(prefStart, prefEnd) < partDuration) {
           const errorMsg = `La ventana preferida del ${day} es más corta que la duración estimada de la actividad en ese día.`;
           if (silent) throw new Error(errorMsg);
-          Alert.alert("Atención", errorMsg);
+          reportarError("horario", errorMsg);
           return;
         }
       }

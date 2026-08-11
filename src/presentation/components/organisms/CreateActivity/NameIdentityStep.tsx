@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo } from "react";
 import { View, Text, TextInput, ScrollView, StyleSheet, TouchableOpacity, Switch } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme, ThemeColors } from "../../theme/colors";
+import { BehaviorSelector } from "../../molecules/CreateActivity/BehaviorSelector";
+import { ComportamientoActividad } from "../../../../domain/entities/activityBehavior";
 
 type NameIdentityStepProps = {
   activityName: string;
@@ -13,6 +15,8 @@ type NameIdentityStepProps = {
   onSetActivityName: (name: string) => void;
   onSetIdentity: (identity: "clase" | "trabajo" | "tarea") => void;
   onSetIsFixed: (fixed: boolean) => void;
+  comportamiento: ComportamientoActividad;
+  onSetComportamiento: (valor: ComportamientoActividad) => void;
   onSetDifficulty: (difficulty: "baja" | "media" | "alta") => void;
   onSetPriority: (priority: "baja" | "media" | "alta") => void;
   onSetDeadline: (deadline: Date | null) => void;
@@ -172,6 +176,8 @@ export default function NameIdentityStep({
   onSetActivityName,
   onSetIdentity,
   onSetIsFixed,
+  comportamiento,
+  onSetComportamiento,
   onSetDifficulty,
   onSetPriority,
   onSetDeadline,
@@ -284,50 +290,17 @@ export default function NameIdentityStep({
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.sectionTitle}>Tipo de actividad</Text>
-      <View style={styles.twoColumnGrid}>
-        <TouchableOpacity
-          style={[
-            styles.card,
-            isFixed && styles.cardSelected,
-            identity === "clase" && styles.cardDisabled,
-          ]}
-          disabled={identity === "clase"}
-          onPress={() => {
-            onSetIsFixed(true);
-            onSetDifficulty("media");
-            onSetPriority("alta");
-          }}
-        >
-          <Ionicons
-            name="time-outline"
-            size={26}
-            color={isFixed ? colors.secondaryAccentText : colors.iconPrimary}
-          />
-          <Text style={[styles.cardTitle, isFixed && styles.cardTitleSelected]}>Fijo</Text>
-          <Text style={[styles.cardDesc, isFixed && { color: colors.secondaryAccentText }]}>Anclado a una hora</Text>
-        </TouchableOpacity>
+      {/* Antes habia dos tarjetas, "Fijo" y "Optimizable", que ademas se
+          deshabilitaban si la identidad era "clase" y al tocarlas escribian
+          prioridad y dificultad por su cuenta. El selector unico reemplaza a
+          eso y al toggle "Anclaje de dia" que vivia mucho mas abajo diciendo
+          lo contrario. */}
+      <BehaviorSelector valor={comportamiento} onChange={onSetComportamiento} />
 
-        <TouchableOpacity
-          style={[
-            styles.card,
-            !isFixed && styles.cardSelected,
-            identity === "clase" && styles.cardDisabled,
-          ]}
-          disabled={identity === "clase"}
-          onPress={() => onSetIsFixed(false)}
-        >
-          <Ionicons
-            name="sparkles-outline"
-            size={26}
-            color={!isFixed ? colors.secondaryAccentText : colors.iconPrimary}
-          />
-          <Text style={[styles.cardTitle, !isFixed && styles.cardTitleSelected]}>Optimizable</Text>
-          <Text style={[styles.cardDesc, !isFixed && { color: colors.secondaryAccentText }]}>Mejor ubicación</Text>
-        </TouchableOpacity>
-      </View>
-
-      {!isFixed && (
+      {/* La dificultad se muestra siempre. Antes desaparecia al pasar a
+          fija, justo despues de que el codigo se la hubiera reescrito:
+          el usuario perdia el valor y ademas el control donde verlo. */}
+      {true && (
         <>
           <Text style={styles.sectionTitle}>Dificultad de la actividad</Text>
           <View style={styles.threeColumnGrid}>
@@ -440,37 +413,11 @@ export default function NameIdentityStep({
             </TouchableOpacity>
           </View>
 
-          <View style={styles.divider} />
-
-          {onToggleAnchor && (
-            <>
-              <Text style={styles.sectionTitle}>Anclaje de día</Text>
-              <TouchableOpacity
-                style={[styles.anchorToggle, isAnchor && styles.anchorToggleActive]}
-                activeOpacity={0.7}
-                onPress={() => onToggleAnchor(!isAnchor)}
-              >
-                <Ionicons
-                  name={isAnchor ? "checkmark-circle" : "ellipse-outline"}
-                  size={22}
-                  color={isAnchor ? comfyColors.green : colors.textTertiary}
-                />
-                <View style={styles.anchorToggleText}>
-                  <Text style={[styles.anchorToggleTitle, isAnchor && styles.anchorToggleTitleActive]}>
-                    Día fijo, hora flexible
-                  </Text>
-                  <Text style={styles.anchorToggleSubtitle}>
-                    La actividad se programará obligatoriamente en el día que elijas, pero el planificador elegirá la hora más óptima.
-                  </Text>
-                </View>
-              </TouchableOpacity>
-              {isAnchor && (
-                <Text style={[styles.subtitle, { marginTop: 8, paddingLeft: 4 }]}>
-                  En el próximo paso elige el día específico
-                </Text>
-              )}
-            </>
-          )}
+          {/* El toggle "Anclaje de dia" vivia aca, a ciento cuarenta lineas
+              de la tarjeta "Fijo" que se describia como "anclado a una
+              hora": dos controles con el mismo nombre significando cosas
+              opuestas. Ahora es la opcion "Yo elijo el dia, tu la hora"
+              del selector de arriba. */}
         </>
       )}
 

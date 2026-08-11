@@ -189,6 +189,8 @@ export default function CreateActivityView({ navigation, route }: any) {
     isAnchor,
     setActivityName,
     setIsFixed,
+    comportamiento,
+    setComportamiento,
     setIdentity,
     setPriority,
     setDifficulty,
@@ -658,6 +660,8 @@ export default function CreateActivityView({ navigation, route }: any) {
             onSetActivityName={setActivityName}
             onSetIdentity={setIdentity}
             onSetIsFixed={setIsFixed}
+            comportamiento={comportamiento}
+            onSetComportamiento={setComportamiento}
             onSetDifficulty={setDifficulty}
             onSetPriority={setPriority}
             onSetDeadline={setDeadline}

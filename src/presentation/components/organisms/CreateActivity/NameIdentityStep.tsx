@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme, ThemeColors } from "../../theme/colors";
 import { BehaviorSelector } from "../../molecules/CreateActivity/BehaviorSelector";
 import { ComportamientoActividad } from "../../../../domain/entities/activityBehavior";
+import { FieldError } from "../../atoms/Common/FieldError";
 
 type NameIdentityStepProps = {
   activityName: string;
@@ -15,6 +16,7 @@ type NameIdentityStepProps = {
   onSetActivityName: (name: string) => void;
   onSetIdentity: (identity: "clase" | "trabajo" | "tarea") => void;
   onSetIsFixed: (fixed: boolean) => void;
+  errorNombre?: string;
   comportamiento: ComportamientoActividad;
   onSetComportamiento: (valor: ComportamientoActividad) => void;
   onSetDifficulty: (difficulty: "baja" | "media" | "alta") => void;
@@ -176,6 +178,7 @@ export default function NameIdentityStep({
   onSetActivityName,
   onSetIdentity,
   onSetIsFixed,
+  errorNombre,
   comportamiento,
   onSetComportamiento,
   onSetDifficulty,
@@ -240,6 +243,8 @@ export default function NameIdentityStep({
           autoCorrect={false}
         />
       </View>
+
+      <FieldError mensaje={errorNombre} testID="error-nombre" />
 
       <Text style={styles.sectionTitle}>Identidad de la actividad</Text>
       <View style={styles.threeColumnGrid}>

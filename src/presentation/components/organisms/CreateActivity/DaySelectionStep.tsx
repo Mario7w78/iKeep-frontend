@@ -5,6 +5,7 @@ import { DayOfWeek } from "../../../../domain/entities/Activity";
 import { DayConfig } from "../../../../domain/entities/activity.types";
 import { useTheme, comfyColors } from "../../theme/colors";
 import DayPickerGrid from "../../molecules/CreateActivity/DayPickerGrid";
+import { FieldError } from "../../atoms/Common/FieldError";
 
 type DaySelectionStepProps = {
   selectedDays: DayOfWeek[];
@@ -14,6 +15,7 @@ type DaySelectionStepProps = {
   isAnchor: boolean;
   onSelectDay: (day: DayOfWeek) => void;
   isDayConfigured: (day: DayOfWeek) => boolean;
+  errorDias?: string;
 };
 
 export default function DaySelectionStep({
@@ -24,6 +26,7 @@ export default function DaySelectionStep({
   isAnchor,
   onSelectDay,
   isDayConfigured,
+  errorDias,
 }: DaySelectionStepProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -59,6 +62,10 @@ export default function DaySelectionStep({
         onSelect={onSelectDay}
         isDayConfigured={isDayConfigured}
       />
+
+      {/* Debajo de la grilla y no en un popup: el mensaje se queda mientras
+          el error exista y senala el control al que se refiere. */}
+      <FieldError mensaje={errorDias} testID="error-dias" />
 
       <View style={styles.selectionSummary}>
         <Text style={styles.selectionSummaryText}>

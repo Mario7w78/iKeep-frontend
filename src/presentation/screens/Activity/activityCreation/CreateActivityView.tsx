@@ -33,6 +33,7 @@ import NameIdentityStep from "../../../components/organisms/CreateActivity/NameI
 import DaySelectionStep from "../../../components/organisms/CreateActivity/DaySelectionStep";
 import TimeConfigStep from "../../../components/organisms/CreateActivity/TimeConfigStep";
 import SummaryStep from "../../../components/organisms/CreateActivity/SummaryStep";
+import { useFormErrors, CampoConError } from "../../../hooks/useFormErrors";
 
 const TOTAL_STEPS = 4;
 const SHEET_HEIGHT = Dimensions.get("window").height * 0.88;
@@ -144,8 +145,16 @@ export default function CreateActivityView({ navigation, route }: any) {
     }),
   ).current;
 
-  const showAlert = (text: string) => {
-    Alert.alert("Atención", text);
+  const formErrors = useFormErrors();
+
+  /**
+   * Antes esto era Alert.alert. El popup tapaba la pantalla justo cuando el
+   * usuario necesitaba ver que estaba mal, desaparecia al tocarlo —asi que
+   * habia que reintentar para volver a leerlo— y describia el problema sin
+   * senalar donde estaba.
+   */
+  const showAlert = (text: string, campo: CampoConError = "general") => {
+    formErrors.setError(campo, text);
   };
 
   const {
@@ -320,7 +329,7 @@ export default function CreateActivityView({ navigation, route }: any) {
     }
 
     if (currentSelected.length === 0) {
-      showAlert("Selecciona al menos un día para la actividad");
+      showAlert("Selecciona al menos un día para la actividad", "dias");
       return;
     }
 
@@ -449,7 +458,7 @@ export default function CreateActivityView({ navigation, route }: any) {
   const handlePrimaryPress = () => {
     if (step === 1) {
       if (!activityName.trim()) {
-        showAlert("Ingresa un nombre para la actividad");
+        showAlert("Ingresa un nombre para la actividad", "nombre");
         return;
       }
       setStep(2);
@@ -560,13 +569,13 @@ export default function CreateActivityView({ navigation, route }: any) {
 
   const handleCreate = async () => {
     if (!activityName.trim()) {
-      showAlert("Ingresa un nombre para la actividad");
+      showAlert("Ingresa un nombre para la actividad", "nombre");
       setStep(1);
       return;
     }
 
     if (configuredDays.length === 0) {
-      showAlert("Configura al menos un día antes de crear la actividad");
+      showAlert("Configura al menos un día antes de crear la actividad", "dias");
       setStep(2);
       return;
     }
@@ -657,11 +666,15 @@ export default function CreateActivityView({ navigation, route }: any) {
             difficulty={difficulty}
             priority={priority}
             deadline={deadline}
-            onSetActivityName={setActivityName}
+            onSetActivityName={(texto: string) => {
+              setActivityName(texto);
+              formErrors.limpiar("nombre");
+            }}
             onSetIdentity={setIdentity}
             onSetIsFixed={setIsFixed}
             comportamiento={comportamiento}
             onSetComportamiento={setComportamiento}
+            errorNombre={formErrors.error("nombre")}
             onSetDifficulty={setDifficulty}
             onSetPriority={setPriority}
             onSetDeadline={setDeadline}
@@ -679,6 +692,7 @@ export default function CreateActivityView({ navigation, route }: any) {
             isAnchor={isAnchor}
             onSelectDay={handleSelect}
             isDayConfigured={isDayConfigured}
+            errorDias={formErrors.error("dias")}
           />
         );
       case 3:

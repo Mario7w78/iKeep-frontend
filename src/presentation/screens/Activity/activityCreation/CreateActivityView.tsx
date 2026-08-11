@@ -108,6 +108,27 @@ export default function CreateActivityView({ navigation, route }: any) {
     }).start(() => navigation.goBack());
   };
 
+  /**
+   * La salida al chat.
+   *
+   * No se descarta lo escrito: el borrador ya se guarda solo, asi que volver
+   * al formulario lo encuentra donde estaba. Cambiar de camino no deberia
+   * costar el trabajo hecho.
+   *
+   * Solo al crear. Editando ya hay una actividad concreta, y contarsela al
+   * asistente abriria una segunda en vez de tocar esa.
+   */
+  const irAlAsistente = () => {
+    Animated.timing(translateY, {
+      toValue: SHEET_HEIGHT,
+      duration: 220,
+      useNativeDriver: false,
+    }).start(() => {
+      navigation.goBack();
+      navigation.navigate("AIChatView");
+    });
+  };
+
   // The sheet can be dismissed three ways — the X, the backdrop, and a 130px
   // swipe — and none of them used to warn, so any of the three silently threw
   // away everything the user had entered. There is no draft persistence yet
@@ -755,6 +776,7 @@ export default function CreateActivityView({ navigation, route }: any) {
             onSelectDay={handleSelect}
             isDayConfigured={isDayConfigured}
             errorDias={formErrors.error("dias")}
+            onContarleAlAsistente={activityIdParam ? undefined : irAlAsistente}
           />
         );
       case 2:

@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import NameIdentityStep from './NameIdentityStep';
 import DaySelectionStep from './DaySelectionStep';
@@ -15,6 +15,11 @@ import { ThemeColors, useTheme } from '../../theme/colors';
  *
  * El desplazamiento es uno solo. Cada sección se dibuja embebida, sin su
  * propio ScrollView: anidarlos hacía que el gesto se peleara entre los dos.
+ *
+ * Al pie ofrece la salida al chat. Los dos caminos existían desde el
+ * principio pero incomunicados: quien empezaba a llenar el formulario y se
+ * daba cuenta de que era más rápido contarlo, tenía que cancelar y volver a
+ * entrar por otro lado.
  */
 export const WhatAndWhenStep: React.FC<any> = (props) => {
   const { colors } = useTheme();
@@ -30,6 +35,17 @@ export const WhatAndWhenStep: React.FC<any> = (props) => {
       <NameIdentityStep {...props} embebido />
       <View style={styles.separador} />
       <DaySelectionStep {...props} embebido />
+
+      {props.onContarleAlAsistente && (
+        <TouchableOpacity
+          testID="tell-assistant-link"
+          style={styles.salida}
+          onPress={props.onContarleAlAsistente}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.salidaTexto}>Prefiero contárselo al asistente</Text>
+        </TouchableOpacity>
+      )}
     </ScrollView>
   );
 };
@@ -41,6 +57,18 @@ const createStyles = (colors: ThemeColors) =>
     },
     contenido: {
       paddingBottom: 24,
+    },
+    salida: {
+      alignSelf: 'center',
+      marginTop: 24,
+      paddingVertical: 12,
+      paddingHorizontal: 20,
+    },
+    salidaTexto: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: colors.textSecondary,
+      textDecorationLine: 'underline',
     },
     separador: {
       height: 1,

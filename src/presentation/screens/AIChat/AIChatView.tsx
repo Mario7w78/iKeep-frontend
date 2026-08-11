@@ -4,6 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useChatStore } from '../../../di/Dependencies';
 import { warmUpBackend } from '../../../infrastructure/api/apiConfig';
 import { NLConversationStep } from '../../components/organisms/CreateActivity/NLConversationStep';
+import { useWizardDraftStore } from "../../../infrastructure/store/useWizardDraftStore";
+import { formStateToDraft } from "../../../application/mappers/formStateToDraft";
 
 export default function AIChatView({ navigation }: any) {
   // The backend sleeps after ~15 min of inactivity and takes 20-50s to wake.
@@ -12,6 +14,24 @@ export default function AIChatView({ navigation }: any) {
   useEffect(() => {
     warmUpBackend();
   }, []);
+
+  const guardarBorrador = useWizardDraftStore((s) => s.guardar);
+
+  /**
+   * Abre el wizard con lo que el asistente ya entendio.
+   *
+   * Va por el borrador del wizard en vez de por parametros de navegacion:
+   * ese camino ya existe y el formulario ya sabe restaurarlo, asi que no hace
+   * falta un canal nuevo para lo mismo.
+   */
+  const ajustarEnWizard = (messageId: string) => {
+    const mensaje = useChatStore.getState().messages.find((m: any) => m.id === messageId);
+    const parsedState = mensaje?.pendingActivity?.parsedState;
+    if (!parsedState) return;
+
+    guardarBorrador(formStateToDraft(parsedState));
+    navigation.navigate("CreateActivityModal");
+  };
 
   const messages = useChatStore((s) => s.messages);
   const isThinking = useChatStore((s) => s.isThinking);
@@ -48,6 +68,7 @@ export default function AIChatView({ navigation }: any) {
         onClear={clearChat}
         onConfirmPending={confirmPendingActivity}
         onCancelPending={cancelPendingActivity}
+        onAdjustInWizard={ajustarEnWizard}
       />
     </SafeAreaView>
   );

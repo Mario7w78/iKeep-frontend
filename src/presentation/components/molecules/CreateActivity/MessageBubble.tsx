@@ -27,6 +27,7 @@ interface Props {
   onViewActivity?: () => void;
   onConfirmPending?: (messageId: string) => Promise<void>;
   onCancelPending?: (messageId: string) => void;
+  onAdjustInWizard?: (messageId: string) => void;
 }
 
 const formatHour = (dateInput: any) => {
@@ -99,6 +100,7 @@ export const MessageBubble: React.FC<Props> = ({
   onViewActivity,
   onConfirmPending,
   onCancelPending,
+  onAdjustInWizard,
 }) => {
   const isUser = message.role === 'user';
   const { colors } = useTheme();
@@ -117,8 +119,21 @@ export const MessageBubble: React.FC<Props> = ({
    * definen una vez. Solo cambia el verbo: "Confirmar" no dice nada cuando lo
    * que esta en juego es borrar algo.
    */
-  const renderAcciones = (textoConfirmar: string = 'Confirmar') =>
+  const renderAcciones = (textoConfirmar: string = 'Confirmar', conAjustar = false) =>
     !message.isConfirmed && !message.isCancelled ? (
+      <>
+      {/* El puente al wizard. Sin esto, si el asistente casi acierta el
+          usuario tiene que cancelar y rehacer todo a mano: los dos caminos
+          quedaban incomunicados. */}
+      {conAjustar && onAdjustInWizard && (
+        <TouchableOpacity
+          testID="adjust-in-wizard-button"
+          style={styles.adjustButton}
+          onPress={() => onAdjustInWizard(message.id)}
+        >
+          <Text style={styles.adjustText}>Ajustar detalles</Text>
+        </TouchableOpacity>
+      )}
       <View style={styles.actionButtonsContainer}>
         <TouchableOpacity
           testID="confirm-activity-button"
@@ -135,6 +150,7 @@ export const MessageBubble: React.FC<Props> = ({
           <Text style={styles.actionButtonText}>Cancelar</Text>
         </TouchableOpacity>
       </View>
+      </>
     ) : (
       <View style={styles.statusContainer}>
         <Text style={message.isConfirmed ? styles.confirmedText : styles.cancelledText}>
@@ -402,7 +418,7 @@ export const MessageBubble: React.FC<Props> = ({
               )}
             </View>
 
-            {renderAcciones()}
+            {renderAcciones('Confirmar', true)}
           </View>
         )}
 
@@ -435,6 +451,18 @@ export const MessageBubble: React.FC<Props> = ({
 };
 
 const createStyles = (colors: ThemeColors) => StyleSheet.create({
+  adjustButton: {
+    alignSelf: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    marginBottom: 4,
+  },
+  adjustText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.textSecondary,
+    textDecorationLine: 'underline',
+  },
   simpleActionBody: {
     flexDirection: 'row',
     alignItems: 'center',

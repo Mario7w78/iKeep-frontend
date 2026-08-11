@@ -35,6 +35,7 @@ interface Props {
   onClear?: () => void;
   onConfirmPending?: (messageId: string) => Promise<void>;
   onCancelPending?: (messageId: string) => void;
+  onAdjustInWizard?: (messageId: string) => void;
 }
 
 export const NLConversationStep: React.FC<Props> = ({
@@ -47,6 +48,7 @@ export const NLConversationStep: React.FC<Props> = ({
   onClear,
   onConfirmPending,
   onCancelPending,
+  onAdjustInWizard,
 }) => {
   const { colors, comfyColors, comfyFontColors } = useTheme();
   const styles = useMemo(() => createStyles(colors, comfyColors, comfyFontColors), [colors]);
@@ -182,6 +184,7 @@ export const NLConversationStep: React.FC<Props> = ({
             onViewActivity={onViewActivity}
             onConfirmPending={onConfirmPending}
             onCancelPending={onCancelPending}
+            onAdjustInWizard={onAdjustInWizard}
           />
         ))}
         {showTyping && (

@@ -1,6 +1,15 @@
 import React, { useEffect, useMemo, useRef } from 'react';
-import { StyleProp, ViewStyle } from 'react-native';
-import LottieView from 'lottie-react-native';
+import { StyleProp, View, ViewStyle } from 'react-native';
+// Lottie es un modulo nativo: si el binario no se reconstruyo despues de
+// instalarlo, importarlo puede fallar. Se carga con guarda para que eso no
+// arrastre a la pantalla entera —la mascota es decoracion, y ninguna pantalla
+// deberia caerse porque falte.
+let LottieView: any = null;
+try {
+  LottieView = require('lottie-react-native').default;
+} catch {
+  LottieView = null;
+}
 
 import { animacionDe, esEnBucle, rangoDe, SapoState } from './sapoStates';
 
@@ -47,7 +56,7 @@ export const Sapo: React.FC<Props> = ({
   const fuente = useMemo(() => animacionDe(estado), [estado]);
   const enBucle = esEnBucle(estado);
   const rango = rangoDe(estado);
-  const ref = useRef<LottieView>(null);
+  const ref = useRef<any>(null);
 
   // Con rango se reproduce a mano en vez de con autoPlay: autoPlay siempre
   // arranca desde el frame 0 hasta el final, que es justo lo que hay que
@@ -57,6 +66,12 @@ export const Sapo: React.FC<Props> = ({
       ref.current?.play(rango[0], rango[1]);
     }
   }, [animar, estado]);
+
+  // Sin Lottie se reserva el hueco y no se dibuja nada: la pantalla conserva
+  // su composicion en vez de reacomodarse.
+  if (!LottieView) {
+    return <View testID={testID} style={[{ width: tamano, height: tamano }, style]} />;
+  }
 
   return (
     <LottieView

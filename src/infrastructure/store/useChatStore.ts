@@ -9,7 +9,9 @@ import {
   Propuesta,
   RespuestaAsistente,
 } from '../../domain/entities/conversation.types';
-import { USA_ASISTENTE_V2 } from '../../config/featureFlags';
+import { USA_APLICAR_EN_BACKEND, USA_ASISTENTE_V2 } from '../../config/featureFlags';
+import { aplicarPropuesta } from '../api/AssistantApplyService';
+import { comandoAActividad } from '../../application/mappers/commandToActivity';
 import {
   dateToMinutes,
   areOverlapping,
@@ -901,7 +903,7 @@ export function createChatStore(
           ? (parsedState.identity || originalActivityProps.identity)
           : (parsedState.identity || (parsedState.isFixed ? 'clase' : 'tarea'));
 
-        await activityStore.getState().handleCreateActivity({
+        const comando = {
           id,
           activityName: parsedState.activityName,
           isFixed: parsedState.isFixed,
@@ -915,7 +917,26 @@ export function createChatStore(
           preferredEndTime: parsedState.horaPreferidaFin,
           optionalDay: !parsedState.isFixed && !parsedState.isAnchor,
           isAnchor: parsedState.isAnchor || undefined,
-        });
+        };
+
+        // Un viaje en vez de tres. El servidor guarda, regenera y persiste, y
+        // deshace el cambio el mismo si el solver falla: la compensacion deja
+        // de depender de que la app siga abierta y con red.
+        if (USA_APLICAR_EN_BACKEND) {
+          const aplicado = await aplicarPropuesta({
+            tipo: isModification ? 'modificar' : 'crear',
+            actividad: comandoAActividad(comando),
+          });
+          activityStore.setState({ activities: aplicado.actividades });
+          scheduleStore.getState().hidratarHorario({
+            estado: aplicado.estado,
+            mensaje: aplicado.mensaje,
+            recomendaciones: aplicado.recomendaciones,
+            tareas_omitidas: aplicado.tareasOmitidas,
+            scheduled_activities: aplicado.scheduledActivities,
+          });
+        } else {
+        await activityStore.getState().handleCreateActivity(comando);
 
         try {
           await scheduleStore.getState().handleGenerateSchedule();
@@ -928,6 +949,7 @@ export function createChatStore(
           }
           await scheduleStore.getState().handleGenerateSchedule();
           throw scheduleError;
+        }
         }
 
         set({

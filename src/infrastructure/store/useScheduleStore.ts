@@ -43,6 +43,8 @@ interface ScheduleStoreState {
   handleGenerateSchedule: (energyData?: { nivel_energia: number; historial_energia: EnergyRecord[] }, showSuccessAlert?: boolean) => Promise<void>;
   loadDayLimits: () => Promise<void>;
   loadSchedule: () => Promise<void>;
+  /** Deja en memoria un horario que el servidor ya persistio. */
+  hidratarHorario: (crudo: any) => void;
   setSelectedDay: (day: DayOfWeek) => void;
   setStartHour: (hour: number) => void;
   setEndHour: (hour: number) => void;
@@ -62,6 +64,56 @@ interface ScheduleStoreState {
 }
 
 export type ScheduleStore = UseBoundStore<StoreApi<ScheduleStoreState>>;
+
+/**
+ * Reconstruye un horario desde su forma serializada.
+ *
+ * La misma para lo que viene de la base y para lo que devuelve /aplicar: dos
+ * copias de esto podrian divergir, y la divergencia se veria como bloques que
+ * aparecen en una pantalla y no en la otra.
+ */
+function construirHorario(crudo: any): Schedule {
+  const scheduledActivities = (crudo.scheduled_activities || []).map((item: any) => ({
+    activity: item.activity
+      ? new Activity({
+          id: String(item.activity.id),
+          title: item.activity.title,
+          type: item.activity.type,
+          identity: item.activity.identity,
+          priority: item.activity.priority,
+          difficulty: item.activity.difficulty,
+          deadline: item.activity.deadline,
+          daysEnabled: item.activity.daysEnabled,
+          // Las horas viajan como texto ISO; el dominio las quiere como Date.
+          daysConfig: restoreDaysConfig(item.activity.daysConfig),
+          optionalDay: item.activity.optionalDay ?? false,
+          dayFrom: item.activity.dayFrom !== undefined ? item.activity.dayFrom : undefined,
+          dayTo: item.activity.dayTo !== undefined ? item.activity.dayTo : undefined,
+          isAnchor: item.activity.isAnchor ?? false,
+        })
+      : undefined,
+    assignedStartTime: item.assignedStartTime,
+    assignedEndTime: item.assignedEndTime,
+    day: item.day,
+    tipo: item.tipo,
+  }));
+
+  return new Schedule({
+    // Los identificadores los asigna el servidor. Los fallbacks cubren
+    // respuestas que no los traen —el backend no expone el id de la fila—
+    // sin dejar que un undefined llegue a la entidad.
+    id: crudo.id ?? `schedule-${Date.now()}`,
+    userId: crudo.user_id ?? '',
+    // Puede faltar en filas viejas; sin fallback quedaria un Invalid Date que
+    // se propaga en silencio.
+    createdAt: crudo.created_at ? new Date(crudo.created_at) : new Date(),
+    estado: crudo.estado ?? undefined,
+    mensaje: crudo.mensaje ?? undefined,
+    recomendaciones: crudo.recomendaciones ?? [],
+    tareasOmitidas: crudo.tareas_omitidas ?? [],
+    scheduledActivities,
+  });
+}
 
 export function createScheduleStore(
   generateScheduleUseCase: GenerateSchedulePort,
@@ -173,49 +225,28 @@ export function createScheduleStore(
       }
     },
 
+    /**
+     * Deja en memoria un horario que el servidor ya guardo.
+     *
+     * Lo usa el camino de /aplicar: el backend persiste y devuelve el
+     * resultado, asi que volver a pedirlo seria un viaje de mas justo en el
+     * endpoint que existe para ahorrarlos.
+     */
+    hidratarHorario: (crudo: any) => {
+      const hidratado = construirHorario(crudo);
+      set({ schedule: hidratado });
+      syncNotifications(hidratado);
+    },
+
     loadSchedule: async () => {
       try {
         const parsed = await schedulePersistence.load();
 
         if (parsed) {
-          const scheduledActivities = (parsed.scheduled_activities || []).map((item: any) => ({
-            activity: item.activity ? new Activity({
-              id: String(item.activity.id),
-              title: item.activity.title,
-              type: item.activity.type,
-              identity: item.activity.identity,
-              priority: item.activity.priority,
-              difficulty: item.activity.difficulty,
-              deadline: item.activity.deadline,
-              daysEnabled: item.activity.daysEnabled,
-              daysConfig: restoreDaysConfig(item.activity.daysConfig),
-              optionalDay: item.activity.optionalDay ?? false,
-              dayFrom: item.activity.dayFrom !== undefined ? item.activity.dayFrom : undefined,
-              dayTo: item.activity.dayTo !== undefined ? item.activity.dayTo : undefined,
-              isAnchor: item.activity.isAnchor ?? false,
-            }) : undefined,
-            assignedStartTime: item.assignedStartTime,
-            assignedEndTime: item.assignedEndTime,
-            day: item.day,
-            tipo: item.tipo,
-          }));
-
-          const loadedSchedule = new Schedule({
+          const loadedSchedule = construirHorario(parsed);
             // Los identificadores los asigna el servidor. Los fallbacks
             // cubren respuestas que no los traen —el backend no expone el id
             // de la fila— sin dejar que un undefined llegue a la entidad.
-            id: parsed.id ?? `schedule-${Date.now()}`,
-            userId: parsed.user_id ?? '',
-            // Puede faltar en filas viejas; sin fallback quedaria un
-            // Invalid Date que se propaga en silencio.
-            createdAt: parsed.created_at ? new Date(parsed.created_at) : new Date(),
-            estado: parsed.estado ?? undefined,
-            mensaje: parsed.mensaje ?? undefined,
-            recomendaciones: parsed.recomendaciones ?? [],
-            tareasOmitidas: parsed.tareas_omitidas ?? [],
-            scheduledActivities
-          });
-
           set({ schedule: loadedSchedule });
           syncNotifications(loadedSchedule);
         }

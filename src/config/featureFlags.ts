@@ -22,3 +22,16 @@ export const USA_BACKEND_PARA_DATOS = true;
  * no la pantalla.
  */
 export const USA_ASISTENTE_V2 = true;
+
+/**
+ * Si confirmar en el chat aplica el cambio en el backend de una sola vez.
+ *
+ * Antes el cliente hacia tres viajes —guardar la actividad, generar el
+ * horario, persistirlo— y compensaba a mano si el solver fallaba a mitad. Eso
+ * ponia logica de dominio en un store de Zustand y pagaba el arranque en frio
+ * de Render en cada salto.
+ *
+ * Arranca apagado. El camino viejo sigue entero, asi que volver atras es
+ * cambiar este valor.
+ */
+export const USA_APLICAR_EN_BACKEND = false;

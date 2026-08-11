@@ -16,7 +16,7 @@ import { restoreDaysConfig } from './daysConfigMapper';
 
 const RUTA = '/api/v1/actividades';
 
-interface ActivityDto {
+export interface ActivityDto {
   id: string;
   user_id?: string;
   title: string;
@@ -33,7 +33,7 @@ interface ActivityDto {
   is_anchor?: boolean;
 }
 
-function dtoToActivity(dto: ActivityDto): Activity {
+export function dtoToActivity(dto: ActivityDto): Activity {
   return new Activity({
     id: String(dto.id),
     title: dto.title,
@@ -54,7 +54,7 @@ function dtoToActivity(dto: ActivityDto): Activity {
   });
 }
 
-function activityToDto(activity: Activity): Omit<ActivityDto, 'user_id'> {
+export function activityToDto(activity: Activity): Omit<ActivityDto, 'user_id'> {
   // Sin user_id a proposito: lo determina el servidor a partir del token.
   // Mandarlo desde el cliente seria un dato que el backend tendria que
   // ignorar, y algo que se ignora termina pareciendo que se respeta.

@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
 import { ThemeColors, useTheme } from '../../theme/colors';
+import { RADIO } from '../../theme/tokens';
 
 interface Props {
   completada: boolean;
@@ -60,7 +61,7 @@ const createStyles = (colors: ThemeColors) =>
     casilla: {
       width: 24,
       height: 24,
-      borderRadius: 8,
+      borderRadius: RADIO.md - 2,
       borderWidth: 2,
       borderColor: colors.cardBorder,
       alignItems: 'center',

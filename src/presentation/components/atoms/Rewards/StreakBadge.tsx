@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemeColors, useTheme } from '../../theme/colors';
+import { ESPACIO, PESO, RADIO, TEXTO } from '../../theme/tokens';
 
 interface Props {
   dias: number;
@@ -47,10 +48,10 @@ const createStyles = (colors: ThemeColors) =>
     contenedor: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 4,
-      paddingVertical: 5,
-      paddingHorizontal: 10,
-      borderRadius: 999,
+      gap: ESPACIO.xs,
+      paddingVertical: ESPACIO.xs + 1,
+      paddingHorizontal: ESPACIO.md - 2,
+      borderRadius: RADIO.pill,
       backgroundColor: colors.cardBackground,
       borderWidth: 1,
       borderColor: '#ff9f43',
@@ -59,8 +60,8 @@ const createStyles = (colors: ThemeColors) =>
       borderColor: colors.cardBorder,
     },
     numero: {
-      fontSize: 14,
-      fontWeight: '800',
+      fontSize: TEXTO.pie + 1,
+      fontWeight: PESO.fuerte,
       color: '#ff9f43',
     },
     numeroEnRiesgo: {

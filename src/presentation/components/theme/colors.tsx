@@ -173,25 +173,6 @@ export const groupColors = [
   { bg: '#FFF0E5', text: '#9A4E1A' },
 ];
 
-/* ───────── Backward-compatible static Theme ─────────
-   This is a static reference that gets updated when theme changes.
-   Components using `import { Theme }` at module level will NOT
-   reactively update, but new renders will see the latest values. */
-
-export const Theme: {
-  colors: ThemeColors;
-  comfyColors: typeof comfyColors;
-  comfyFontColors: typeof comfyFontColors;
-  activity: typeof activityStyles;
-  groupColors: typeof groupColors;
-} = {
-  colors: { ...PRESETS[0].colors },
-  comfyColors,
-  comfyFontColors,
-  activity: activityStyles,
-  groupColors,
-};
-
 /* ───────── Public helpers ───────── */
 
 export function getThemePresets(): ThemePreset[] {
@@ -200,18 +181,6 @@ export function getThemePresets(): ThemePreset[] {
 
 export function getThemeById(id: string): ThemePreset {
   return PRESETS.find(p => p.id === id) || PRESETS[0];
-}
-
-export function applyThemeToStaticTheme(id: string): void {
-  const preset = getThemeById(id);
-  Object.assign(Theme.colors, preset.colors);
-  
-  // Mutate comfyColors.green and comfyFontColors.green in-place for static exports
-  comfyColors.green = preset.colors.accent;
-  comfyFontColors.green = preset.colors.accentText;
-
-  Theme.comfyColors.green = preset.colors.accent;
-  Theme.comfyFontColors.green = preset.colors.accentText;
 }
 
 /* ───────── React Context ───────── */
@@ -241,13 +210,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     [themeId],
   );
 
-  const setThemeId = useCallback(
-    (id: string) => {
-      setThemeIdInStore(id);
-      applyThemeToStaticTheme(id);
-    },
-    [setThemeIdInStore],
-  );
+  // Ya no hay copia estatica que sincronizar: el contexto es la unica
+  // fuente, asi que cambiar el tema es cambiar el estado y nada mas.
+  const setThemeId = setThemeIdInStore;
 
   const dynamicComfyColors = useMemo(
     () => ({

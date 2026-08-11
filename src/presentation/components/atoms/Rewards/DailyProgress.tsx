@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
 
 import { ThemeColors, useTheme } from '../../theme/colors';
+import { DURACION, ESPACIO, PESO, RADIO, TEXTO } from '../../theme/tokens';
 
 interface Props {
   completadas: number;
@@ -26,7 +27,7 @@ export const DailyProgress: React.FC<Props> = ({ completadas, total, fraccion })
     // crecer es lo que hace que marcar algo se sienta como avanzar.
     Animated.timing(ancho, {
       toValue: fraccion,
-      duration: 420,
+      duration: DURACION.lento,
       // El ancho no lo puede animar el hilo nativo.
       useNativeDriver: false,
     }).start();
@@ -65,26 +66,26 @@ export const DailyProgress: React.FC<Props> = ({ completadas, total, fraccion })
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     contenedor: {
-      gap: 6,
+      gap: ESPACIO.sm - 2,
     },
     encabezado: {
       flexDirection: 'row',
       justifyContent: 'space-between',
     },
     texto: {
-      fontSize: 13,
-      fontWeight: '700',
+      fontSize: TEXTO.pie,
+      fontWeight: PESO.medio,
       color: colors.textSecondary,
     },
     carril: {
       height: 8,
-      borderRadius: 999,
+      borderRadius: RADIO.pill,
       backgroundColor: colors.cardBorder,
       overflow: 'hidden',
     },
     relleno: {
       height: '100%',
-      borderRadius: 999,
+      borderRadius: RADIO.pill,
       backgroundColor: colors.secondaryAccent,
     },
   });

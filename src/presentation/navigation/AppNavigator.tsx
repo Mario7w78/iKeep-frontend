@@ -18,7 +18,7 @@ import SignUpView from "../screens/Auth/SignUpView";
 import { useAppStore } from "../../infrastructure/store/useAppStore";
 import { useAuthStore } from "../../infrastructure/store/useAuthStore";
 import { useScheduleStore, notificationScheduler } from "../../di/Dependencies";
-import { Theme, useTheme, ThemeProvider, applyThemeToStaticTheme } from "../components/theme/colors";
+import { useTheme, ThemeProvider } from "../components/theme/colors";
 import AIChatView from "../screens/AIChat/AIChatView";
 
 export type RootStackParamList = {
@@ -189,17 +189,10 @@ export default function AppNavigator() {
     ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
   }, []);
 
-  // Sync static Theme on mount (for components that import Theme directly)
-  useEffect(() => {
-    applyThemeToStaticTheme(themeId);
-  }, [themeId]);
-
   if (authLoading) {
     return (
       <ThemeProvider>
-        <View style={styles.splash}>
-          <ActivityIndicator size="large" color={Theme.colors.surface} />
-        </View>
+        <Splash />
       </ThemeProvider>
     );
   }
@@ -252,15 +245,34 @@ export default function AppNavigator() {
   );
 }
 
+/**
+ * La pantalla de carga.
+ *
+ * Es un componente y no un estilo de modulo porque los colores tienen que
+ * salir del tema vivo. Antes leia un objeto `Theme` estatico que se congelaba
+ * en el preset por defecto: no se notaba solo porque los cuatro presets
+ * comparten los mismos fondos, y habria aparecido en cuanto existiera un tema
+ * claro de verdad.
+ */
+function Splash() {
+  const { colors } = useTheme();
+
+  return (
+    <View
+      style={[styles.splash, { backgroundColor: colors.screenBackground }]}
+    >
+      <ActivityIndicator size="large" color={colors.surface} />
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   splash: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Theme.colors.screenBackground,
   },
   tabBar: {
-    backgroundColor: Theme.colors.tabBarBackground,
     borderTopWidth: 0,
     elevation: 0,
     paddingTop: 8,

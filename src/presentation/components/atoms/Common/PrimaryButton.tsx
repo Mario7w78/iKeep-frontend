@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { TouchableOpacity, Text, StyleSheet, StyleProp, ViewStyle, TextStyle } from 'react-native';
-import { useTheme } from '../../theme/colors';
+import { useTheme, ThemeColors } from '../../theme/colors';
 
 interface Props {
   title: string;
@@ -25,7 +25,7 @@ export const PrimaryButton = ({ title, onPress, style, textStyle }: Props) => {
   );
 };
 
-const createStyles = (colors) => StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   primaryButton: { 
     backgroundColor: colors.cardBackground, 
     paddingVertical: 16, 

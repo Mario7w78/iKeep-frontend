@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useTheme } from '../../theme/colors'; 
+import { useTheme, ThemeColors } from '../../theme/colors'; 
 import {
   View,
   TextInput,
@@ -45,7 +45,7 @@ export const InputHeader = ({ value, onChangeText, onClose }: Props) => {
 );
 };
 
-const createStyles = (colors) => StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   header: { 
     backgroundColor: colors.cardBackground, 
     paddingHorizontal: 20, 

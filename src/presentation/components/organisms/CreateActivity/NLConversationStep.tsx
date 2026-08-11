@@ -66,7 +66,17 @@ export const NLConversationStep: React.FC<Props> = ({
   const insets = useSafeAreaInsets();
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
-  const containerRef = useRef<View>(null);
+  /**
+   * La ref del contenedor, que ademas se mide.
+   *
+   * Va sobre un KeyboardAvoidingView, cuyos tipos no declaran `measure` aunque
+   * en tiempo de ejecucion lo tenga: por debajo es una vista nativa. El codigo
+   * de abajo ya comprueba que exista antes de llamarla, asi que se declara lo
+   * que realmente hay en vez de forzar el tipo del elemento entero.
+   */
+  const containerRef = useRef<
+    (KeyboardAvoidingView & Partial<Pick<View, 'measure'>>) | null
+  >(null);
   const [verticalOffset, setVerticalOffset] = useState(0);
   const inputRef = useRef<TextInput>(null);
   const inputTextRef = useRef('');

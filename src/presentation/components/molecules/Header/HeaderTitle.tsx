@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useTheme } from "../../theme/colors";
+import { useTheme, ThemeColors } from "../../theme/colors";
 
 interface Props {
   title: string;
@@ -36,7 +36,7 @@ export const HeaderTitle = ({ title, appName }: Props) => {
   );
 };
 
-const createStyles = (colors) => StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   header: {
     flexDirection: "row",
     justifyContent: "space-between",

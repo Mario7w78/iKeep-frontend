@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { TouchableOpacity, Text, StyleSheet } from "react-native";
 import { DayOfWeek } from "../../../../domain/entities/Activity";
-import { useTheme } from "../../theme/colors";
+import { useTheme, ThemeColors } from "../../theme/colors";
 
 type DayButtonProps = {
   day: DayOfWeek;
@@ -67,7 +67,7 @@ export default function DayButton({
   );
 }
 
-const createStyles = (colors) => StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   button: {
     width: 72,
     height: 72,

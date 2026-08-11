@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { useTheme } from '../../theme/colors';
+import { useTheme, ThemeColors } from '../../theme/colors';
 
 const ITEM_HEIGHT = 35;
 
@@ -173,7 +173,7 @@ const TimePicker: React.FC<TimePickerProps> = ({ onTimeChange, time, flashTrigge
   );
 };
 
-const createStyles = (colors) => StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     height: ITEM_HEIGHT * 5,
     width: 240,

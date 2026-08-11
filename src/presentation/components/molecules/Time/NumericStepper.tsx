@@ -6,7 +6,7 @@ import {
   StyleSheet,
   Text,
 } from "react-native";
-import { useTheme } from "../../theme/colors";
+import { useTheme, ThemeColors } from "../../theme/colors";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import { getHours, getMinutes } from "../../../utils/timeUtils";
 import { timeType } from "../../../../domain/entities/activity.types";
@@ -87,7 +87,7 @@ export const NumericStepper = ({
 );
 };
 
-const createStyles = (colors) => StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
     flexDirection: "column",

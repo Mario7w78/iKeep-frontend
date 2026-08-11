@@ -3,7 +3,7 @@ import { View, Text, ScrollView, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { DayOfWeek } from "../../../../domain/entities/Activity";
 import { DayConfig } from "../../../../domain/entities/activity.types";
-import { useTheme, comfyColors } from "../../theme/colors";
+import { useTheme, comfyColors, ThemeColors } from "../../theme/colors";
 import DayPickerGrid from "../../molecules/CreateActivity/DayPickerGrid";
 import { FieldError } from "../../atoms/Common/FieldError";
 import { StepContainer } from "../../atoms/Common/StepContainer";
@@ -83,7 +83,7 @@ export default function DaySelectionStep({
   );
 }
 
-const createStyles = (colors) => StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   scroll: {
     flex: 1,
   },

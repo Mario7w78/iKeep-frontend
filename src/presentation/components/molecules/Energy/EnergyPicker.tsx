@@ -10,7 +10,7 @@ import {
   Pressable,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme, comfyColors } from '../../theme/colors';
+import { useTheme, comfyColors, ThemeColors } from '../../theme/colors';
 
 export interface EnergyOption {
   value: number;
@@ -126,7 +126,7 @@ export const EnergyPicker: React.FC<EnergyPickerProps> = ({
   );
 };
 
-const createStyles = (colors) => StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'flex-end',

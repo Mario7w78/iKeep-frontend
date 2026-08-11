@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { useTheme } from "../../components/theme/colors";
+import { useTheme, ThemeColors } from "../../components/theme/colors";
 
 export default function StatsView() {
   const { colors } = useTheme();
@@ -22,7 +22,7 @@ export default function StatsView() {
   );
 }
 
-const createStyles = (colors) => StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: colors.screenBackground,

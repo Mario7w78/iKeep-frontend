@@ -2,7 +2,7 @@ import React, { useMemo } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { DayOfWeek } from "../../../../domain/entities/Activity";
 import { DayConfig } from "../../../../domain/entities/activity.types";
-import { useTheme } from "../../theme/colors";
+import { useTheme, ThemeColors } from "../../theme/colors";
 import GroupTag from "./GroupTag";
 
 type GroupListProps = {
@@ -57,7 +57,7 @@ export default function GroupList({
   );
 }
 
-const createStyles = (colors) => StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     gap: 10,
   },

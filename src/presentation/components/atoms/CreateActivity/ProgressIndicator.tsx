@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { View, StyleSheet } from "react-native";
-import { useTheme } from "../../theme/colors";
+import { useTheme, ThemeColors } from "../../theme/colors";
 
 type ProgressIndicatorProps = {
   totalSteps: number;
@@ -29,7 +29,7 @@ export default function ProgressIndicator({
   );
 }
 
-const createStyles = (colors, comfyColors) => StyleSheet.create({
+const createStyles = (colors: ThemeColors, comfyColors: ReturnType<typeof useTheme>['comfyColors']) => StyleSheet.create({
   row: {
     flexDirection: "row",
     gap: 16,

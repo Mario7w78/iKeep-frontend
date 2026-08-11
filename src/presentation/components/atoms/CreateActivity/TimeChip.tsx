@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { TouchableOpacity, Text, StyleSheet } from "react-native";
-import { useTheme } from "../../theme/colors";
+import { useTheme, ThemeColors } from "../../theme/colors";
 
 type TimeChipProps = {
   label: string;
@@ -22,7 +22,7 @@ export default function TimeChip({ label, selected, onPress }: TimeChipProps) {
   );
 }
 
-const createStyles = (colors) => StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   chip: {
     flex: 1,
     minHeight: 48,

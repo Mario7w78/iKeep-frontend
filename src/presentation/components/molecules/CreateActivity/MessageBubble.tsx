@@ -272,7 +272,7 @@ export const MessageBubble: React.FC<Props> = ({
 
               <View style={styles.chip}>
                 <Text style={styles.chipText}>
-                  {message.pendingActivity.parsedState.isFixed ? 'Horario Fijo' : 'Horario Flexible'}
+                  {message.pendingActivity.parsedState.isFixed ? 'Horario Fijo' : 'Flexible'}
                 </Text>
               </View>
 
@@ -295,7 +295,7 @@ export const MessageBubble: React.FC<Props> = ({
               <Text style={styles.daysRowTitle}>
                 {(!message.pendingActivity.parsedState.isFixed && !message.pendingActivity.parsedState.isAnchor)
                   ? 'Días permitidos'
-                  : 'Días asignados'}
+                  : 'Días'}
               </Text>
               <View style={styles.daysRowGrid}>
                 {WEEK_DAYS.map((wd) => {
@@ -332,7 +332,7 @@ export const MessageBubble: React.FC<Props> = ({
 
             {/* Schedule Details Box */}
             <View style={styles.scheduleBox}>
-              <Text style={styles.scheduleSectionTitle}>Planificación propuesta</Text>
+              <Text style={styles.scheduleSectionTitle}>Turnos</Text>
               {message.pendingActivity.parsedState.isFixed ? (
                 <View style={styles.scheduleCompactList}>
                   {message.pendingActivity.parsedState.selectedDays.map((day: string) => {

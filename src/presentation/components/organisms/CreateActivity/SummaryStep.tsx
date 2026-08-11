@@ -104,7 +104,7 @@ export default function SummaryStep({
     >
       <Text style={styles.stepTitle}>Resumen</Text>
       <Text style={styles.stepSubtitle}>
-        Confirmá la actividad antes de crearla
+        Confirma la actividad antes de crearla
       </Text>
 
       <View style={styles.summaryCard}>
@@ -122,7 +122,7 @@ export default function SummaryStep({
         <View style={styles.summaryCardHalf}>
           <Text style={styles.summaryLabel}>Tipo</Text>
           <Text style={styles.summaryValue}>
-            {isFixed ? "Fijo" : "Optimizable"}
+            {isFixed ? "Fijo" : "Flexible"}
           </Text>
         </View>
       </View>
@@ -153,7 +153,7 @@ export default function SummaryStep({
         </View>
         <View style={styles.summaryCardHalf}>
           <Text style={styles.summaryLabel}>
-            {isFixed || isAnchor ? "Días programados" : "Días permitidos"}
+            {isFixed || isAnchor ? "Días" : "Días permitidos"}
           </Text>
           <Text style={styles.summaryValue}>
             {!isFixed && !isAnchor && configuredDays.length === 7

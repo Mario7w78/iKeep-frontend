@@ -31,7 +31,7 @@ export default function GroupList({
 
   if (Object.keys(groups).length === 0) return null;
 
-  const eyebrowText = isFixed || isAnchor ? "Días programados" : "Días permitidos";
+  const eyebrowText = isFixed || isAnchor ? "Días" : "Días permitidos";
 
   return (
     <View style={styles.container}>

@@ -364,9 +364,9 @@ export default function TimePartitionForm({
               </View>
             )}
 
-            {/* Viaje antes */}
+            {/* Traslado antes */}
             <View style={styles.trasladoContainer}>
-              <Text style={styles.cardFieldLabel}>Viaje antes</Text>
+              <Text style={styles.cardFieldLabel}>Traslado antes</Text>
               <View style={styles.chipsRow}>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsScroll}>
                   <TouchableOpacity

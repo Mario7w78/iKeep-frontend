@@ -66,7 +66,7 @@ export const TimeSection = ({
             <View style={styles.iconContainer}>
               <Ionicons name="location-outline" size={16} color={colors.iconPrimary} />
             </View>
-            <Text style={styles.subLabelSmall}>Viaje antes</Text>
+            <Text style={styles.subLabelSmall}>Traslado antes</Text>
           </View>
 
           <NumericStepper

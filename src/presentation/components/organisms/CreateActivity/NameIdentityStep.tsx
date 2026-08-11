@@ -297,7 +297,7 @@ export default function NameIdentityStep({
         </TouchableOpacity>
       </View>
 
-      {/* Antes habia dos tarjetas, "Fijo" y "Optimizable", que ademas se
+      {/* Antes habia dos tarjetas, "Fijo" y "Flexible", que ademas se
           deshabilitaban si la identidad era "clase" y al tocarlas escribian
           prioridad y dificultad por su cuenta. El selector unico reemplaza a
           eso y al toggle "Anclaje de dia" que vivia mucho mas abajo diciendo

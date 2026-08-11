@@ -198,7 +198,7 @@ export function ActivityConfigDetailModal({
                       color={colors.surface}
                     />
                     <Text style={styles.badgeText}>
-                      {activity.isFixed() ? "Fijo" : "Optimizable"}
+                      {activity.isFixed() ? "Fijo" : "Flexible"}
                     </Text>
                   </View>
                 </View>

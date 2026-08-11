@@ -171,7 +171,7 @@ export function ActivityDetailModal({ visible, activityItem, onClose, onEdit }: 
                     color={colors.surface} 
                   />
                   <Text style={styles.badgeText}>
-                    {activity.isFixed() ? 'Fijo' : 'Optimizable'}
+                    {activity.isFixed() ? 'Fijo' : 'Flexible'}
                   </Text>
                 </View>
               </View>

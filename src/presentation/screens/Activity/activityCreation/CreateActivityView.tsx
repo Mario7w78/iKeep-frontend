@@ -34,8 +34,9 @@ import DaySelectionStep from "../../../components/organisms/CreateActivity/DaySe
 import TimeConfigStep from "../../../components/organisms/CreateActivity/TimeConfigStep";
 import SummaryStep from "../../../components/organisms/CreateActivity/SummaryStep";
 import { useFormErrors, CampoConError } from "../../../hooks/useFormErrors";
+import { WhatAndWhenStep } from "../../../components/organisms/CreateActivity/WhatAndWhenStep";
 
-const TOTAL_STEPS = 4;
+const TOTAL_STEPS = 3;
 const SHEET_HEIGHT = Dimensions.get("window").height * 0.88;
 const DISMISS_DISTANCE = 130;
 /** How long the success state stays up before the sheet closes itself. */
@@ -296,7 +297,7 @@ export default function CreateActivityView({ navigation, route }: any) {
 
   // Sync partitions AND preferred times for the ACTIVE DAY only
   useEffect(() => {
-    if (step === 3 && activeDay !== null) {
+    if (step === 2 && activeDay !== null) {
       setDaysDict(prev => {
         const next = { ...prev };
         if (!isFixed && !isAnchor) {
@@ -403,7 +404,7 @@ export default function CreateActivityView({ navigation, route }: any) {
       setActivePartitionIndex(0);
     }
 
-    setStep(3);
+    setStep(2);
   };
 
   const handleCopyConfig = (fromDay: DayOfWeek) => {
@@ -461,20 +462,21 @@ export default function CreateActivityView({ navigation, route }: any) {
 
   const handlePrimaryPress = () => {
     if (step === 1) {
-      if (!activityName.trim()) {
+      // El paso junta nombre y dias, asi que valida los dos antes de avanzar.
+      // Se comprueban ambos y no se corta en el primero: el usuario ve de una
+      // vez todo lo que le falta, en vez de descubrirlo de a un error por
+      // intento.
+      const faltaNombre = !activityName.trim();
+      if (faltaNombre) {
         showAlert("Ingresa un nombre para la actividad", "nombre");
-        return;
       }
-      setStep(2);
-      return;
-    }
+      if (faltaNombre) return;
 
-    if (step === 2) {
       handleContinueFromDays();
       return;
     }
 
-    if (step === 3) {
+    if (step === 2) {
       // Validate all partitions and overlaps before leaving Step 3
       const daysToValidate = (isFixed || isAnchor) ? configuredDays : [configuredDays[0] || 'Lunes'];
       for (const day of daysToValidate) {
@@ -504,24 +506,18 @@ export default function CreateActivityView({ navigation, route }: any) {
           return;
         }
       }
-      setStep(4);
+      setStep(3);
       return;
     }
 
-    if (step === 4) {
+    if (step === 3) {
       handleCreate();
       return;
     }
   };
 
   const handleBackPress = () => {
-    if (step === 4) {
-      setStep(3);
-    } else if (step === 3) {
-      setStep(2);
-    } else {
-      setStep((s) => Math.max(s - 1, 1));
-    }
+    setStep((s) => Math.max(s - 1, 1));
   };
 
   const isDirty = useMemo(() => {
@@ -589,7 +585,7 @@ export default function CreateActivityView({ navigation, route }: any) {
     for (const day of daysToValidate) {
       const config = daysDict[day]!;
       if (!validatePartitions(config.partitions, [day])) {
-        setStep(3);
+        setStep(2);
         setActiveDay(day);
         setPartitions(config.partitions);
         setPreferredStartTime(config.preferredStartTime ?? null);
@@ -607,7 +603,7 @@ export default function CreateActivityView({ navigation, route }: any) {
           durationTimeValue,
         )
       ) {
-        setStep(3);
+        setStep(2);
         setActiveDay(day);
         setPartitions(config.partitions);
         setPreferredStartTime(config.preferredStartTime ?? null);
@@ -656,14 +652,14 @@ export default function CreateActivityView({ navigation, route }: any) {
       }
       setActiveDay(group.days[0]);
     }
-    setStep(3);
+    setStep(2);
   };
 
   const renderStep = () => {
     switch (step) {
       case 1:
         return (
-          <NameIdentityStep
+          <WhatAndWhenStep
             activityName={activityName}
             identity={identity}
             isFixed={isFixed}
@@ -684,22 +680,15 @@ export default function CreateActivityView({ navigation, route }: any) {
             onSetDeadline={setDeadline}
             isAnchor={isAnchor}
             onToggleAnchor={setIsAnchor}
-          />
-        );
-      case 2:
-        return (
-          <DaySelectionStep
             selectedDays={selectedDays}
             daysDict={daysDict}
             configuredDaysCount={configuredDays.length}
-            isFixed={isFixed}
-            isAnchor={isAnchor}
             onSelectDay={handleSelect}
             isDayConfigured={isDayConfigured}
             errorDias={formErrors.error("dias")}
           />
         );
-      case 3:
+      case 2:
         return (
           <TimeConfigStep
             configuredDays={(isFixed || isAnchor) ? configuredDays : [configuredDays[0] || 'Lunes']}
@@ -762,12 +751,10 @@ export default function CreateActivityView({ navigation, route }: any) {
   const primaryTitle = useMemo(() => {
     switch (step) {
       case 1:
-        return "Continuar";
+        return "Continuar a horarios";
       case 2:
-        return "Continuar a Horarios";
-      case 3:
         return "Ver resumen";
-      case 4:
+      case 3:
         return activityId ? "Guardar cambios" : "Crear actividad";
       default:
         return "Continuar";

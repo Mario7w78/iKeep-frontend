@@ -6,6 +6,7 @@ import { DayConfig } from "../../../../domain/entities/activity.types";
 import { useTheme, comfyColors } from "../../theme/colors";
 import DayPickerGrid from "../../molecules/CreateActivity/DayPickerGrid";
 import { FieldError } from "../../atoms/Common/FieldError";
+import { StepContainer } from "../../atoms/Common/StepContainer";
 
 type DaySelectionStepProps = {
   selectedDays: DayOfWeek[];
@@ -16,6 +17,7 @@ type DaySelectionStepProps = {
   onSelectDay: (day: DayOfWeek) => void;
   isDayConfigured: (day: DayOfWeek) => boolean;
   errorDias?: string;
+  embebido?: boolean;
 };
 
 export default function DaySelectionStep({
@@ -27,6 +29,7 @@ export default function DaySelectionStep({
   onSelectDay,
   isDayConfigured,
   errorDias,
+  embebido,
 }: DaySelectionStepProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -41,10 +44,10 @@ export default function DaySelectionStep({
   };
 
   return (
-    <ScrollView
+    <StepContainer
+      embebido={embebido}
       style={styles.scroll}
       contentContainerStyle={styles.content}
-      showsVerticalScrollIndicator={false}
     >
       <View style={styles.iconHero}>
         <Ionicons
@@ -76,7 +79,7 @@ export default function DaySelectionStep({
             : `${configuredDaysCount} día${configuredDaysCount !== 1 ? "s" : ""} configurado${configuredDaysCount !== 1 ? "s" : ""}`}
         </Text>
       </View>
-    </ScrollView>
+    </StepContainer>
   );
 }
 

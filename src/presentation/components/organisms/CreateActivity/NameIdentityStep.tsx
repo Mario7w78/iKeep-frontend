@@ -5,6 +5,7 @@ import { useTheme, ThemeColors } from "../../theme/colors";
 import { BehaviorSelector } from "../../molecules/CreateActivity/BehaviorSelector";
 import { ComportamientoActividad } from "../../../../domain/entities/activityBehavior";
 import { FieldError } from "../../atoms/Common/FieldError";
+import { StepContainer } from "../../atoms/Common/StepContainer";
 
 type NameIdentityStepProps = {
   activityName: string;
@@ -24,7 +25,7 @@ type NameIdentityStepProps = {
   onSetDeadline: (deadline: Date | null) => void;
   isAnchor?: boolean;
   onToggleAnchor?: (value: boolean) => void;
-  header?: React.ReactNode;
+  header?: React.ReactNode;  embebido?: boolean;
 };
 
 const clearTime = (date: Date) => {
@@ -187,6 +188,7 @@ export default function NameIdentityStep({
   isAnchor,
   onToggleAnchor,
   header,
+  embebido,
 }: NameIdentityStepProps) {
   const [hasDeadline, setHasDeadline] = useState(deadline !== null);
   const { colors, comfyColors, comfyFontColors } = useTheme();
@@ -219,10 +221,10 @@ export default function NameIdentityStep({
   const dynamicIconName = getDynamicIconName(activityName);
 
   return (
-    <ScrollView
+    <StepContainer
+      embebido={embebido}
       style={styles.scroll}
       contentContainerStyle={styles.content}
-      showsVerticalScrollIndicator={false}
     >
       {header}
       <Text style={styles.sectionTitle}>Nombre de la actividad</Text>
@@ -444,7 +446,7 @@ export default function NameIdentityStep({
           <CustomCalendar value={deadline} onChange={onSetDeadline} />
         </View>
       )}
-    </ScrollView>
+    </StepContainer>
   );
 }
 

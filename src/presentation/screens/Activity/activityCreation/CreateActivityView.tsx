@@ -80,10 +80,17 @@ export default function CreateActivityView({ navigation, route }: any) {
     outputRange: [1, 0],
   });
 
+  // useNativeDriver queda en false a proposito, aunque para una transform
+  // sea lo natural: el PanResponder del arrastre hace translateY.setValue(),
+  // y React Native no permite escribir desde JS un valor que ya se movio al
+  // driver nativo. Mezclarlos deja el sheet en un estado inconsistente.
+  //
+  // El costo es nulo aqui: es una sola transform sobre una vista, no una
+  // lista larga.
   useEffect(() => {
     Animated.spring(translateY, {
       toValue: 0,
-      useNativeDriver: true,
+      useNativeDriver: false,
       damping: 22,
       stiffness: 180,
       mass: 0.9,
@@ -94,7 +101,7 @@ export default function CreateActivityView({ navigation, route }: any) {
     Animated.timing(translateY, {
       toValue: SHEET_HEIGHT,
       duration: 220,
-      useNativeDriver: true,
+      useNativeDriver: false,
     }).start(() => navigation.goBack());
   };
 
@@ -108,7 +115,7 @@ export default function CreateActivityView({ navigation, route }: any) {
   const settleSheet = (onDone?: () => void) => {
     Animated.spring(translateY, {
       toValue: 0,
-      useNativeDriver: true,
+      useNativeDriver: false,
       damping: 22,
       stiffness: 180,
     }).start(() => onDone?.());

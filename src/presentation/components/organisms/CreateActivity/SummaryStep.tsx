@@ -1,5 +1,6 @@
-import React, { useMemo } from "react";
-import { View, Text, ScrollView, StyleSheet } from "react-native";
+import React, { useMemo, useState } from "react";
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { DayOfWeek } from "../../../../domain/entities/Activity";
 import { DayConfig } from "../../../../domain/entities/activity.types";
 import { useTheme, ThemeColors } from "../../theme/colors";
@@ -23,6 +24,15 @@ type SummaryStepProps = {
     config: DayConfig;
   }) => void;
   onDiscardGroup: (groupId: number) => void;
+  /**
+   * Dibuja el resumen dentro del paso de horarios en vez de como paso propio.
+   *
+   * Como pantalla separada era un eco de solo lectura de lo que el usuario
+   * acababa de escribir: costaba un toque de "Siguiente" y otro de "Atras"
+   * para corregir cualquier cosa. Plegado sobre el boton de crear sigue
+   * estando para quien quiera revisar, sin cobrarselo a quien no.
+   */
+  embebido?: boolean;
 };
 
 export default function SummaryStep({
@@ -39,8 +49,10 @@ export default function SummaryStep({
   editingGroupId,
   onEditGroup,
   onDiscardGroup,
+  embebido = false,
 }: SummaryStepProps) {
   const { colors, comfyColors, comfyFontColors } = useTheme();
+  const [abierto, setAbierto] = useState(false);
   const styles = useMemo(() => createStyles(colors, comfyColors, comfyFontColors), [colors]);
   let totalActivityMinutes = 0;
   let totalTravelMinutes = 0;
@@ -96,16 +108,8 @@ export default function SummaryStep({
     });
   };
 
-  return (
-    <ScrollView
-      style={styles.scroll}
-      contentContainerStyle={styles.content}
-      showsVerticalScrollIndicator={false}
-    >
-      <Text style={styles.stepTitle}>Resumen</Text>
-      <Text style={styles.stepSubtitle}>
-        Confirma la actividad antes de crearla
-      </Text>
+  const cuerpo = (
+    <>
 
       <View style={styles.summaryCard}>
         <Text style={styles.summaryLabel}>Nombre de la actividad</Text>
@@ -194,12 +198,69 @@ export default function SummaryStep({
         onEditGroup={onEditGroup}
         onDiscardGroup={onDiscardGroup}
       />
-    </ScrollView>
+    </>
+  );
+
+  if (!embebido) {
+    return (
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={styles.stepTitle}>Resumen</Text>
+        <Text style={styles.stepSubtitle}>
+          Confirma la actividad antes de crearla
+        </Text>
+        {cuerpo}
+      </ScrollView>
+    );
+  }
+
+  // Plegado por defecto: quien llego hasta aca acaba de escribir todo esto.
+  // Abierto de entrada, empujaria el boton de crear fuera de la pantalla.
+  return (
+    <View style={styles.embebido}>
+      <TouchableOpacity
+        testID="summary-toggle"
+        style={styles.encabezadoPlegable}
+        onPress={() => setAbierto((v) => !v)}
+        activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: abierto }}
+      >
+        <Text style={styles.tituloPlegable}>Revisar antes de crear</Text>
+        <Ionicons
+          name={abierto ? "chevron-up" : "chevron-down"}
+          size={18}
+          color={colors.textSecondary}
+        />
+      </TouchableOpacity>
+
+      {abierto && <View testID="summary-body">{cuerpo}</View>}
+    </View>
   );
 }
 
 function createStyles(colors: ThemeColors, comfyColors: Record<string, string>, _comfyFontColors: Record<string, string>) {
   return StyleSheet.create({
+    embebido: {
+      borderTopWidth: 1,
+      borderTopColor: colors.cardBorder,
+      marginTop: 20,
+      paddingHorizontal: 20,
+    },
+    encabezadoPlegable: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 16,
+    },
+    tituloPlegable: {
+      fontSize: 15,
+      fontWeight: '800',
+      color: colors.surface,
+    },
     scroll: {
       flex: 1,
     },

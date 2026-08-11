@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { fireEvent, render } from '@testing-library/react-native';
+import { act, fireEvent, render } from '@testing-library/react-native';
 
 jest.mock('@expo/vector-icons', () => ({ Ionicons: () => null }));
 
@@ -53,7 +53,7 @@ describe('MessageBubble: ajustar en el wizard', () => {
       <MessageBubble isLatest message={PROPUESTA} onAdjustInWizard={ajustar} />
     );
 
-    fireEvent.press(vista.getByTestId('adjust-in-wizard-button'));
+    await act(async () => { fireEvent.press(vista.getByTestId('adjust-in-wizard-button')); });
 
     expect(ajustar).toHaveBeenCalledWith('msg-1');
   });

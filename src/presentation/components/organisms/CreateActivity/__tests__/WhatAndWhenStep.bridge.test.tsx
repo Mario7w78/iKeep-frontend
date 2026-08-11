@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { fireEvent, render } from '@testing-library/react-native';
+import { act, fireEvent, render } from '@testing-library/react-native';
 
 jest.mock('@expo/vector-icons', () => ({ Ionicons: () => null }));
 
@@ -37,7 +37,7 @@ describe('WhatAndWhenStep: salida al asistente', () => {
       <WhatAndWhenStep onContarleAlAsistente={irAlChat} />
     );
 
-    fireEvent.press(vista.getByTestId('tell-assistant-link'));
+    await act(async () => { fireEvent.press(vista.getByTestId('tell-assistant-link')); });
 
     expect(irAlChat).toHaveBeenCalled();
   });

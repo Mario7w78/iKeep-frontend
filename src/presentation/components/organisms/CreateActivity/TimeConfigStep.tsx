@@ -56,6 +56,8 @@ type TimeConfigStepProps = {
   onCopyConfig: (fromDay: DayOfWeek) => void;
   onCopyToAll: () => void;
   daysDict: Partial<Record<DayOfWeek, DayConfig>>;
+  /** Se dibuja al final del mismo scroll. Hoy lo usa el resumen plegado. */
+  pie?: React.ReactNode;
 };
 
 export default function TimeConfigStep({
@@ -87,6 +89,7 @@ export default function TimeConfigStep({
   onCopyConfig,
   onCopyToAll,
   daysDict,
+  pie,
 }: TimeConfigStepProps) {
   const { colors, comfyColors, comfyFontColors } = useTheme();
   const styles = useMemo(() => createStyles(colors, comfyColors, comfyFontColors), [colors]);
@@ -249,6 +252,8 @@ export default function TimeConfigStep({
         onSetPreferredStartTime={onSetPreferredStartTime}
         onSetPreferredEndTime={onSetPreferredEndTime}
       />
+
+      {pie}
     </ScrollView>
   );
 }

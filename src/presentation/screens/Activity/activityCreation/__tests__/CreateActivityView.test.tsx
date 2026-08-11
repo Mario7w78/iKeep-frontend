@@ -58,8 +58,9 @@ describe('CreateActivityView - Manual Wizard Flow', () => {
     jest.clearAllMocks();
   });
 
-  // El wizard bajo de cuatro pasos a tres: nombre y dias eran la misma
-  // decision partida en dos pantallas.
+  // El wizard bajo de cuatro pasos a dos: nombre y dias eran la misma
+  // decision partida en dos pantallas, y el resumen era un eco de solo
+  // lectura que ahora va plegado al pie de los horarios.
   it('renders directly to Step 1 (manual form) instead of showing mode selection', async () => {
     const { getByText, getByPlaceholderText, queryByText } = await render(
       <CreateActivityView navigation={mockNavigation} route={mockRoute} />
@@ -67,7 +68,7 @@ describe('CreateActivityView - Manual Wizard Flow', () => {
 
     // Verify header title and progress subtitle indicate step 1
     expect(getByText('Nueva Actividad')).toBeTruthy();
-    expect(getByText('Paso 1 de 3')).toBeTruthy();
+    expect(getByText('Paso 1 de 2')).toBeTruthy();
 
     // Verify that manual step 1 elements are directly visible
     expect(getByText('Nombre de la actividad')).toBeTruthy();

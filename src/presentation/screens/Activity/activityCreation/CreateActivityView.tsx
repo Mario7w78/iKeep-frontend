@@ -31,13 +31,12 @@ import useTimeForm from "../../../hooks/useTimeForm";
 import ProgressIndicator from "../../../components/atoms/CreateActivity/ProgressIndicator";
 import NameIdentityStep from "../../../components/organisms/CreateActivity/NameIdentityStep";
 import DaySelectionStep from "../../../components/organisms/CreateActivity/DaySelectionStep";
-import TimeConfigStep from "../../../components/organisms/CreateActivity/TimeConfigStep";
-import SummaryStep from "../../../components/organisms/CreateActivity/SummaryStep";
+import { TimesAndReviewStep } from "../../../components/organisms/CreateActivity/TimesAndReviewStep";
 import { useFormErrors, CampoConError } from "../../../hooks/useFormErrors";
 import { WhatAndWhenStep } from "../../../components/organisms/CreateActivity/WhatAndWhenStep";
 import { useWizardDraftStore } from "../../../../infrastructure/store/useWizardDraftStore";
 
-const TOTAL_STEPS = 3;
+const TOTAL_STEPS = 2;
 const SHEET_HEIGHT = Dimensions.get("window").height * 0.88;
 const DISMISS_DISTANCE = 130;
 /** How long the success state stays up before the sheet closes itself. */
@@ -498,44 +497,10 @@ export default function CreateActivityView({ navigation, route }: any) {
       return;
     }
 
-    if (step === 2) {
-      // Validate all partitions and overlaps before leaving Step 3
-      const daysToValidate = (isFixed || isAnchor) ? configuredDays : [configuredDays[0] || 'Lunes'];
-      for (const day of daysToValidate) {
-        const config = daysDict[day]!;
-        if (!validatePartitions(config.partitions, [day])) {
-          setActiveDay(day);
-          setPartitions(config.partitions);
-          setPreferredStartTime(config.preferredStartTime ?? null);
-          setPreferredEndTime(config.preferredEndTime ?? null);
-          return;
-        }
-        if (
-          !validateOverlapWithSchedule(
-            activityId,
-            isFixed,
-            [day],
-            config.partitions,
-            config.preferredStartTime ?? preferredStartTime,
-            config.preferredEndTime ?? preferredEndTime,
-            durationTimeValue,
-          )
-        ) {
-          setActiveDay(day);
-          setPartitions(config.partitions);
-          setPreferredStartTime(config.preferredStartTime ?? null);
-          setPreferredEndTime(config.preferredEndTime ?? null);
-          return;
-        }
-      }
-      setStep(3);
-      return;
-    }
-
-    if (step === 3) {
-      handleCreate();
-      return;
-    }
+    // El resumen dejo de ser paso propio, asi que aca ya se crea.
+    // No se revalida: handleCreate comprueba lo mismo y ademas sabe devolver
+    // al usuario al paso donde esta el error.
+    handleCreate();
   };
 
   const handleBackPress = () => {
@@ -779,9 +744,9 @@ export default function CreateActivityView({ navigation, route }: any) {
             onContarleAlAsistente={activityIdParam ? undefined : irAlAsistente}
           />
         );
-      case 2:
+      default:
         return (
-          <TimeConfigStep
+          <TimesAndReviewStep
             configuredDays={(isFixed || isAnchor) ? configuredDays : [configuredDays[0] || 'Lunes']}
             partitions={partitions}
             activePartitionIndex={activePartitionIndex}
@@ -809,30 +774,27 @@ export default function CreateActivityView({ navigation, route }: any) {
             onCopyConfig={handleCopyConfig}
             onCopyToAll={handleCopyToAll}
             daysDict={daysDict}
-          />
-        );
-      default:
-        return (
-          <SummaryStep
-            activityName={activityName}
-            isFixed={isFixed}
-            isAnchor={isAnchor}
-            identity={identity}
-            priority={priority}
-            difficulty={difficulty}
-            deadline={deadline}
-            configuredDays={configuredDays}
-            totalMinutes={totalMinutes}
-            groups={groups}
-            editingGroupId={editingGroupId}
-            onEditGroup={handleEditGroupWrapper}
-            onDiscardGroup={(gid) => {
-              const groupDays = groups[gid]?.days || [];
-              handleDiscardGroup(gid);
-              setSelectedDays(prev => prev.filter(d => !groupDays.includes(d)));
-              if (activeDay && groupDays.includes(activeDay)) {
-                setActiveDay(null);
-              }
+            resumen={{
+              activityName,
+              isFixed,
+              isAnchor,
+              identity,
+              priority,
+              difficulty,
+              deadline,
+              configuredDays,
+              totalMinutes,
+              groups,
+              editingGroupId,
+              onEditGroup: handleEditGroupWrapper,
+              onDiscardGroup: (gid: number) => {
+                const groupDays = groups[gid]?.days || [];
+                handleDiscardGroup(gid);
+                setSelectedDays(prev => prev.filter(d => !groupDays.includes(d)));
+                if (activeDay && groupDays.includes(activeDay)) {
+                  setActiveDay(null);
+                }
+              },
             }}
           />
         );
@@ -844,8 +806,6 @@ export default function CreateActivityView({ navigation, route }: any) {
       case 1:
         return "Continuar a horarios";
       case 2:
-        return "Ver resumen";
-      case 3:
         return activityId ? "Guardar cambios" : "Crear actividad";
       default:
         return "Continuar";

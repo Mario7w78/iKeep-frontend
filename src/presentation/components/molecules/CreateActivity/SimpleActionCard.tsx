@@ -41,7 +41,7 @@ export const SimpleActionCard: React.FC<Props> = ({
           <Ionicons
             name={accion === 'eliminar' ? 'trash-outline' : 'refresh-outline'}
             size={20}
-            color={accion === 'eliminar' ? '#e0555b' : colors.textSecondary}
+            color={accion === 'eliminar' ? colors.error : colors.textSecondary}
           />
           <Text style={styles.simpleActionText}>
             {accion === 'eliminar'

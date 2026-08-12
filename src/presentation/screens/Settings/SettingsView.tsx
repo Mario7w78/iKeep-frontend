@@ -348,7 +348,7 @@ const SettingsView = () => {
               ]);
             }}
           >
-            <Text style={[styles.rowLabel, { color: "#e0555b" }]}>Cerrar sesión</Text>
+            <Text style={[styles.rowLabel, { color: colors.error }]}>Cerrar sesión</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

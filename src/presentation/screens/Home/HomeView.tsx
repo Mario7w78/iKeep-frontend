@@ -84,8 +84,10 @@ const DAY_DISPLAY_NAMES: Record<string, string> = {
 
 export default function HomeView() {
   const navigation = useNavigation<any>();
-  const { colors, comfyColors, comfyFontColors } = useTheme();
-  const isLight = colors.screenBackground.toLowerCase() === '#f1f6f3' || colors.screenBackground.toLowerCase() === '#ffffff';
+  const { colors, comfyColors, comfyFontColors, esClaro } = useTheme();
+  // Antes se deducia comparando el fondo contra dos hex escritos a mano, y
+  // nunca daba true porque ningun preset usaba esos valores.
+  const isLight = esClaro;
   const ENERGY_LEVELS = useMemo(() => makeEnergyLevels(comfyColors, colors.cardBackground, isLight), [comfyColors, colors.cardBackground, isLight]);
   const styles = useMemo(() => createStyles(colors, comfyColors, comfyFontColors), [colors]);
 

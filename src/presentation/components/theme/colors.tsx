@@ -13,6 +13,10 @@ export interface ThemeColors {
   iconPrimary: string;
   iconSecondary: string;
   error: string;
+  /** Algo salio bien: completado, guardado, confirmado. */
+  success: string;
+  /** Algo pide atencion sin ser un error. La racha, por ejemplo. */
+  warning: string;
   overlayBackground: string;
   tabBarBackground: string;
   tabActive: string;
@@ -27,6 +31,15 @@ export interface ThemeColors {
 export interface ThemePreset {
   id: string;
   name: string;
+  /**
+   * Si el fondo es claro.
+   *
+   * Los componentes lo necesitan para decidir cosas que un color no resuelve
+   * —el estilo de la barra de estado, si una sombra suma o ensucia—. Antes se
+   * deducia comparando el fondo contra dos hex a mano, y ese chequeo nunca
+   * daba true porque los cuatro presets compartian el mismo fondo.
+   */
+  esClaro?: boolean;
   colors: ThemeColors;
   accent: string; // main accent color for preview
 }
@@ -46,6 +59,8 @@ const PRESETS: ThemePreset[] = [
       iconPrimary: '#5ED98A',
       iconSecondary: '#9799AC',
       error: '#F87171',
+      success: '#5ED98A',
+      warning: '#ff9f43',
       overlayBackground: 'rgba(0,0,0,0.6)',
       tabBarBackground: '#34364A',
       tabActive: '#E8E9F0',
@@ -71,6 +86,8 @@ const PRESETS: ThemePreset[] = [
       iconPrimary: '#6FA8FF',
       iconSecondary: '#9799AC',
       error: '#F87171',
+      success: '#5ED98A',
+      warning: '#ff9f43',
       overlayBackground: 'rgba(0,0,0,0.6)',
       tabBarBackground: '#34364A',
       tabActive: '#E8E9F0',
@@ -96,6 +113,8 @@ const PRESETS: ThemePreset[] = [
       iconPrimary: '#F2A65A',
       iconSecondary: '#9799AC',
       error: '#F87171',
+      success: '#5ED98A',
+      warning: '#ff9f43',
       overlayBackground: 'rgba(0,0,0,0.6)',
       tabBarBackground: '#34364A',
       tabActive: '#E8E9F0',
@@ -121,6 +140,8 @@ const PRESETS: ThemePreset[] = [
       iconPrimary: '#5FCFB0',
       iconSecondary: '#9799AC',
       error: '#F87171',
+      success: '#5ED98A',
+      warning: '#ff9f43',
       overlayBackground: 'rgba(0,0,0,0.6)',
       tabBarBackground: '#34364A',
       tabActive: '#E8E9F0',
@@ -130,6 +151,49 @@ const PRESETS: ThemePreset[] = [
       accentText: '#2C2E3C',
       secondaryAccent: '#9CA3C4',
       secondaryAccentText: '#2C2E3C',
+    },
+  },
+  {
+    /**
+     * El primer tema claro de verdad.
+     *
+     * Los otros cuatro presets comparten exactamente los mismos fondos
+     * (#2C2E3C / #34364A / #40425A) y solo cambian el acento: eran variantes
+     * de un mismo tema, no temas. Este es el que convierte "la app es oscura"
+     * en una decision y no en una limitacion.
+     *
+     * Los grises no son el oscuro invertido: un blanco puro cansa la vista en
+     * una pantalla que se mira todos los dias, y el texto negro sobre blanco
+     * tiene demasiado contraste para leer de reojo. Se usa un blanco calido y
+     * un texto que no llega al negro.
+     */
+    id: 'papel',
+    name: 'Papel',
+    accent: '#2F9E63',
+    esClaro: true,
+    colors: {
+      screenBackground: '#F5F5F2',
+      cardBackground: '#FFFFFF',
+      cardBorder: '#E2E2DC',
+      surface: '#26282F',
+      textSecondary: '#6B6E7B',
+      textTertiary: '#9497A3',
+      iconPrimary: '#2F9E63',
+      iconSecondary: '#6B6E7B',
+      error: '#C0392B',
+      success: '#2F9E63',
+      warning: '#C77A16',
+      // Mas suave que en oscuro: sobre fondo claro un velo negro al 60% se
+      // ve como un apagon.
+      overlayBackground: 'rgba(20,20,24,0.35)',
+      tabBarBackground: '#FFFFFF',
+      tabActive: '#26282F',
+      tabInactive: '#9497A3',
+      placeholder: '#9497A3',
+      accent: '#2F9E63',
+      accentText: '#FFFFFF',
+      secondaryAccent: '#3E6FB5',
+      secondaryAccentText: '#FFFFFF',
     },
   },
 ];
@@ -190,6 +254,8 @@ export interface ThemeContextValue {
   comfyColors: typeof comfyColors;
   comfyFontColors: typeof comfyFontColors;
   themeId: string;
+  /** Si el tema activo tiene fondo claro. Lo decide el preset, no un hex. */
+  esClaro: boolean;
   setThemeId: (id: string) => void;
 }
 
@@ -198,6 +264,7 @@ const ThemeContext = createContext<ThemeContextValue>({
   comfyColors,
   comfyFontColors,
   themeId: 'default',
+  esClaro: false,
   setThemeId: () => {},
 });
 
@@ -230,15 +297,21 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     [colors.accentText],
   );
 
+  // Sale del preset y no de comparar el fondo contra una lista de hex, que
+  // es como estaba antes: ese chequeo nunca daba true porque los cuatro
+  // presets compartian el mismo fondo.
+  const esClaro = useMemo(() => getThemeById(themeId).esClaro === true, [themeId]);
+
   const value = useMemo(
     () => ({
       colors,
       comfyColors: dynamicComfyColors,
       comfyFontColors: dynamicComfyFontColors,
       themeId,
+      esClaro,
       setThemeId,
     }),
-    [colors, dynamicComfyColors, dynamicComfyFontColors, themeId, setThemeId],
+    [colors, dynamicComfyColors, dynamicComfyFontColors, themeId, esClaro, setThemeId],
   );
 
   return (

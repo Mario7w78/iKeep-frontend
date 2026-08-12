@@ -80,7 +80,7 @@ export const createStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   bubbleError: {
     backgroundColor: 'rgba(255, 107, 107, 0.15)',
-    borderColor: '#ff6b6b',
+    borderColor: colors.error,
     borderWidth: 1,
     borderBottomLeftRadius: 4,
   },
@@ -321,7 +321,7 @@ export const createStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: '#34C759',
   },
   cancelButton: {
-    backgroundColor: '#FF3B30',
+    backgroundColor: colors.error,
   },
   actionButtonText: {
     color: '#ffffff',
@@ -339,12 +339,12 @@ export const createStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 14,
   },
   cancelledText: {
-    color: '#FF3B30',
+    color: colors.error,
     fontWeight: 'bold',
     fontSize: 14,
   },
   retryButton: {
-    backgroundColor: '#ff6b6b',
+    backgroundColor: colors.error,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 6,

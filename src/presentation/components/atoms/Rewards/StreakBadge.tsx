@@ -36,7 +36,7 @@ export const StreakBadge: React.FC<Props> = ({ dias, enRiesgo }) => {
         size={16}
         // Apagado cuando está en riesgo: la llama encendida es la recompensa,
         // y verla gris dice más que cualquier texto de advertencia.
-        color={enRiesgo ? colors.textSecondary : '#ff9f43'}
+        color={enRiesgo ? colors.textSecondary : colors.warning}
       />
       <Text style={[styles.numero, enRiesgo && styles.numeroEnRiesgo]}>{dias}</Text>
     </View>
@@ -54,7 +54,7 @@ const createStyles = (colors: ThemeColors) =>
       borderRadius: RADIO.pill,
       backgroundColor: colors.cardBackground,
       borderWidth: 1,
-      borderColor: '#ff9f43',
+      borderColor: colors.warning,
     },
     enRiesgo: {
       borderColor: colors.cardBorder,
@@ -62,7 +62,7 @@ const createStyles = (colors: ThemeColors) =>
     numero: {
       fontSize: TEXTO.pie + 1,
       fontWeight: PESO.fuerte,
-      color: '#ff9f43',
+      color: colors.warning,
     },
     numeroEnRiesgo: {
       color: colors.textSecondary,

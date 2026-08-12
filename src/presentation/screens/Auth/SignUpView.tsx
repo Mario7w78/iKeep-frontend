@@ -120,7 +120,7 @@ const createStyles = (colors: ReturnType<typeof useTheme>['colors']) =>
       color: colors.surface,
     },
     error: {
-      color: '#e0555b',
+      color: colors.error,
       fontSize: 14,
       textAlign: 'center',
     },

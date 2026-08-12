@@ -60,7 +60,7 @@ export default function StatsView() {
           <Tarjeta
             styles={styles}
             icono="flame"
-            color="#ff9f43"
+            color={colors.warning}
             valor={racha.actual}
             etiqueta={racha.actual === 1 ? "día seguido" : "días seguidos"}
           />

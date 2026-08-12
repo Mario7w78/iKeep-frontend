@@ -26,7 +26,7 @@ export const FieldError: React.FC<Props> = ({ mensaje, testID = 'field-error' })
 
   return (
     <View style={styles.fila} testID={testID} accessibilityRole="alert">
-      <Ionicons name="alert-circle-outline" size={16} color={COLOR_ERROR} />
+      <Ionicons name="alert-circle-outline" size={16} color={colors.error} />
       <Text style={styles.texto}>{mensaje}</Text>
     </View>
   );
@@ -35,9 +35,9 @@ export const FieldError: React.FC<Props> = ({ mensaje, testID = 'field-error' })
 // El rojo de error no está en el tema: los cuatro presets comparten fondos y
 // solo cambian el acento, así que un error tomaría el color de la marca y
 // dejaría de leerse como advertencia.
-const COLOR_ERROR = '#e0555b';
 
-const createStyles = (_colors: ThemeColors) =>
+
+const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     fila: {
       flexDirection: 'row',
@@ -50,6 +50,6 @@ const createStyles = (_colors: ThemeColors) =>
       flex: 1,
       fontSize: 13,
       fontWeight: '600',
-      color: COLOR_ERROR,
+      color: colors.error,
     },
   });

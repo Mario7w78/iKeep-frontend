@@ -20,6 +20,7 @@ import { useAuthStore } from "../../infrastructure/store/useAuthStore";
 import { useScheduleStore, notificationScheduler } from "../../di/Dependencies";
 import { useTheme, ThemeProvider } from "../components/theme/colors";
 import AIChatView from "../screens/AIChat/AIChatView";
+import { StatusBar } from "expo-status-bar";
 
 export type RootStackParamList = {
   MainTabs: undefined;
@@ -197,6 +198,7 @@ export default function AppNavigator() {
   if (authLoading) {
     return (
       <ThemeProvider>
+        <BarraDeEstado />
         <Splash />
       </ThemeProvider>
     );
@@ -208,6 +210,7 @@ export default function AppNavigator() {
   if (!hasSeenOnboarding) {
     return (
       <ThemeProvider>
+        <BarraDeEstado />
         <OnBoardingView />
       </ThemeProvider>
     );
@@ -216,6 +219,7 @@ export default function AppNavigator() {
   if (!session) {
     return (
       <ThemeProvider>
+        <BarraDeEstado />
         <AuthNavigator />
       </ThemeProvider>
     );
@@ -223,6 +227,7 @@ export default function AppNavigator() {
 
   return (
     <ThemeProvider>
+      <BarraDeEstado />
       <Stack.Navigator
         screenOptions={{ headerShown: false }}
         initialRouteName="MainTabs"
@@ -259,6 +264,19 @@ export default function AppNavigator() {
  * comparten los mismos fondos, y habria aparecido en cuanto existiera un tema
  * claro de verdad.
  */
+/**
+ * La barra de estado, siguiendo al tema.
+ *
+ * No habia ninguna: el sistema usaba su default, que con
+ * `userInterfaceStyle: "dark"` en app.json siempre pinta el texto claro. Sobre
+ * el tema Papel eso deja la hora y la bateria invisibles.
+ */
+function BarraDeEstado() {
+  const { esClaro } = useTheme();
+
+  return <StatusBar style={esClaro ? 'dark' : 'light'} />;
+}
+
 function Splash() {
   const { colors } = useTheme();
 

@@ -77,10 +77,10 @@ const TAB_ICONS: Record<keyof MainTabParamList, [string, string]> = {
 function TabNavigator() {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
-  // Landscape is only ever active on the Schedule screen (see ScheduleView),
-  // which uses it to show the full week. Hiding the tab bar there reclaims
-  // real vertical space for the calendar instead of wasting it on navigation
-  // the user can't even reach without rotating back to portrait first.
+  // Apaisado solo tiene sentido en la pantalla del horario, que ahi muestra
+  // la semana entera. Ocultar la barra de tabs recupera alto real para el
+  // calendario en vez de gastarlo en navegacion que el usuario no puede usar
+  // sin volver a girar el telefono.
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
 

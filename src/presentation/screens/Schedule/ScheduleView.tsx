@@ -1,6 +1,6 @@
 // screens/schedule/ScheduleView.tsx
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { View, ActivityIndicator, TouchableOpacity, Text, StyleSheet, ScrollView, Dimensions, Alert } from 'react-native';
+import { useWindowDimensions, View, ActivityIndicator, TouchableOpacity, Text, StyleSheet, ScrollView, Dimensions, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { ScheduleHeader } from '../../components/organisms/Schedule/ScheduleHeader';
@@ -18,6 +18,7 @@ import {
 } from '../../../infrastructure/persistence/EnergyHistoryService';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LoadingScreen } from '../../components/atoms/Common/LoadingScreen';
+import { WeekGrid } from '../../components/organisms/Schedule/WeekGrid';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const DAYS_ORDER = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo'];
@@ -176,6 +177,9 @@ export default function ScheduleView() {
   const loadActivities = useActivityStore((s) => s.loadActivities);
   const cargandoActividades = useActivityStore((s) => s.isLoading);
 
+  const { width: anchoPantalla, height: altoPantalla } = useWindowDimensions();
+  const esApaisado = anchoPantalla > altoPantalla;
+
   // Effective display hours for the selected day (per-day or global fallback)
   const dayIndex = DAYS_ORDER.indexOf(selectedDay);
   const displayStartHour = useMemo(
@@ -278,6 +282,18 @@ export default function ScheduleView() {
   // datos, y todavia no llegaron.
   if (cargandoActividades && activities.length === 0) {
     return <LoadingScreen mensaje="Cargando tu horario..." />;
+  }
+
+  // Girar el telefono ya ocultaba la barra de tabs para ganar alto; lo que
+  // faltaba era usarlo. La semana entera se ve de una y sirve para la foto.
+  if (esApaisado && !showEmptyState) {
+    return (
+      <WeekGrid
+        schedule={schedule}
+        startHour={startHour ?? 0}
+        endHour={endHour ?? 1440}
+      />
+    );
   }
 
   return (

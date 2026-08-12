@@ -3,6 +3,7 @@ import * as Notifications from 'expo-notifications';
 import {
   NotificationPermissionStatus,
   NotificationScheduler,
+  ScheduleDailyNotificationInput,
   ScheduleWeeklyNotificationInput,
 } from '../../application/ports/out/NotificationScheduler';
 
@@ -51,6 +52,25 @@ export class ExpoNotificationScheduler implements NotificationScheduler {
 
   async cancelAll(): Promise<void> {
     await Notifications.cancelAllScheduledNotificationsAsync();
+  }
+
+  async scheduleDaily(input: ScheduleDailyNotificationInput): Promise<string> {
+    // Programar con un identificador que ya existe lo reemplaza, asi que no
+    // hace falta cancelar antes: el aviso de racha cambia de texto cada dia
+    // y esto evita que se acumulen copias viejas.
+    return Notifications.scheduleNotificationAsync({
+      identifier: input.identifier,
+      content: { title: input.title, body: input.body },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DAILY,
+        hour: input.hour,
+        minute: input.minute,
+      },
+    });
+  }
+
+  async cancel(identifier: string): Promise<void> {
+    await Notifications.cancelScheduledNotificationAsync(identifier);
   }
 
   async scheduleWeekly(input: ScheduleWeeklyNotificationInput): Promise<string> {

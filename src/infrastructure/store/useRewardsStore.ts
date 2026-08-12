@@ -9,6 +9,8 @@ import {
   fechaLocal,
   obtenerResumen,
 } from '../api/RewardsApiService';
+import { notificationScheduler } from '../../di/Dependencies';
+import { sincronizarAvisos } from '../../application/use-cases/SyncReengagementReminders';
 
 /**
  * El ciclo de recompensa.
@@ -70,6 +72,15 @@ export const useRewardsStore = create<RewardsState>()((set, get) => ({
         progreso: resumen.progreso,
         diasCompletados: resumen.diasCompletados,
       });
+
+      // Los avisos se resincronizan con cada lectura: es el unico momento en
+      // que sabemos si la racha sigue viva y si al dia le queda algo. Se
+      // reconcilia, asi que una racha rota deja de avisar sola.
+      sincronizarAvisos(notificationScheduler, {
+        rachaActual: resumen.racha.actual,
+        diaTerminado: resumen.progreso.terminado,
+        actividadesHoy: resumen.progreso.total,
+      }).catch(() => undefined);
     } catch (error) {
       // Que falle no puede tapar el horario ni asustar: la racha es un adorno
       // sobre lo que el usuario vino a ver. Se avisa como aviso, no como

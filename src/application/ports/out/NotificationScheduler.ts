@@ -9,7 +9,18 @@ export interface ScheduleWeeklyNotificationInput {
   minute: number;
 }
 
+export interface ScheduleDailyNotificationInput {
+  identifier: string;
+  title: string;
+  body?: string;
+  hour: number;
+  minute: number;
+}
+
 export interface NotificationScheduler {
+  /** Todos los días a la misma hora. Reprogramar con el mismo id reemplaza. */
+  scheduleDaily(input: ScheduleDailyNotificationInput): Promise<string>;
+  cancel(identifier: string): Promise<void>;
   requestPermissions(): Promise<NotificationPermissionStatus>;
   getPermissionStatus(): Promise<NotificationPermissionStatus>;
   cancelAll(): Promise<void>;

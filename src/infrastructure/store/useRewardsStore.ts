@@ -30,6 +30,8 @@ const PROGRESO_VACIO: ProgresoDelDia = {
 interface RewardsState {
   racha: Racha;
   progreso: ProgresoDelDia;
+  /** Días con algo hecho, para el historial. */
+  diasCompletados: string[];
   cargando: boolean;
   /** Sube cada vez que se termina el día. Lo escucha la celebración. */
   diasTerminados: number;
@@ -41,6 +43,7 @@ interface RewardsState {
 export const useRewardsStore = create<RewardsState>()((set, get) => ({
   racha: RACHA_VACIA,
   progreso: PROGRESO_VACIO,
+  diasCompletados: [],
   cargando: false,
   diasTerminados: 0,
 
@@ -62,7 +65,11 @@ export const useRewardsStore = create<RewardsState>()((set, get) => ({
       } catch {
         resumen = await obtenerResumen(fecha);
       }
-      set({ racha: resumen.racha, progreso: resumen.progreso });
+      set({
+        racha: resumen.racha,
+        progreso: resumen.progreso,
+        diasCompletados: resumen.diasCompletados,
+      });
     } catch (error) {
       // Que falle no puede tapar el horario ni asustar: la racha es un adorno
       // sobre lo que el usuario vino a ver. Se avisa como aviso, no como

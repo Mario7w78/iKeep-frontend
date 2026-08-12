@@ -29,6 +29,8 @@ export interface ProgresoDelDia {
 export interface ResumenDeLogros {
   racha: Racha;
   progreso: ProgresoDelDia;
+  /** Días con al menos algo hecho, en formato `YYYY-MM-DD`. */
+  diasCompletados: string[];
 }
 
 /**
@@ -73,5 +75,6 @@ export async function obtenerResumen(fecha = fechaLocal()): Promise<ResumenDeLog
       terminado: dto.progreso.terminado,
       completadosIds: dto.progreso.completados_ids ?? [],
     },
+    diasCompletados: dto.dias_completados ?? [],
   };
 }

@@ -22,6 +22,7 @@ import { useTheme } from "../../components/theme/colors";
 import { Sapo } from "../../components/atoms/Mascot/Sapo";
 import { DailyProgress } from "../../components/atoms/Rewards/DailyProgress";
 import { LoadingScreen } from "../../components/atoms/Common/LoadingScreen";
+import { Celebration } from "../../components/atoms/Rewards/Celebration";
 import { CompleteToggle } from "../../components/atoms/Rewards/CompleteToggle";
 import { StreakBadge } from "../../components/atoms/Rewards/StreakBadge";
 import { useRewardsStore } from "../../../infrastructure/store/useRewardsStore";
@@ -102,6 +103,8 @@ export default function HomeView() {
   const cargarLogros = useRewardsStore((s) => s.cargar);
   const completadas = useRewardsStore((s) => s.progreso.completadosIds);
   const alternarCompletada = useRewardsStore((s) => s.alternar);
+  const diasTerminados = useRewardsStore((s) => s.diasTerminados);
+  const rachaNueva = racha.actual > 1 && progreso.terminado;
 
   // Al montar y nada mas: la racha cambia cuando el usuario marca algo, y
   // ese camino ya recarga por su cuenta.
@@ -360,6 +363,16 @@ export default function HomeView() {
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
+      {/* La `key` es lo que hace que cada celebracion sea un montaje nuevo.
+          Reusar el componente obligaria a reiniciar sus valores animados con
+          setValue, que es justo lo que rompe cuando los maneja el hilo
+          nativo. */}
+      <Celebration
+        key={diasTerminados}
+        disparo={diasTerminados}
+        mensaje={rachaNueva ? `¡${racha.actual} días seguidos!` : undefined}
+      />
+
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.content}

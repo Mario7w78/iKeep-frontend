@@ -49,7 +49,7 @@ export type MainTabParamList = {
   Home: undefined;
   Schedule: undefined;
   Activities: undefined;
-  // Stats: undefined;
+  Stats: undefined;
   Setting: undefined;
 };
 
@@ -70,7 +70,7 @@ const TAB_ICONS: Record<keyof MainTabParamList, [string, string]> = {
   Home: ["home", "home-outline"],
   Schedule: ["calendar", "calendar-outline"],
   Activities: ["list", "list-outline"],
-  // Stats: ["bar-chart", "bar-chart-outline"],
+  Stats: ["bar-chart", "bar-chart-outline"],
   Setting: ["options", "options-outline"],
 };
 
@@ -131,6 +131,11 @@ function TabNavigator() {
         name="Schedule"
         options={{ title: "Calendario" }}
         component={ScheduleScreen}
+      />
+      <Tab.Screen
+        name="Stats"
+        options={{ title: "Progreso" }}
+        component={StatsView}
       />
       <Tab.Screen
         name="Setting"

@@ -1,6 +1,11 @@
 import React from 'react';
 import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
 import AIChatView from '../AIChatView';
+const mockAplicar = jest.fn();
+jest.mock('../../../../infrastructure/api/AssistantApplyService', () => ({
+  aplicarPropuesta: (...a: any[]) => mockAplicar(...a),
+}));
+
 import { createChatStore } from '../../../../infrastructure/store/useChatStore';
 import { useChatStore } from '../../../../di/Dependencies';
 
@@ -41,6 +46,7 @@ describe('useChatStore', () => {
       getState: () => ({
         handleCreateActivity: handleCreateActivityMock,
       }),
+      setState: jest.fn(),
     };
     mockScheduleStore = {
       getState: () => ({
@@ -50,9 +56,20 @@ describe('useChatStore', () => {
         perDayStartHours: null,
         startHour: 0,
         handleGenerateSchedule: handleGenerateScheduleMock,
+        hidratarHorario: jest.fn(),
       }),
+      setState: jest.fn(),
     };
     mockConversar = jest.fn();
+    mockAplicar.mockReset();
+    mockAplicar.mockResolvedValue({
+      estado: 'OPTIMO',
+      mensaje: 'listo',
+      recomendaciones: [],
+      tareasOmitidas: [],
+      scheduledActivities: [],
+      actividades: [],
+    });
   });
 
   it('initializes with greeting message and not thinking', () => {
@@ -115,9 +132,8 @@ describe('useChatStore', () => {
 
     await store.getState().sendMessage('Quiero estudiar inglés el sábado de 8 a 10 am');
 
-    // It should not save immediately
-    expect(handleCreateActivityMock).not.toHaveBeenCalled();
-    expect(handleGenerateScheduleMock).not.toHaveBeenCalled();
+    // Nada se guarda hasta que el usuario confirma.
+    expect(mockAplicar).not.toHaveBeenCalled();
 
     // It should have created a confirmation message with pendingActivity
     const messages = store.getState().messages;
@@ -128,9 +144,11 @@ describe('useChatStore', () => {
     // Now confirm the pending activity
     await store.getState().confirmPendingActivity(confirmMsg.id);
 
-    // Mocks should now be called
-    expect(handleCreateActivityMock).toHaveBeenCalled();
-    expect(handleGenerateScheduleMock).toHaveBeenCalled();
+    // Con USA_APLICAR_EN_BACKEND encendido, confirmar es un solo viaje al
+    // servidor en vez de guardar, generar y persistir desde el cliente.
+    expect(mockAplicar).toHaveBeenCalledWith(
+      expect.objectContaining({ tipo: 'crear' })
+    );
     expect(store.getState().createdActivityId).toBeTruthy();
     expect(store.getState().messages.some((m) => m.isCreated)).toBe(true);
   });

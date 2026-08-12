@@ -20,7 +20,7 @@ export const USA_BACKEND_PARA_DATOS = true;
  * ponia logica de dominio en un store de Zustand y pagaba el arranque en frio
  * de Render en cada salto.
  *
- * Arranca apagado. El camino viejo sigue entero, asi que volver atras es
- * cambiar este valor.
+ * Probado en dispositivo el 2026-08-12. El camino viejo sigue entero, asi
+ * que volver atras es cambiar este valor.
  */
-export const USA_APLICAR_EN_BACKEND = false;
+export const USA_APLICAR_EN_BACKEND = true;

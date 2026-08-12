@@ -31,7 +31,8 @@
     "plugins": [
       "@react-native-community/datetimepicker",
       "./plugins/withoutRemotePush",
-      "expo-notifications"
+      "expo-notifications",
+      "expo-font"
     ],
     "extra": {
       "eas": {

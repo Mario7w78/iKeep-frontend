@@ -549,38 +549,9 @@ const createStyles = (colors: ThemeColors, comfyColors: Record<string, string>, 
   durationInputContainer: {
     gap: 6,
   },
-  trasladoContainer: {
-    gap: 8,
-  },
-  quickChip: {
-    backgroundColor: colors.screenBackground,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: colors.cardBorder,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   quickChipSelected: {
     backgroundColor: `${colors.iconPrimary}20`,
     borderColor: colors.iconPrimary,
-  },
-  quickChipText: {
-    color: colors.textTertiary,
-    fontSize: 13,
-    fontWeight: "800",
-  },
-  quickChipTextSelected: {
-    color: colors.surface,
-  },
-  chipsRow: {
-    flexDirection: "row",
-    marginTop: 4,
-  },
-  chipsScroll: {
-    gap: 8,
-    paddingRight: 16,
   },
   ghostButton: {
     flexDirection: "row",

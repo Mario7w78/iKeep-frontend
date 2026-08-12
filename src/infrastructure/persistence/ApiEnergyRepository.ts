@@ -46,8 +46,15 @@ export class ApiEnergyRepository implements EnergyRepository {
   }
 
   async reportedToday(): Promise<boolean> {
+    // "Hoy" es una afirmación sobre el día del usuario, y el servidor no
+    // puede saber su huso. Sin esto usaba medianoche UTC: en Lima, reportar
+    // a las 20:00 del lunes quedaba contado como martes.
+    //
+    // `getTimezoneOffset` devuelve el signo invertido respecto de UTC, así
+    // que se niega.
+    const desfase = -new Date().getTimezoneOffset();
     const respuesta = await backendRequest<{ reportado: boolean }>(
-      `${RUTA}/hoy`
+      `${RUTA}/hoy?desfase_utc_minutos=${desfase}`
     );
     return respuesta?.reportado ?? false;
   }

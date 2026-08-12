@@ -35,10 +35,9 @@ describe('WeekGrid', () => {
       <WeekGrid schedule={horarioCon({})} startHour={0} endHour={1440} />
     );
 
-    // Las mismas abreviaturas que el resto de la pantalla del horario:
-    // rotar el telefono no deberia cambiar el vocabulario.
-    expect(vista.getByText('Lu')).toBeTruthy();
-    expect(vista.getByText('Do')).toBeTruthy();
+    // Las del glosario, que ahora son las de toda la app.
+    expect(vista.getByText('Lun')).toBeTruthy();
+    expect(vista.getByText('Dom')).toBeTruthy();
   });
 
   it('coloca los bloques de cada dia', async () => {

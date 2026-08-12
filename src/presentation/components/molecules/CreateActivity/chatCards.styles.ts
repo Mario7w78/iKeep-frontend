@@ -195,7 +195,11 @@ export const createStyles = (colors: ThemeColors) => StyleSheet.create({
     marginTop: 6,
   },
   miniDayBox: {
-    width: 28,
+    // Crece con el texto en vez de ser un cuadrado fijo: las etiquetas pasaron
+    // de una letra a tres, y "L M M J V S D" obligaba a resolver cual de las
+    // dos M era martes.
+    flex: 1,
+    minWidth: 34,
     height: 28,
     borderRadius: 8,
     alignItems: 'center',
@@ -211,7 +215,7 @@ export const createStyles = (colors: ThemeColors) => StyleSheet.create({
     borderColor: colors.cardBorder,
   },
   miniDayText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '800',
   },
   miniDayTextSelected: {

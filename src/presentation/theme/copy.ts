@@ -52,13 +52,19 @@ export const COPY = {
 } as const;
 
 /**
- * Abreviaturas de los días.
+ * Abreviaturas de los días. La única del proyecto.
  *
- * El wizard mostraba "X" para miércoles en una pantalla y "Mié" en otra. Se
- * usa la de tres letras: una sola letra obliga a resolver la ambigüedad entre
- * martes y miércoles, y entre sábado y domingo, cada vez.
+ * Había SIETE definiciones y cuatro palabras distintas para miércoles: `Mi`
+ * en el horario, `Mié` acá, `M` en la tarjeta del chat y `X` en los
+ * selectores del wizard. La peor era la de una sola letra: `L M M J V S D`
+ * obliga a resolver cada vez cuál de las dos `M` es martes.
+ *
+ * Tres letras porque es lo mínimo que desambigua martes/miércoles y
+ * sábado/domingo sin que haya que pensarlo.
  */
 export const DIA_CORTO: Record<string, string> = {
+  /** Lo usa el horario para las actividades que ocurren todos los días. */
+  Diario: 'Diario',
   Lunes: 'Lun',
   Martes: 'Mar',
   Miercoles: 'Mié',

@@ -4,16 +4,7 @@ import { DayOfWeek } from "../../../../domain/entities/Activity";
 import { DayConfig } from "../../../../domain/entities/activity.types";
 import { groupColors } from "../../theme/colors";
 import DayButton from "../../atoms/CreateActivity/DayButton";
-
-const DAY_LETTERS: Record<DayOfWeek, string> = {
-  Lunes: "L",
-  Martes: "M",
-  Miercoles: "X",
-  Jueves: "J",
-  Viernes: "V",
-  Sabado: "S",
-  Domingo: "D",
-};
+import { DIA_CORTO } from '../../../theme/copy';
 
 const DAYS: DayOfWeek[] = [
   "Lunes",
@@ -55,7 +46,7 @@ export default function DayPickerGrid({
           <DayButton
             key={day}
             day={day}
-            letter={DAY_LETTERS[day]}
+            letter={DIA_CORTO[day]}
             selected={selected}
             configured={configured}
             configuredColor={configuredColor}

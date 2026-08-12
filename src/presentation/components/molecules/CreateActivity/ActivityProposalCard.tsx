@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../theme/colors';
 import { createStyles } from './chatCards.styles';
 import { ProposalActions } from './ProposalActions';
+import { DIA_CORTO } from '../../../theme/copy';
 
 interface Props {
   mensaje: { id: string; isConfirmed?: boolean; isCancelled?: boolean };
@@ -43,26 +44,15 @@ const formatDuration = (mins: number) => {
   return `${mins} min`;
 };
 
-const abbreviateDay = (day: string) => {
-  const d = day.trim().toLowerCase();
-  if (d.startsWith('lun')) return 'Lu';
-  if (d.startsWith('mar')) return 'Ma';
-  if (d.startsWith('mié') || d.startsWith('mie')) return 'Mi';
-  if (d.startsWith('jue')) return 'Ju';
-  if (d.startsWith('vie')) return 'Vi';
-  if (d.startsWith('sáb') || d.startsWith('sab')) return 'Sá';
-  if (d.startsWith('dom')) return 'Do';
-  return day;
-};
-
-const WEEK_DAYS = [
-  { name: 'Lunes', letter: 'L' },
-  { name: 'Martes', letter: 'M' },
-  { name: 'Miércoles', letter: 'M' },
-  { name: 'Jueves', letter: 'J' },
-  { name: 'Viernes', letter: 'V' },
-  { name: 'Sábado', letter: 'S' },
-  { name: 'Domingo', letter: 'D' },
+/** El orden de la semana. Las etiquetas salen del glosario. */
+const SEMANA = [
+  'Lunes',
+  'Martes',
+  'Miercoles',
+  'Jueves',
+  'Viernes',
+  'Sabado',
+  'Domingo',
 ];
 
 const normalizeStr = (str: string) => {
@@ -194,13 +184,13 @@ export const ActivityProposalCard: React.FC<Props> = ({
               : 'Días'}
           </Text>
           <View style={styles.daysRowGrid}>
-            {WEEK_DAYS.map((wd) => {
-              const isSelected = parsedState.selectedDays.some((sd: string) => 
-                normalizeStr(sd) === normalizeStr(wd.name)
+            {SEMANA.map((nombre) => {
+              const isSelected = parsedState.selectedDays.some((sd: string) =>
+                normalizeStr(sd) === normalizeStr(nombre)
               );
               return (
-                <View 
-                  key={wd.name} 
+                <View
+                  key={nombre} 
                   style={[
                     styles.miniDayBox, 
                     isSelected ? styles.miniDayBoxSelected : styles.miniDayBoxUnselected
@@ -210,7 +200,7 @@ export const ActivityProposalCard: React.FC<Props> = ({
                     styles.miniDayText, 
                     isSelected ? styles.miniDayTextSelected : styles.miniDayTextUnselected
                   ]}>
-                    {wd.letter}
+                    {DIA_CORTO[nombre]}
                   </Text>
                 </View>
               );
@@ -234,7 +224,7 @@ export const ActivityProposalCard: React.FC<Props> = ({
                 if (!config || !config.partitions || config.partitions.length === 0) return null;
                 return (
                   <View key={day} style={styles.scheduleCompactRow}>
-                    <Text style={styles.scheduleCompactDay}>{abbreviateDay(day)}</Text>
+                    <Text style={styles.scheduleCompactDay}>{DIA_CORTO[day] ?? day}</Text>
                     <Text style={styles.scheduleCompactTime}>
                       {config.partitions.map((p: any) => 
                         `${formatHour(p.startHour)} - ${formatHour(p.endHour)}`

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { DayOfWeek } from "../../../../domain/entities/Activity";
 import { useTheme, ThemeColors } from "../../theme/colors";
 import AntDesign from "@expo/vector-icons/AntDesign";
+import { DIA_CORTO } from '../../../theme/copy';
 
 interface props {
   onSelect: (val: DayOfWeek) => void;
@@ -27,16 +28,6 @@ export const FrequencySelector = ({
 }: props) => {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-
-  const DAY_LETTERS: Partial<Record<DayOfWeek, string>> = {
-    Lunes: "L",
-    Martes: "M",
-    Miercoles: "X",
-    Jueves: "J",
-    Viernes: "V",
-    Sabado: "S",
-    Domingo: "D",
-  };
 
   return (
     <View style={styles.container}>
@@ -97,7 +88,7 @@ export const FrequencySelector = ({
                   isSelected && styles.dayLetterSelected,
                 ]}
               >
-                {DAY_LETTERS[item]}
+                {DIA_CORTO[item]}
               </Text>
               <Text
                 style={[

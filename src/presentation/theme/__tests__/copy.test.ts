@@ -4,6 +4,7 @@
  */
 
 import { COPY, DIA_CORTO } from '../copy';
+import { DAYS_SHORT } from '../../utils/scheduleUtils';
 
 describe('COPY', () => {
   it('una actividad sin hora fija se llama Flexible en todos lados', () => {
@@ -43,7 +44,30 @@ describe('DIA_CORTO', () => {
   });
 
   it('cubre la semana entera', () => {
-    const unicos = new Set(Object.values(DIA_CORTO));
+    const SEMANA = [
+      'Lunes',
+      'Martes',
+      'Miercoles',
+      'Jueves',
+      'Viernes',
+      'Sabado',
+      'Domingo',
+    ];
+    const unicos = new Set(SEMANA.map((d) => DIA_CORTO[d]));
+
     expect(unicos.size).toBe(7);
+  });
+
+  it('tambien cubre "Diario", que usa el horario', () => {
+    expect(DIA_CORTO.Diario).toBeTruthy();
+  });
+
+  it('es la unica tabla: el horario lee de aca', () => {
+    /**
+     * Habia siete definiciones y cuatro palabras para miercoles —Mi, Mié, M y
+     * X— repartidas entre el horario, el chat y dos selectores del wizard.
+     */
+    expect(DAYS_SHORT.Miercoles).toBe(DIA_CORTO.Miercoles);
+    expect(DAYS_SHORT.Lunes).toBe(DIA_CORTO.Lunes);
   });
 });

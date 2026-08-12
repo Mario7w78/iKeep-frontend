@@ -3,16 +3,7 @@ import { TouchableOpacity, Text, View, StyleSheet } from 'react-native';
 import { DayOfWeek } from '../../../../domain/entities/Activity';
 import { JS_DAY_TO_DAYOFWEEK } from '../../../utils/scheduleUtils';
 import { useTheme, ThemeColors } from '../../theme/colors';
-
-const DAY_SINGLE_LETTER: Record<DayOfWeek, string> = {
-  Lunes: 'L',
-  Martes: 'M',
-  Miercoles: 'X',
-  Jueves: 'J',
-  Viernes: 'V',
-  Sabado: 'S',
-  Domingo: 'D',
-};
+import { DIA_CORTO } from '../../../theme/copy';
 
 interface Props {
   day: DayOfWeek;
@@ -41,7 +32,7 @@ export function DayTab({ day, isSelected, onPress }: Props) {
           isSelected ? styles.textActive : styles.textInactive,
           isToday && !isSelected && { color: comfyColors.green }
         ]}>
-          {DAY_SINGLE_LETTER[day]}
+          {DIA_CORTO[day]}
         </Text>
       </TouchableOpacity>
       {isSelected ? (
@@ -75,7 +66,8 @@ function createStyles(colors: ThemeColors) {
       borderColor: colors.cardBorder,
     },
     text: {
-      fontSize: 16,
+      // Tres letras en 44px: entra ajustado y se lee sin ambiguedad.
+      fontSize: 13,
       fontWeight: '900',
     },
     textActive: {

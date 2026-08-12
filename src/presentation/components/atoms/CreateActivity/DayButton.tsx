@@ -85,7 +85,9 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   letter: {
     color: colors.surface,
-    fontSize: 22,
+    // Bajo de 22 porque la etiqueta paso de una letra a tres: "X" para
+    // miercoles obligaba a aprenderse una convencion que nadie explico.
+    fontSize: 18,
     fontWeight: "900",
   },
   name: {

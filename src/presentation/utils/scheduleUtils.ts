@@ -1,5 +1,6 @@
 // utils/calendarUtils.ts
 import { DayOfWeek } from '../../domain/entities/Activity';
+import { DIA_CORTO } from '../theme/copy';
 
 export const HOUR_HEIGHT = 56;
 export const START_HOUR = 0;
@@ -24,10 +25,15 @@ export const DAYS_ORDER: DayOfWeek[] = [
   'Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo'
 ];
 
-export const DAYS_SHORT: Record<DayOfWeek | 'Diario', string> = {
-  'Diario': 'Di', 'Lunes': 'Lu', 'Martes': 'Ma', 'Miercoles': 'Mi',
-  'Jueves': 'Ju', 'Viernes': 'Vi', 'Sabado': 'Sá', 'Domingo': 'Do',
-};
+/**
+ * Se mantiene el nombre para no tocar a quien ya lo importa, pero los valores
+ * salen del glosario: dos tablas distintas para lo mismo fue como el proyecto
+ * llego a tener cuatro palabras para miercoles.
+ */
+export const DAYS_SHORT: Record<DayOfWeek | 'Diario', string> = DIA_CORTO as Record<
+  DayOfWeek | 'Diario',
+  string
+>;
 
 export function minutesToTop(minutes: number): number {
   return ((minutes - START_HOUR * 60) / 60) * HOUR_HEIGHT;

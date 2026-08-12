@@ -7,8 +7,12 @@ los PNG a mano.
 ## Cómo se generó
 
 `rsvg-convert` a 2048 px y de ahí se reduce a cada tamaño. Renderizar directo
-al tamaño final pierde el ruido y los bordes difuminados del SVG; reducir
-desde el doble los conserva.
+al tamaño final ensucia los bordes curvos; reducir desde el doble los deja
+limpios.
+
+El logo es plano —sin filtros ni degradados—, que para un icono es lo que
+conviene: a 60 px, que es como se ve en la pantalla de inicio, un degradado
+se convierte en barro y una silueta clara sigue leyéndose.
 
 | Archivo | Tamaño | Ocupación | Por qué |
 |---|---|---|---|
@@ -31,6 +35,13 @@ también el resplandor difuminado de los ojos y la silueta se redondea.
 
 ## El fondo
 
-`#2C2E3C`, el mismo de la app. El anterior era `#E6F4FE`, celeste claro, y
-sobre eso el resplandor verde de los ojos desaparece: ese halo es parte del
-arte, no un artefacto del render.
+`#2C2E3C`, el mismo de la app. El de Android era `#E6F4FE`, celeste claro, y
+sobre eso el verde del sapo pierde contraste.
+
+## Antes de dar por bueno un logo nuevo
+
+Comparar la mitad izquierda del render contra la derecha espejada. Una versión
+anterior traía un filtro de desenfoque en un solo ojo —al simplificar el arte
+quedó en uno y no en el otro—, y el resultado era una pupila con brillo de
+esfera y la otra recortada como media luna. En pantalla grande no salta;
+como icono, sí.

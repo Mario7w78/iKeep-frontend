@@ -35,7 +35,6 @@ import { createActivityStore, ActivityStore } from '../infrastructure/store/useA
 import { createScheduleStore, ScheduleStore } from '../infrastructure/store/useScheduleStore';
 import { createUserStore, UserStore } from '../infrastructure/store/useUserStore';
 import { supabaseDayLimitPersistence } from '../infrastructure/persistence/SupabaseDayLimitPersistence';
-import { sendConversation } from '../infrastructure/api/ParseNLApiService';
 import { conversarConAsistente } from '../infrastructure/api/AssistantApiService';
 import { createChatStore, ChatStore } from '../infrastructure/store/useChatStore';
 import { USA_BACKEND_PARA_DATOS } from '../config/featureFlags';
@@ -105,8 +104,6 @@ export const useUserStore: UserStore = createUserStore(
 export const useChatStore: ChatStore = createChatStore(
   useActivityStore,
   useScheduleStore,
-  sendConversation,
-  // El motor nuevo se elige dentro del store segun USA_ASISTENTE_V2; se
-  // inyectan los dos para poder cambiar sin tocar el cableado.
+  // El motor conversacional se inyecta para poder probar el store sin red.
   conversarConAsistente
 );

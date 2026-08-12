@@ -31,7 +31,7 @@ function crearStore() {
       handleGenerateSchedule: jest.fn().mockResolvedValue(undefined),
     }),
   };
-  return createChatStore(activityStore as any, scheduleStore as any, jest.fn(), jest.fn());
+  return createChatStore(activityStore as any, scheduleStore as any, jest.fn());
 }
 
 const PROPUESTA = {

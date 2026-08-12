@@ -18,7 +18,6 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 
 jest.mock('../../../config/featureFlags', () => ({
   USA_BACKEND_PARA_DATOS: false,
-  USA_ASISTENTE_V2: true,
 }));
 
 import { createChatStore } from '../useChatStore';
@@ -56,7 +55,7 @@ function crearStore(conversar: jest.Mock, extras: any = {}) {
         extras.handleGenerateSchedule ?? jest.fn().mockResolvedValue(undefined),
     }),
   };
-  return createChatStore(activityStore, scheduleStore, jest.fn(), conversar);
+  return createChatStore(activityStore, scheduleStore, conversar);
 }
 
 function respuesta(over: any = {}) {

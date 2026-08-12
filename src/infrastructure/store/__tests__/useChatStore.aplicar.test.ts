@@ -14,7 +14,6 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 
 jest.mock('../../../config/featureFlags', () => ({
   USA_BACKEND_PARA_DATOS: true,
-  USA_ASISTENTE_V2: true,
   USA_APLICAR_EN_BACKEND: true,
 }));
 
@@ -71,7 +70,7 @@ function crearStore() {
     }),
   };
 
-  const store = createChatStore(activityStore, scheduleStore, jest.fn(), jest.fn());
+  const store = createChatStore(activityStore, scheduleStore, jest.fn());
   return { store, activityStore, generar, crear, hidratar };
 }
 

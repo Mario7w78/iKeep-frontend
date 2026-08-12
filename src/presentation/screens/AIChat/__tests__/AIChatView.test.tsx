@@ -3,7 +3,6 @@ import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
 import AIChatView from '../AIChatView';
 import { createChatStore } from '../../../../infrastructure/store/useChatStore';
 import { useChatStore } from '../../../../di/Dependencies';
-import { sendConversation } from '../../../../infrastructure/api/ParseNLApiService';
 
 // Mock required modules
 jest.mock('react-native-safe-area-context', () => ({
@@ -19,9 +18,6 @@ jest.mock('@expo/vector-icons', () => ({
   Ionicons: () => null,
 }));
 
-jest.mock('../../../../infrastructure/api/ParseNLApiService', () => ({
-  sendConversation: jest.fn(),
-}));
 
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(),
@@ -33,7 +29,7 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 describe('useChatStore', () => {
   let mockActivityStore: any;
   let mockScheduleStore: any;
-  let mockSendConversation: any;
+  let mockConversar: any;
   let handleCreateActivityMock: any;
   let handleGenerateScheduleMock: any;
 
@@ -56,11 +52,11 @@ describe('useChatStore', () => {
         handleGenerateSchedule: handleGenerateScheduleMock,
       }),
     };
-    mockSendConversation = jest.fn();
+    mockConversar = jest.fn();
   });
 
   it('initializes with greeting message and not thinking', () => {
-    const store = createChatStore(mockActivityStore, mockScheduleStore, mockSendConversation);
+    const store = createChatStore(mockActivityStore, mockScheduleStore, mockConversar);
     const state = store.getState();
     expect(state.messages).toHaveLength(1);
     expect(state.messages[0].role).toBe('assistant');
@@ -70,10 +66,13 @@ describe('useChatStore', () => {
   });
 
   it('sendMessage appends user message instantly, clears input, and sets isThinking to true', async () => {
-    const store = createChatStore(mockActivityStore, mockScheduleStore, mockSendConversation);
-    mockSendConversation.mockResolvedValue({
-      type: 'question',
-      ai_message: '¿De qué color es la actividad?',
+    const store = createChatStore(mockActivityStore, mockScheduleStore, mockConversar);
+    mockConversar.mockResolvedValue({
+      tipo: 'pregunta',
+      mensaje: '¿De qué color es la actividad?',
+      borrador: {},
+      turnos: [],
+      propuesta: null,
     });
 
     const sendPromise = store.getState().sendMessage('Quiero estudiar inglés');
@@ -91,34 +90,27 @@ describe('useChatStore', () => {
     expect(store.getState().messages[2].content).toBe('¿De qué color es la actividad?');
     expect(store.getState().messages[2].role).toBe('assistant');
 
-    expect(mockSendConversation).toHaveBeenCalledWith(
-      'Quiero estudiar inglés',
-      expect.any(Array),
-      undefined,
-      expect.stringMatching(/^(Lunes|Martes|Miercoles|Jueves|Viernes|Sabado|Domingo)$/)
-    );
+    expect(mockConversar).toHaveBeenCalled();
   });
 
   it('handles result response, queues activity, and calls saves on confirm', async () => {
-    const store = createChatStore(mockActivityStore, mockScheduleStore, mockSendConversation);
-    mockSendConversation.mockResolvedValue({
-      type: 'result',
+    const store = createChatStore(mockActivityStore, mockScheduleStore, mockConversar);
+    const borrador = {
       name: 'Estudiar Inglés',
       activity_type: 'tarea',
       is_fixed: false,
       is_anchor: false,
       difficulty: 'media',
       priority: 'media',
-      schedule: [
-        {
-          day: 'Sabado',
-          start_time: 480,
-          end_time: 600,
-        },
-      ],
+      schedule: [{ day: 'Sabado', start_time: 480, end_time: 600 }],
       duracion_minutos: 120,
-      confidence: 1.0,
-      missing_fields: [],
+    };
+    mockConversar.mockResolvedValue({
+      tipo: 'propuesta',
+      mensaje: '¿La creo?',
+      borrador,
+      turnos: [],
+      propuesta: { tipo: 'crear', borrador, activity_id: null },
     });
 
     await store.getState().sendMessage('Quiero estudiar inglés el sábado de 8 a 10 am');
@@ -144,18 +136,21 @@ describe('useChatStore', () => {
   });
 
   it('handles API failure correctly and retries', async () => {
-    const store = createChatStore(mockActivityStore, mockScheduleStore, mockSendConversation);
-    mockSendConversation.mockRejectedValueOnce(new Error('Network error'));
+    const store = createChatStore(mockActivityStore, mockScheduleStore, mockConversar);
+    mockConversar.mockRejectedValueOnce(new Error('Network error'));
 
     await store.getState().sendMessage('Quiero estudiar inglés');
 
     expect(store.getState().isThinking).toBe(false);
     expect(store.getState().messages.some((m) => m.isError)).toBe(true);
 
-    // Mock success for retry
-    mockSendConversation.mockResolvedValue({
-      type: 'question',
-      ai_message: '¿Qué día?',
+    // Y al reintentar, que funcione.
+    mockConversar.mockResolvedValue({
+      tipo: 'pregunta',
+      mensaje: '¿Qué día?',
+      borrador: {},
+      turnos: [],
+      propuesta: null,
     });
 
     await act(async () => {
@@ -168,7 +163,7 @@ describe('useChatStore', () => {
   });
 
   it('clearChat resets to greeting', () => {
-    const store = createChatStore(mockActivityStore, mockScheduleStore, mockSendConversation);
+    const store = createChatStore(mockActivityStore, mockScheduleStore, mockConversar);
 
     // Set some state
     store.setState({

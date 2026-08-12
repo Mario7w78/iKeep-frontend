@@ -9,7 +9,7 @@ import {
   Propuesta,
   RespuestaAsistente,
 } from '../../domain/entities/conversation.types';
-import { USA_APLICAR_EN_BACKEND, USA_ASISTENTE_V2 } from '../../config/featureFlags';
+import { USA_APLICAR_EN_BACKEND } from '../../config/featureFlags';
 import { aplicarPropuesta } from '../api/AssistantApplyService';
 import { comandoAActividad } from '../../application/mappers/commandToActivity';
 import {
@@ -306,13 +306,7 @@ function propsDeActividad(actividad: any) {
 export function createChatStore(
   activityStore: any,
   scheduleStore: any,
-  sendConversationFn: (
-    text: string,
-    history: MessageDto[],
-    agendaContext?: string,
-    currentDay?: string
-  ) => Promise<any>,
-  // Se inyecta igual que la anterior, para poder probar el store sin red.
+  // Se inyecta para poder probar el store sin red.
   conversarFn?: (peticion: {
     mensaje: string;
     borrador?: Borrador;
@@ -518,217 +512,15 @@ export function createChatStore(
         isThinking: true,
       });
 
-      if (USA_ASISTENTE_V2 && conversarFn) {
-        await conversarConElAsistente(text, set, get, conversarFn, activityStore);
+      // El camino viejo —/parse-nl-conversation— se retiro: el motor
+      // conversacional quedo validado en dispositivo y sostener dos
+      // implementaciones obligaba a pensar cada cambio dos veces.
+      if (!conversarFn) {
+        set({ isThinking: false });
         return;
       }
 
-      const activities = activityStore.getState().activities || [];
-      // Groq/Llama: limitar descripciones para no quemar tokens
-      const MAX_ACTIVITY_DESC = 10;
-      const descriptions = activities.slice(0, MAX_ACTIVITY_DESC).map((a: any) => {
-        const isFixed = a.isFixed();
-        const parts: string[] = [];
-        parts.push(`Nombre: "${a.title}"`);
-        parts.push(`Categoría: "${a.identity || 'tarea'}"`);
-        parts.push(`Horario: ${isFixed ? 'Fijo' : 'Flexible'}`);
-        parts.push(`Días: [${a.daysEnabled ? a.daysEnabled.join(', ') : ''}]`);
-        if (isFixed) {
-          const dayTimes: string[] = [];
-          if (a.daysConfig) {
-            for (const day in a.daysConfig) {
-              const cfg = a.daysConfig[day];
-              if (cfg && cfg.partitions && cfg.partitions.length > 0) {
-                const timings = cfg.partitions.map((p: any) => {
-                  const s = minutesToTimeStr(dateToMinutes(new Date(p.startHour)));
-                  const e = minutesToTimeStr(dateToMinutes(new Date(p.endHour)));
-                  return `${s} - ${e}`;
-                }).join(', ');
-                dayTimes.push(`${day}: ${timings}`);
-              }
-            }
-          }
-          parts.push(`Horas: { ${dayTimes.join(' | ')} }`);
-        } else {
-          if (a.preferredStartTime !== null && a.preferredEndTime !== null && a.preferredStartTime !== undefined && a.preferredEndTime !== undefined) {
-            parts.push(`Rango preferido: ${minutesToTimeStr(a.preferredStartTime)} a ${minutesToTimeStr(a.preferredEndTime)}`);
-          }
-          if (a.getTotalTimeRequired) {
-            parts.push(`Duración: ${a.getTotalTimeRequired()} minutos`);
-          }
-          parts.push(`Prioridad: "${a.priority || 'media'}"`);
-        }
-        return `{ ${parts.join(' | ')} }`;
-      });
-      if (activities.length > MAX_ACTIVITY_DESC) {
-        descriptions.push(`...[y ${activities.length - MAX_ACTIVITY_DESC} actividad(es) más, omitidas por brevedad]`);
-      }
-
-      // Groq/Llama: contexto limitado — solo últimas 4 exchanges (8 mensajes)
-      const MAX_HISTORY_EXCHANGES = 4;
-      const trimmedMessages = get().messages.filter((m) => !m.isError);
-      const recentMessages = trimmedMessages.slice(-(MAX_HISTORY_EXCHANGES * 2));
-      const history: MessageDto[] = recentMessages.map((m) => ({
-        role: m.role as 'user' | 'assistant',
-        content: m.content,
-        type: m.type,
-      }));
-
-      const agendaContext = descriptions.length > 0 ? descriptions.join('\n') : undefined;
-      const spanishDays = ['Domingo', 'Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado'];
-      const currentDay = spanishDays[new Date().getDay()];
-
-      let creatingMsgId: string | null = null;
-      try {
-        const response = await sendConversationFn(text, history, agendaContext, currentDay);
-
-        if (response.type === 'chat') {
-          const aiMsg: ChatMessage = {
-            id: `ai-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-            role: 'assistant',
-            content: response.ai_message,
-            timestamp: Date.now(),
-            type: 'chat',
-          };
-          set({
-            messages: [...get().messages, aiMsg],
-            isThinking: false,
-          });
-        } else if (response.type === 'question') {
-          const aiMsg: ChatMessage = {
-            id: `ai-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-            role: 'assistant',
-            content: response.ai_message,
-            timestamp: Date.now(),
-            type: 'question',
-          };
-          set({
-            messages: [...get().messages, aiMsg],
-            isThinking: false,
-          });
-        } else if (response.type === 'result') {
-          const parsedState = mapParsedResponseToFormState(
-            response as unknown as ParseNLResponseDto,
-            0
-          );
-
-          if (!parsedState.activityName || parsedState.activityName.trim() === '') {
-            const aiMsg: ChatMessage = {
-              id: `ai-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-              role: 'assistant',
-              content: 'Entendido. Dime si quieres agendar o modificar alguna actividad.',
-              timestamp: Date.now(),
-              type: 'question',
-            };
-            set({
-              messages: [...get().messages, aiMsg],
-              isThinking: false,
-            });
-            return;
-          }
-
-          // Find if there is a matching activity in the database to edit/modify
-          const activities = activityStore.getState().activities || [];
-          const parsedName = parsedState.activityName || '';
-          const normalizedParsedName = parsedName.trim().toLowerCase();
-
-          // Check if user has an edit intent in their input text
-          const normalizedInput = text.toLowerCase();
-          const isEditIntent = normalizedInput.includes('modific') || 
-                               normalizedInput.includes('edit') || 
-                               normalizedInput.includes('cambia') || 
-                               normalizedInput.includes('actualiz');
-
-          let matchingActivity: any = null;
-          if (normalizedParsedName) {
-            // 1. Exact match
-            matchingActivity = activities.find(
-              (a: any) => a.title.trim().toLowerCase() === normalizedParsedName
-            );
-            // 2. Partial match if edit intent
-            if (!matchingActivity && isEditIntent) {
-              matchingActivity = activities.find(
-                (a: any) => a.title.toLowerCase().includes(normalizedParsedName) || 
-                            normalizedParsedName.includes(a.title.toLowerCase())
-              );
-            }
-            // 3. Fallback check user input if edit intent
-            if (!matchingActivity && isEditIntent) {
-              matchingActivity = activities.find(
-                (a: any) => normalizedInput.includes(a.title.toLowerCase())
-              );
-            }
-          }
-
-          let originalActivityProps: any = null;
-          if (matchingActivity) {
-            originalActivityProps = {
-              id: matchingActivity.id,
-              activityName: matchingActivity.title,
-              isFixed: matchingActivity.isFixed(),
-              identity: matchingActivity.identity,
-              priority: matchingActivity.priority,
-              difficulty: matchingActivity.difficulty,
-              deadline: matchingActivity.deadline,
-              daysConfig: matchingActivity.daysConfig,
-              days: matchingActivity.daysEnabled,
-              preferredStartTime: matchingActivity.preferredStartTime,
-              preferredEndTime: matchingActivity.preferredEndTime,
-              optionalDay: matchingActivity.optionalDay,
-              isAnchor: matchingActivity.isAnchor,
-            };
-          }
-
-          const pendingActivity = {
-            id: matchingActivity ? matchingActivity.id : Date.now().toString(),
-            isModification: !!matchingActivity,
-            originalName: matchingActivity ? matchingActivity.title : null,
-            originalActivityProps,
-            parsedState,
-          };
-
-          const confirmMsg: ChatMessage = {
-            id: `confirm-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-            role: 'assistant',
-            content: matchingActivity
-              ? `Encontré la actividad "${matchingActivity.title}" en la base de datos. ¿Quieres modificarla con los siguientes datos?`
-              : '¿Quieres crear esta actividad con los siguientes datos?',
-            timestamp: Date.now(),
-            pendingActivity,
-            type: 'result',
-          };
-
-          // Auto-cancelar pendings anteriores: si el usuario pidió cambios sin cancelar,
-          // los viejos botones Confirmar/Cancelar se desactivan para evitar duplicados.
-          const messagesWithCancelledPendings = get().messages.map((m) =>
-            m.pendingActivity && !m.isConfirmed && !m.isCancelled
-              ? { ...m, isCancelled: true }
-              : m
-          );
-
-          set({
-            messages: [...messagesWithCancelledPendings, confirmMsg],
-            isThinking: false,
-          });
-        }
-      } catch (error: any) {
-        console.error('Error in chat store sendMessage:', error);
-        const displayMessage = mensajeParaElUsuario(error, 'Ups, hubo un error al conectar con la IA.');
-        const errorMsg: ChatMessage = {
-          id: `error-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-          role: 'assistant',
-          content: displayMessage,
-          timestamp: Date.now(),
-          isError: true,
-        };
-        set({
-          messages: [
-            ...get().messages.filter((m) => m.id !== creatingMsgId),
-            errorMsg,
-          ],
-          isThinking: false,
-        });
-      }
+      await conversarConElAsistente(text, set, get, conversarFn, activityStore);
     },
 
     /**

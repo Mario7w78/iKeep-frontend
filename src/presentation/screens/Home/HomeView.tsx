@@ -21,6 +21,7 @@ import { JS_DAY_TO_DAYOFWEEK } from "../../utils/scheduleUtils";
 import { useTheme } from "../../components/theme/colors";
 import { Sapo } from "../../components/atoms/Mascot/Sapo";
 import { DailyProgress } from "../../components/atoms/Rewards/DailyProgress";
+import { LoadingScreen } from "../../components/atoms/Common/LoadingScreen";
 import { CompleteToggle } from "../../components/atoms/Rewards/CompleteToggle";
 import { StreakBadge } from "../../components/atoms/Rewards/StreakBadge";
 import { useRewardsStore } from "../../../infrastructure/store/useRewardsStore";
@@ -95,6 +96,7 @@ export default function HomeView() {
   const perDayStartHours = useScheduleStore((s) => s.perDayStartHours);
   const activities = useActivityStore((s) => s.activities);
   const loadActivities = useActivityStore((s) => s.loadActivities);
+  const cargandoActividades = useActivityStore((s) => s.isLoading);
   const racha = useRewardsStore((s) => s.racha);
   const progreso = useRewardsStore((s) => s.progreso);
   const cargarLogros = useRewardsStore((s) => s.cargar);
@@ -312,6 +314,17 @@ export default function HomeView() {
   };
 
 
+
+  // Antes del estado vacio: mientras los datos vienen, "no hay actividades"
+  // es una afirmacion que todavia no se puede hacer, y quien tiene veinte
+  // creadas la lee como que se le borraron.
+  if (cargandoActividades && !activities.length) {
+    return (
+      <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
+        <LoadingScreen />
+      </SafeAreaView>
+    );
+  }
 
   if (!activities.length) {
     return (

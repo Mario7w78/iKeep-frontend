@@ -67,12 +67,32 @@ describe('useRewardsStore', () => {
 
   it('un fallo al cargar no rompe la pantalla', async () => {
     // La racha es un adorno sobre lo que el usuario vino a ver.
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
     mockResumen.mockRejectedValue(new Error('sin red'));
 
     await estado().cargar();
 
     expect(estado().cargando).toBe(false);
+  });
+
+  it('reintenta una vez: el primer pedido del dia despierta al servidor', async () => {
+    mockResumen
+      .mockRejectedValueOnce(new Error('El servidor tardo demasiado en responder.'))
+      .mockResolvedValueOnce(RESUMEN);
+
+    await estado().cargar();
+
+    expect(mockResumen).toHaveBeenCalledTimes(2);
+    expect(estado().racha.actual).toBe(3);
+  });
+
+  it('pero no insiste para siempre', async () => {
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    mockResumen.mockRejectedValue(new Error('sin red'));
+
+    await estado().cargar();
+
+    expect(mockResumen).toHaveBeenCalledTimes(2);
   });
 
   it('marcar actualiza antes de que el servidor conteste', async () => {

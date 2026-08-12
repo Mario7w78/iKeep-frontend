@@ -44,15 +44,30 @@ export const useRewardsStore = create<RewardsState>()((set, get) => ({
   cargando: false,
   diasTerminados: 0,
 
+  /**
+   * Trae racha y progreso.
+   *
+   * Reintenta una vez si el primer intento se agota. Este suele ser el primer
+   * pedido del día contra un servidor dormido, y ese pedido es justamente el
+   * que lo despierta: para el segundo ya está en pie. Con red lenta, el
+   * primero se agota aunque el servidor esté vivo, así que un reintento cubre
+   * los dos casos y el cron no.
+   */
   cargar: async (fecha = fechaLocal()) => {
     set({ cargando: true });
     try {
-      const resumen: ResumenDeLogros = await obtenerResumen(fecha);
+      let resumen: ResumenDeLogros;
+      try {
+        resumen = await obtenerResumen(fecha);
+      } catch {
+        resumen = await obtenerResumen(fecha);
+      }
       set({ racha: resumen.racha, progreso: resumen.progreso });
     } catch (error) {
-      // Que falle no puede tapar el horario: la racha es un adorno sobre lo
-      // que el usuario vino a ver. Se deja lo que hubiera y se sigue.
-      console.error('No se pudo cargar la racha:', error);
+      // Que falle no puede tapar el horario ni asustar: la racha es un adorno
+      // sobre lo que el usuario vino a ver. Se avisa como aviso, no como
+      // error, porque no hay nada que el usuario deba hacer.
+      console.warn('La racha no cargó todavía:', error);
     } finally {
       set({ cargando: false });
     }

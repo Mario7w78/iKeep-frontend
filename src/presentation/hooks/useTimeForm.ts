@@ -525,6 +525,12 @@ export default function useTimeForm(
     } catch (e) {
       console.error("Error generating schedule after save:", e);
     }
+
+    // Se devuelve el id porque `setActivityId` no sirve para leerlo aca: es
+    // estado de React y no esta disponible hasta el proximo render. Quien
+    // guarda a veces necesita saber que actividad quedo —el chat, para poder
+    // llevar al usuario a verla.
+    return finalId;
   };
   const resetPartitions = () => {
     setPartitions([

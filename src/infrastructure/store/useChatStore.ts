@@ -47,7 +47,11 @@ export interface ChatStoreState {
   retry: () => void;
   confirmPendingActivity: (messageId: string) => Promise<void>;
   /** Cierra una propuesta que el usuario termino de ajustar en el wizard. */
-  resolverPropuestaDesdeWizard: (messageId: string, cambios: Record<string, any>) => void;
+  resolverPropuestaDesdeWizard: (
+    messageId: string,
+    activityId: string,
+    cambios: Record<string, any>,
+  ) => void;
   cancelPendingActivity: (messageId: string) => void;
 }
 
@@ -763,13 +767,17 @@ export function createChatStore(
      * tarjeta dibuja desde ahi: mostrarla como hecha pero con los datos que el
      * usuario justo corrigio seria mentirle.
      */
-    resolverPropuestaDesdeWizard: (messageId, cambios) => {
+    resolverPropuestaDesdeWizard: (messageId, activityId, cambios) => {
       const msg = get().messages.find((m) => m.id === messageId);
       if (!msg || !msg.pendingActivity) return;
 
       const yaCerrada = msg.isConfirmed || msg.isCancelled;
 
       set({
+        // Sin esto el boton "Ver actividad creada" se dibuja pero no lleva a
+        // ningun lado: la navegacion sale de aca, y el camino del wizard no
+        // lo estaba poniendo.
+        createdActivityId: activityId,
         messages: get().messages.map((m) =>
           m.id === messageId
             ? {

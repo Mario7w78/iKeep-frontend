@@ -681,7 +681,7 @@ export default function CreateActivityView({ navigation, route }: any) {
 
     setIsLoading(true);
     try {
-      await handleSaveActivity({
+      const idGuardado = await handleSaveActivity({
         daysDict,
         selectedDays,
       });
@@ -695,6 +695,7 @@ export default function CreateActivityView({ navigation, route }: any) {
       if (origenChatId) {
         resolverPropuestaDesdeWizard(
           origenChatId,
+          idGuardado,
           wizardStateToParsed({
             activityName,
             identity,

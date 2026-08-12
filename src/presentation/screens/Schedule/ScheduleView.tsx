@@ -17,6 +17,7 @@ import {
   getEnergyHistory,
 } from '../../../infrastructure/persistence/EnergyHistoryService';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LoadingScreen } from '../../components/atoms/Common/LoadingScreen';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const DAYS_ORDER = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo'];
@@ -173,6 +174,7 @@ export default function ScheduleView() {
 
   const { activities } = useActivityStore();
   const loadActivities = useActivityStore((s) => s.loadActivities);
+  const cargandoActividades = useActivityStore((s) => s.isLoading);
 
   // Effective display hours for the selected day (per-day or global fallback)
   const dayIndex = DAYS_ORDER.indexOf(selectedDay);
@@ -270,6 +272,13 @@ export default function ScheduleView() {
   }, [activities.length]);
 
   const showEmptyState = !schedule || schedule.getAllItems().length === 0;
+
+  // El mismo problema que en Home: "sin horario generado aun" durante la
+  // carga se lee como que se perdio el horario. Es una afirmacion sobre los
+  // datos, y todavia no llegaron.
+  if (cargandoActividades && activities.length === 0) {
+    return <LoadingScreen mensaje="Cargando tu horario..." />;
+  }
 
   return (
     <View style={s.container}>

@@ -69,7 +69,7 @@ describe('resolverPropuestaDesdeWizard', () => {
     const store = crearStore();
     store.setState({ messages: [PROPUESTA] as any });
 
-    store.getState().resolverPropuestaDesdeWizard('msg-1', AJUSTES);
+    store.getState().resolverPropuestaDesdeWizard('msg-1', '1754000000000', AJUSTES);
 
     expect(store.getState().messages[0].isConfirmed).toBe(true);
   });
@@ -78,7 +78,7 @@ describe('resolverPropuestaDesdeWizard', () => {
     const store = crearStore();
     store.setState({ messages: [PROPUESTA] as any });
 
-    store.getState().resolverPropuestaDesdeWizard('msg-1', AJUSTES);
+    store.getState().resolverPropuestaDesdeWizard('msg-1', '1754000000000', AJUSTES);
 
     const parsed = (store.getState().messages[0] as any).pendingActivity.parsedState;
     expect(parsed.activityName).toBe('Calculo II');
@@ -93,18 +93,29 @@ describe('resolverPropuestaDesdeWizard', () => {
     const store = crearStore();
     store.setState({ messages: [PROPUESTA] as any });
 
-    store.getState().resolverPropuestaDesdeWizard('msg-1', AJUSTES);
+    store.getState().resolverPropuestaDesdeWizard('msg-1', '1754000000000', AJUSTES);
 
     const parsed = (store.getState().messages[0] as any).pendingActivity.parsedState;
     expect(parsed.duracionMinutos).toBe(90);
     expect(parsed.identity).toBe('clase');
   });
 
+  it('deja el id para que "Ver actividad creada" lleve a algun lado', () => {
+    // Sin esto el boton se dibuja pero no navega: la propuesta ajustada en el
+    // wizard nunca ponia el id que la pantalla usa para saber adonde ir.
+    const store = crearStore();
+    store.setState({ messages: [PROPUESTA] as any });
+
+    store.getState().resolverPropuestaDesdeWizard('msg-1', 'act-nueva', AJUSTES);
+
+    expect(store.getState().createdActivityId).toBe('act-nueva');
+  });
+
   it('avisa en el chat de que se guardo', () => {
     const store = crearStore();
     store.setState({ messages: [PROPUESTA] as any });
 
-    store.getState().resolverPropuestaDesdeWizard('msg-1', AJUSTES);
+    store.getState().resolverPropuestaDesdeWizard('msg-1', '1754000000000', AJUSTES);
 
     const mensajes = store.getState().messages;
     expect(mensajes).toHaveLength(2);
@@ -115,7 +126,7 @@ describe('resolverPropuestaDesdeWizard', () => {
     const store = crearStore();
     store.setState({ messages: [{ ...PROPUESTA, isConfirmed: true }] as any });
 
-    store.getState().resolverPropuestaDesdeWizard('msg-1', AJUSTES);
+    store.getState().resolverPropuestaDesdeWizard('msg-1', '1754000000000', AJUSTES);
 
     expect(store.getState().messages).toHaveLength(1);
   });
@@ -125,7 +136,7 @@ describe('resolverPropuestaDesdeWizard', () => {
     const store = crearStore();
     store.setState({ messages: [PROPUESTA] as any });
 
-    store.getState().resolverPropuestaDesdeWizard('msg-fantasma', AJUSTES);
+    store.getState().resolverPropuestaDesdeWizard('msg-fantasma', '1754000000000', AJUSTES);
 
     expect(store.getState().messages).toHaveLength(1);
     expect(store.getState().messages[0].isConfirmed).toBeUndefined();

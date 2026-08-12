@@ -62,7 +62,8 @@ export function ScheduleGrid({
         ))}
         <View style={StyleSheet.absoluteFillObject} pointerEvents="box-none">
           {activities.map((act, idx) => (
-            <ActivityBlock 
+            <ActivityBlock
+              cruzaMedianoche={crossing}
               key={`${act.activity?.id ?? act.tipo ?? 'unknown'}-${act.day}-${act.assignedStartTime}-${idx}`} 
               item={act}
               displayStart={displayStart}

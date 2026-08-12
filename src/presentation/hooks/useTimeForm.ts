@@ -332,15 +332,27 @@ export default function useTimeForm(
 
       if (isFixedActivity) {
         for (const part of parts) {
-          const partStart = dateToMinutes(new Date(part.startHour));
-          const partEnd = dateToMinutes(new Date(part.endHour));
+          // El traslado forma parte del bloque ocupado: si sales media hora
+          // antes y vuelves media hora despues, ese tiempo tampoco esta
+          // libre. Comparar solo la actividad dejaba pasar choques que el
+          // usuario despues veia superpuestos en el calendario.
+          const partStart =
+            dateToMinutes(new Date(part.startHour)) - (part.travelTo ?? 0);
+          const partEnd =
+            dateToMinutes(new Date(part.endHour)) + (part.travelFrom ?? 0);
 
           for (const item of otherItems) {
             const itemStart = timeStrToMinutes(item.assignedStartTime);
             const itemEnd = timeStrToMinutes(item.assignedEndTime);
 
             if (partStart < itemEnd && partEnd > itemStart) {
-              const errorMsg = `El horario del día ${day} (${formatTime(part.startHour)} - ${formatTime(part.endHour)}) se superpone con la actividad ya establecida "${item.activity?.title ?? 'Actividad sin nombre'}" (${item.assignedStartTime} - ${item.assignedEndTime}).`;
+              // Se nombra el traslado en el mensaje: si no, el usuario ve
+              // dos horarios que no se tocan y el aviso parece un error.
+              const viaje =
+                (part.travelTo ?? 0) > 0 || (part.travelFrom ?? 0) > 0
+                  ? ", contando el tiempo de viaje"
+                  : "";
+              const errorMsg = `El horario del día ${day} (${formatTime(part.startHour)} - ${formatTime(part.endHour)})${viaje} se superpone con la actividad ya establecida "${item.activity?.title ?? 'Actividad sin nombre'}" (${item.assignedStartTime} - ${item.assignedEndTime}).`;
               if (silent) throw new Error(errorMsg);
               reportarError("horario", errorMsg);
               return false;

@@ -19,6 +19,7 @@ import {
   formatTime,
 } from '../../presentation/utils/timeUtils';
 import { OverlapError, OverlapConflictData } from '../../domain/errors/OverlapError';
+import { mensajeParaElUsuario } from './chatErrorMessages';
 
 export interface ChatStoreState {
   messages: ChatMessage[];
@@ -70,32 +71,6 @@ const minutesToTimeStr = (minutes: number): string => {
   return `${hStr}:${mStr}`;
 };
 
-const mapErrorToUserFriendlyMessage = (error: any, fallbackMessage: string): string => {
-  const errMsg = error.message || '';
-  const errStr = errMsg.toLowerCase();
-
-  // If it's a rate limit error (429 or containing rate limit text)
-  if (errStr.includes('rate limit') || errStr.includes('limit reached') || errStr.includes('429') || errStr.includes('too many requests')) {
-    return '¡Hasta acá llegué por hoy! 🐸 Me voy a tomar una siestita arriba de un camalote. Intentemos de nuevo en un ratito.';
-  }
-
-  // If it's an API connection error (like network, timeout, Groq API down)
-  if (
-    errStr.includes('groq api error') ||
-    errStr.includes('network error') ||
-    errStr.includes('failed to parse') ||
-    errStr.includes('fetch') ||
-    errStr.includes('timeout') ||
-    errStr.includes('503') ||
-    errStr.includes('model not available') ||
-    errStr.includes('service unavailable')
-  ) {
-    return '¡Glup! 🐸 Me hundí en el agua y perdí la conexión. ¿Probamos de nuevo en unos minutos?';
-  }
-
-  // Otherwise, return the specific validation message (e.g. overlap or format errors)
-  return errMsg || fallbackMessage;
-};
 
 
 /**
@@ -173,7 +148,7 @@ async function conversarConElAsistente(
         {
           id: `error-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
           role: 'assistant',
-          content: mapErrorToUserFriendlyMessage(
+          content: mensajeParaElUsuario(
             error,
             'Ups, hubo un error al conectar con la IA.'
           ),
@@ -296,7 +271,7 @@ async function ejecutarAccionSimple(
         {
           id: `error-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
           role: 'assistant',
-          content: mapErrorToUserFriendlyMessage(
+          content: mensajeParaElUsuario(
             error,
             `No pude ${kind === 'eliminar' ? 'eliminar la actividad' : 'reorganizar el horario'}.`
           ),
@@ -738,7 +713,7 @@ export function createChatStore(
         }
       } catch (error: any) {
         console.error('Error in chat store sendMessage:', error);
-        const displayMessage = mapErrorToUserFriendlyMessage(error, 'Ups, hubo un error al conectar con la IA.');
+        const displayMessage = mensajeParaElUsuario(error, 'Ups, hubo un error al conectar con la IA.');
         const errorMsg: ChatMessage = {
           id: `error-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
           role: 'assistant',
@@ -1006,7 +981,7 @@ export function createChatStore(
             isThinking: false,
           });
         } else {
-          const displayMessage = mapErrorToUserFriendlyMessage(error, 'Ups, hubo un error al procesar la actividad.');
+          const displayMessage = mensajeParaElUsuario(error, 'Ups, hubo un error al procesar la actividad.');
           const errorMsg: ChatMessage = {
             id: `error-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
             role: 'assistant',

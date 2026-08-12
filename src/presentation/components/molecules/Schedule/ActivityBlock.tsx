@@ -24,28 +24,49 @@ interface Props {
   onPress?: (item: ScheduledActivity) => void;
   displayStart?: number;
   hourHeight?: number;
+  /**
+   * Si la ventana del dia termina despues de medianoche (22:00 → 04:00).
+   *
+   * Sin este dato el bloque no puede distinguir "es de la madrugada del dia
+   * siguiente" de "empieza un rato antes de que arranque el dia", y trataba
+   * los dos casos igual.
+   */
+  cruzaMedianoche?: boolean;
 }
 
-export function ActivityBlock({ item, onPress, displayStart = 0, hourHeight = 56 }: Props) {
+export function ActivityBlock({
+  item,
+  onPress,
+  displayStart = 0,
+  hourHeight = 56,
+  cruzaMedianoche = false,
+}: Props) {
   let normalizedStart = hhmmToMinutes(item.assignedStartTime);
   let normalizedEnd = hhmmToMinutes(item.assignedEndTime);
 
-  // If the activity starts before the day start hour, it belongs to the post-midnight segment of the crossing day
-  if (normalizedStart < displayStart * 60) {
+  // Empezar antes de la hora de inicio del dia solo significa "madrugada del
+  // dia siguiente" cuando la ventana cruza medianoche.
+  //
+  // Sin esa condicion, un traslado que arranca 07:30 para llegar 08:00 se
+  // daba por madrugada y se corria 1440 minutos: mas de mil pixeles hacia
+  // abajo, que es lo que descolocaba la lectura del calendario entero.
+  if (cruzaMedianoche && normalizedStart < displayStart * 60) {
     normalizedStart += 1440;
   }
-  // If the activity crosses midnight or is scheduled in the post-midnight segment, adjust end time accordingly
   if (normalizedEnd < normalizedStart) {
     normalizedEnd += 1440;
   }
 
-  const top = ((normalizedStart - displayStart * 60) / 60) * hourHeight;
+  // Lo que empieza antes de la ventana se apoya en el borde superior en vez
+  // de dibujarse fuera: recortado no se ve, y el usuario necesita saber que
+  // tiene que salir antes de que su dia "empiece".
+  const top = Math.max(((normalizedStart - displayStart * 60) / 60) * hourHeight, 0);
   const height = Math.max(((normalizedEnd - normalizedStart) / 60) * hourHeight - 4, 28);
 
   // VIAJE blocks — gray, non-interactive, no onPress
   if (item.tipo === 'viaje') {
     return (
-      <View style={[s.block, { top, height, backgroundColor: VIAJE_COLOR.bg, borderLeftColor: VIAJE_COLOR.border, borderLeftWidth: 6, flexDirection: 'row', alignItems: 'center' }]}>
+      <View testID="activity-block" style={[s.block, { top, height, backgroundColor: VIAJE_COLOR.bg, borderLeftColor: VIAJE_COLOR.border, borderLeftWidth: 6, flexDirection: 'row', alignItems: 'center' }]}>
         <Ionicons name="car" size={16} color={VIAJE_COLOR.border} style={{ marginRight: 6 }} />
         <View style={{ flex: 1 }}>
           <Text style={[s.title, { color: VIAJE_COLOR.text }]} numberOfLines={2}>
@@ -67,6 +88,7 @@ export function ActivityBlock({ item, onPress, displayStart = 0, hourHeight = 56
       <TouchableOpacity
         activeOpacity={0.85}
         onPress={() => onPress?.(item)}
+        testID="activity-block"
         style={[s.block, { top, height, backgroundColor: TRAVEL_COLOR.bg, borderLeftColor: TRAVEL_COLOR.border, borderLeftWidth: 6, flexDirection: 'row', alignItems: 'center' }]}
       >
         <Ionicons name="car-outline" size={16} color={TRAVEL_COLOR.border} style={{ marginRight: 6 }} />
@@ -92,6 +114,7 @@ export function ActivityBlock({ item, onPress, displayStart = 0, hourHeight = 56
     <TouchableOpacity 
       activeOpacity={0.85}
       onPress={() => onPress?.(item)}
+      testID="activity-block"
       style={[s.block, { top, height, backgroundColor: color.bg, borderLeftColor: color.border }]}
     >
       <Text style={[s.title, { color: color.text }]} numberOfLines={1}>

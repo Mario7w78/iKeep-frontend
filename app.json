@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "kerotime-app",
-    "slug": "kerotime-app",
+    "name": "Lotus",
+    "slug": "lotus-app",
     "version": "1.0.0",
     "orientation": "default",
     "icon": "./assets/icon.png",
@@ -13,7 +13,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.mario7w78.ikeepapp"
+      "bundleIdentifier": "com.mario7w78.lotus"
     },
     "android": {
       "adaptiveIcon": {
@@ -23,7 +23,7 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.mario7w78.ikeepapp"
+      "package": "com.mario7w78.lotus"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -38,6 +38,7 @@
       "eas": {
         "projectId": "6175573f-487b-4459-929f-f562e6e78362"
       }
-    }
+    },
+    "scheme": "lotus"
   }
 }

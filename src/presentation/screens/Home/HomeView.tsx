@@ -340,7 +340,7 @@ export default function HomeView() {
           </View>
           <Text style={styles.emptyTitle}>No hay actividades</Text>
           <Text style={styles.emptyDescription}>
-            Crea tu primera actividad para que iKeep pueda armar tu horario.
+            Crea tu primera actividad para que Lotus pueda armar tu horario.
           </Text>
           <TouchableOpacity
             style={styles.emptyButton}

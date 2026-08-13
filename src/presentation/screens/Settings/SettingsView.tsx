@@ -28,7 +28,7 @@ const PATTERN_OPTIONS = [
   {
     value: null as string | null,
     label: 'Automático',
-    desc: 'Deja que KeroTime decida según tu historial de los últimos 14 días',
+    desc: 'Deja que Lotus decida según tu historial de los últimos 14 días',
   },
   {
     value: 'transcriptoriano',

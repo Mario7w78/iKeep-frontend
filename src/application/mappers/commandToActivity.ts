@@ -14,6 +14,7 @@ export function comandoAActividad(cmd: CreateActivityCommand): Activity {
     id: cmd.id ? String(cmd.id) : Date.now().toString(),
     title: cmd.activityName || 'Actividad sin nombre',
     type: cmd.isFixed ? ActivityType.FIXED : ActivityType.FLEXIBLE,
+    area: cmd.area,
     identity: cmd.identity,
     priority: cmd.priority,
     difficulty: cmd.difficulty,

@@ -1,3 +1,4 @@
+import { AreaDeVida, AREA_POR_DEFECTO } from "../../domain/entities/lifeArea";
 import { useState, useCallback } from "react";
 import { Alert } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
@@ -29,6 +30,10 @@ export default function useTimeForm(
   const [activityId, setActivityId] = useState<string | null>(null);
   const [isFixed, setIsFixed] = useState(true);
   const [identity, setIdentity] = useState<"clase" | "trabajo" | "tarea">("clase");
+  // De qué parte de tu vida es. Independiente del comportamiento: una
+  // clase y un turno de trabajo ocupan el horario igual, y lo único que
+  // de verdad los distingue es a qué área pertenecen.
+  const [area, setArea] = useState<AreaDeVida>(AREA_POR_DEFECTO);
   const [priority, setPriority] = useState<"baja" | "media" | "alta">("media");
   const [difficulty, setDifficulty] = useState<"baja" | "media" | "alta">("media");
   const [deadline, setDeadline] = useState<Date | null>(null);
@@ -423,6 +428,7 @@ export default function useTimeForm(
     const finalName = overrides.activityName !== undefined ? overrides.activityName : activityName;
     const finalIsFixed = overrides.isFixed !== undefined ? overrides.isFixed : isFixed;
     const finalIdentity = overrides.identity !== undefined ? overrides.identity : identity;
+    const finalArea = overrides.area !== undefined ? overrides.area : area;
     const finalPriorityStr = overrides.priority !== undefined ? overrides.priority : priority;
     const finalDifficultyStr = overrides.difficulty !== undefined ? overrides.difficulty : difficulty;
     const finalDeadline = overrides.deadline !== undefined ? overrides.deadline : deadline;
@@ -518,6 +524,7 @@ export default function useTimeForm(
       id: finalId,
       activityName: finalName,
       isFixed: finalIsFixed,
+      area: finalArea,
       identity: sanitizedIdentity,
       priority: finalPriority,
       difficulty: finalDifficulty,
@@ -563,6 +570,7 @@ export default function useTimeForm(
     activityName,
     isFixed,
     identity,
+    area,
     priority,
     difficulty,
     deadline,
@@ -583,6 +591,7 @@ export default function useTimeForm(
     comportamiento,
     setComportamiento,
     setIdentity: handleSetIdentity,
+    setArea,
     setPriority,
     setDifficulty,
     setDeadline,

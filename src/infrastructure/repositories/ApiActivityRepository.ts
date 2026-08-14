@@ -1,3 +1,4 @@
+import { comoArea } from '../../domain/entities/lifeArea';
 import { ActivityRepository } from '../../application/ports/out/ActivityRepository';
 import { Activity, ActivityType, DayOfWeek } from '../../domain/entities/Activity';
 import { backendRequest } from '../api/backendClient';
@@ -21,6 +22,7 @@ export interface ActivityDto {
   user_id?: string;
   title: string;
   type: string;
+  area?: string;
   identity?: string;
   priority?: number;
   difficulty?: string;
@@ -38,6 +40,7 @@ export function dtoToActivity(dto: ActivityDto): Activity {
     id: String(dto.id),
     title: dto.title,
     type: dto.type as ActivityType,
+    area: comoArea(dto.area),
     identity: (dto.identity ?? 'tarea') as any,
     priority: dto.priority ?? 3,
     difficulty: (dto.difficulty ?? 'media') as any,
@@ -62,6 +65,7 @@ export function activityToDto(activity: Activity): Omit<ActivityDto, 'user_id'> 
     id: String(activity.id),
     title: activity.title,
     type: activity.type,
+    area: activity.area,
     identity: activity.identity,
     priority: activity.priority,
     difficulty: activity.difficulty,

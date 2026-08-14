@@ -1,3 +1,4 @@
+import { areaDesdeIdentidad } from '../../domain/entities/lifeArea';
 import { desdeBanderas } from '../../domain/entities/activityBehavior';
 import { BorradorWizard } from '../../infrastructure/store/useWizardDraftStore';
 import { ParsedFormState } from './parseNlMapper';
@@ -19,6 +20,7 @@ export function formStateToDraft(
 ): Omit<BorradorWizard, 'guardadoEn'> {
   return {
     activityName: estado.activityName ?? '',
+    area: areaDesdeIdentidad(estado.identity ?? undefined),
     identity: estado.identity ?? 'tarea',
     comportamiento: desdeBanderas(estado.isFixed, estado.isAnchor),
     selectedDays: estado.selectedDays ?? [],

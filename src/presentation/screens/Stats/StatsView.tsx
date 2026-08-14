@@ -7,6 +7,7 @@ import { useTheme, ThemeColors } from "../../components/theme/colors";
 import { ESPACIO, PESO, RADIO, TEXTO } from "../../components/theme/tokens";
 import { fechaLocal } from "../../../infrastructure/api/RewardsApiService";
 import { useRewardsStore } from "../../../infrastructure/store/useRewardsStore";
+import { LifeFlower } from "../../components/organisms/Rewards/LifeFlower";
 
 /**
  * Lo que llevas hecho.
@@ -31,10 +32,13 @@ export default function StatsView() {
   const progreso = useRewardsStore((s) => s.progreso);
   const diasCompletados = useRewardsStore((s) => s.diasCompletados);
   const cargar = useRewardsStore((s) => s.cargar);
+  const flor = useRewardsStore((s) => s.flor);
+  const cargarFlor = useRewardsStore((s) => s.cargarFlor);
 
   useEffect(() => {
     cargar();
-  }, [cargar]);
+    cargarFlor();
+  }, [cargar, cargarFlor]);
 
   const hechos = useMemo(() => new Set(diasCompletados), [diasCompletados]);
 
@@ -89,6 +93,11 @@ export default function StatsView() {
             etiqueta={`de ${progreso.total} hoy`}
           />
         </View>
+
+        {/* Va arriba de la cuadrícula a propósito: la cuadrícula dice
+            cuánto, y los pétalos dicen de qué. La segunda pregunta es la que
+            ninguna racha puede responder. */}
+        {flor && <LifeFlower flor={flor} />}
 
         <View style={styles.seccion}>
           <Text style={styles.seccionTitulo}>Últimas 10 semanas</Text>

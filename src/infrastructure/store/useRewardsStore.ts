@@ -3,14 +3,18 @@ import { create } from 'zustand';
 import {
   ProgresoDelDia,
   Racha,
+  RespuestaDeCierre,
   ResumenDeLogros,
+  cerrarDia,
   completarActividad,
   descompletarActividad,
   fechaLocal,
+  obtenerEquilibrio,
   obtenerResumen,
 } from '../api/RewardsApiService';
 import { notificationScheduler } from '../../di/Dependencies';
 import { sincronizarAvisos } from '../../application/use-cases/SyncReengagementReminders';
+import { Flor, construirFlor } from '../../domain/services/lifeBalance';
 
 /**
  * El ciclo de recompensa.
@@ -31,6 +35,8 @@ const PROGRESO_VACIO: ProgresoDelDia = {
 
 interface RewardsState {
   racha: Racha;
+  /** Los pétalos. `null` mientras no se haya pedido. */
+  flor: Flor | null;
   progreso: ProgresoDelDia;
   /** Días con algo hecho, para el historial. */
   diasCompletados: string[];
@@ -40,10 +46,15 @@ interface RewardsState {
   cargar: (fecha?: string) => Promise<void>;
   alternar: (activityId: string, fecha?: string) => Promise<void>;
   estaCompletada: (activityId: string) => boolean;
+  /** Resuelve de una vez lo que quedó sin decir. Ver `cerrarDia`. */
+  cerrar: (respuesta: RespuestaDeCierre, hechas?: string[], fecha?: string) => Promise<void>;
+  /** Trae el equilibrio. Aparte de `cargar`: solo lo mira una pantalla. */
+  cargarFlor: (fecha?: string) => Promise<void>;
 }
 
 export const useRewardsStore = create<RewardsState>()((set, get) => ({
   racha: RACHA_VACIA,
+  flor: null,
   progreso: PROGRESO_VACIO,
   diasCompletados: [],
   cargando: false,
@@ -138,4 +149,52 @@ export const useRewardsStore = create<RewardsState>()((set, get) => ({
   },
 
   estaCompletada: (activityId) => get().progreso.completadosIds.includes(activityId),
+
+  /**
+   * El equilibrio entre áreas.
+   *
+   * No viaja con `cargar` aunque salga del mismo servidor: la racha la mira
+   * el Home en cada apertura y esto solo la pantalla de progreso. Pegarlos
+   * haría que todos paguen una consulta que casi nadie usa.
+   */
+  cargarFlor: async (fecha = fechaLocal()) => {
+    try {
+      const { historico, recientes } = await obtenerEquilibrio(fecha);
+      set({ flor: construirFlor(historico, recientes) });
+    } catch (error) {
+      // Como la racha: es un adorno sobre lo que el usuario vino a ver, y
+      // que falle no puede tapar el resto de la pantalla.
+      console.warn('El equilibrio no cargó todavía:', error);
+    }
+  },
+
+  /**
+   * El cierre del día.
+   *
+   * No es optimista, a diferencia de `alternar`: acá el usuario acaba de
+   * responder una pregunta sobre el día entero y el resultado que importa es
+   * el del servidor. Adivinarlo y corregirlo después sería peor que esperar.
+   */
+  cerrar: async (respuesta, hechas = [], fecha = fechaLocal()) => {
+    const anterior = get().progreso;
+    set({ cargando: true });
+    try {
+      const progreso = await cerrarDia(respuesta, hechas, fecha);
+      set({ progreso });
+
+      // "Fue un día difícil" no celebra nada, aunque el progreso quede en
+      // cero de cero: festejar ahí sería no haber escuchado la respuesta.
+      if (progreso.terminado && !anterior.terminado && respuesta !== 'dificil') {
+        set({ diasTerminados: get().diasTerminados + 1 });
+      }
+
+      await get().cargar(fecha);
+    } catch (error) {
+      console.error('No se pudo cerrar el día:', error);
+      set({ progreso: anterior });
+      throw error;
+    } finally {
+      set({ cargando: false });
+    }
+  },
 }));

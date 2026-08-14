@@ -1,3 +1,4 @@
+import { comoArea } from '../../domain/entities/lifeArea';
 import { ActivityRepository } from '../../application/ports/out/ActivityRepository';
 import { Activity, ActivityType, DayOfWeek } from '../../domain/entities/Activity';
 import { PersistentCache } from '../cache/persistentCache';
@@ -24,6 +25,7 @@ interface ActivitySnapshot {
   id: string;
   title: string;
   type: string;
+  area?: string;
   identity?: string;
   priority?: number;
   difficulty?: string;
@@ -41,6 +43,7 @@ function aSnapshot(activity: Activity): ActivitySnapshot {
     id: String(activity.id),
     title: activity.title,
     type: activity.type,
+    area: activity.area,
     identity: activity.identity,
     priority: activity.priority,
     difficulty: activity.difficulty,
@@ -59,6 +62,7 @@ function desdeSnapshot(snapshot: ActivitySnapshot): Activity {
     id: String(snapshot.id),
     title: snapshot.title,
     type: snapshot.type as ActivityType,
+    area: comoArea(snapshot.area),
     identity: (snapshot.identity ?? 'tarea') as any,
     priority: snapshot.priority ?? 3,
     difficulty: (snapshot.difficulty ?? 'media') as any,

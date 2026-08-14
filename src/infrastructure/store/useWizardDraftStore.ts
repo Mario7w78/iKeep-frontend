@@ -1,3 +1,4 @@
+import { AreaDeVida } from '../../domain/entities/lifeArea';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
@@ -21,10 +22,12 @@ import { restoreDaysConfig } from '../repositories/daysConfigMapper';
  */
 
 /** Sube cuando cambia la forma del borrador; lo guardado con otra se descarta. */
-const VERSION = 1;
+const VERSION = 2;
 
 export interface BorradorWizard {
   activityName: string;
+  area: AreaDeVida;
+  /** OBSOLETA, ver `area`. Sigue en el borrador para no perder los guardados. */
   identity: 'clase' | 'trabajo' | 'tarea';
   comportamiento: ComportamientoActividad;
   selectedDays: string[];

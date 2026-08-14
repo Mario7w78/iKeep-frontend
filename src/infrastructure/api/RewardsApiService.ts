@@ -46,11 +46,67 @@ export function fechaLocal(momento: Date = new Date()): string {
   return `${momento.getFullYear()}-${mes}-${dia}`;
 }
 
-export async function completarActividad(activityId: string, fecha = fechaLocal()): Promise<void> {
+/** Qué se está afirmando. `sin resolver` no se manda: es la ausencia de dato. */
+export type EstadoCompletado = 'hecha' | 'no_hecha';
+
+/** De dónde vino. No hay "automático": nunca se marca sola. */
+export type OrigenCompletado = 'sesion' | 'manual' | 'cierre';
+
+export type RespuestaDeCierre = 'todo' | 'algunas' | 'dificil';
+
+/** El desfase del cliente, con el signo que espera el backend. */
+function desfase(): number {
+  return -new Date().getTimezoneOffset();
+}
+
+export async function completarActividad(
+  activityId: string,
+  fecha = fechaLocal(),
+  estado: EstadoCompletado = 'hecha',
+  origen: OrigenCompletado = 'manual'
+): Promise<void> {
   await backendRequest<void>(`${RUTA}/completar`, {
     method: 'POST',
-    body: JSON.stringify({ activity_id: activityId, fecha }),
+    body: JSON.stringify({
+      activity_id: activityId,
+      fecha,
+      estado,
+      origen,
+      // El servidor valida que la fecha no sea futura ni esté fuera de plazo,
+      // y para eso necesita saber qué día es acá: con su medianoche, en Lima
+      // rechazaría marcar hoy durante cinco horas.
+      desfase_utc_minutos: desfase(),
+    }),
   });
+}
+
+/**
+ * Resuelve de una vez todo lo que quedó sin decir ese día.
+ *
+ * Es la red de seguridad del sistema: abrir a las once de la noche con el día
+ * entero sin marcar es el caso más frecuente, no el raro.
+ */
+export async function cerrarDia(
+  respuesta: RespuestaDeCierre,
+  hechas: string[] = [],
+  fecha = fechaLocal()
+): Promise<ProgresoDelDia> {
+  const dto = await backendRequest<any>(`${RUTA}/cerrar-dia`, {
+    method: 'POST',
+    body: JSON.stringify({
+      fecha,
+      respuesta,
+      hechas,
+      desfase_utc_minutos: desfase(),
+    }),
+  });
+  return {
+    completadas: dto.completadas,
+    total: dto.total,
+    fraccion: dto.fraccion,
+    terminado: dto.terminado,
+    completadosIds: dto.completados_ids ?? [],
+  };
 }
 
 export async function descompletarActividad(activityId: string, fecha = fechaLocal()): Promise<void> {
@@ -81,5 +137,29 @@ export async function obtenerResumen(fecha = fechaLocal()): Promise<ResumenDeLog
       completadosIds: dto.progreso.completados_ids ?? [],
     },
     diasCompletados: dto.dias_completados ?? [],
+  };
+}
+
+export interface EquilibrioDeVida {
+  /** El tamaño de cada pétalo. Acumula desde siempre y nunca baja. */
+  historico: Record<string, number>;
+  /** La forma de la flor. Solo la ventana reciente, así que sí cambia. */
+  recientes: Record<string, number>;
+  dias: number;
+}
+
+/**
+ * Cuánto hay de cada parte de tu vida.
+ *
+ * El servidor devuelve conteos, no aperturas: cuánto se abre cada pétalo y
+ * cómo se dibuja la flor son decisiones de presentación que van a cambiar
+ * con el arte, y no deberían pedir un redespliegue.
+ */
+export async function obtenerEquilibrio(fecha = fechaLocal()): Promise<EquilibrioDeVida> {
+  const dto = await backendRequest<any>(`${RUTA}/equilibrio?fecha=${fecha}`);
+  return {
+    historico: dto?.historico ?? {},
+    recientes: dto?.recientes ?? {},
+    dias: dto?.dias ?? 90,
   };
 }

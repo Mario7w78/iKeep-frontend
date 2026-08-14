@@ -1,3 +1,4 @@
+import { comoArea } from '../../domain/entities/lifeArea';
 import { ActivityRepository } from '../../application/ports/out/ActivityRepository';
 import { Activity, ActivityType, DayOfWeek } from '../../domain/entities/Activity';
 import { DayConfig } from '../../domain/entities/activity.types';
@@ -13,6 +14,7 @@ function rowToActivity(row: any): Activity {
     id: String(row.id),
     title: row.title,
     type: row.type as ActivityType,
+    area: comoArea(row.area),
     identity: row.identity ?? 'tarea',
     priority: row.priority ?? 3,
     difficulty: row.difficulty ?? 'media',
@@ -32,6 +34,7 @@ function activityToRow(activity: Activity, userId: string) {
     user_id: userId,
     title: activity.title,
     type: activity.type,
+    area: activity.area,
     identity: activity.identity,
     priority: activity.priority,
     difficulty: activity.difficulty,

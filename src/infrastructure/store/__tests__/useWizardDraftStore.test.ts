@@ -18,6 +18,7 @@ import { useWizardDraftStore, BorradorWizard } from '../useWizardDraftStore';
 
 const BASE: Omit<BorradorWizard, 'guardadoEn'> = {
   activityName: 'Calculo',
+  area: 'estudio',
   identity: 'clase',
   comportamiento: 'horaFija',
   selectedDays: ['Martes'],

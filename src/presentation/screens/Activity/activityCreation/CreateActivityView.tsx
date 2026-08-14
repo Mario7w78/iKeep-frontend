@@ -206,6 +206,7 @@ export default function CreateActivityView({ navigation, route }: any) {
     activityName,
     isFixed,
     identity,
+    area,
     priority,
     difficulty,
     deadline,
@@ -227,6 +228,7 @@ export default function CreateActivityView({ navigation, route }: any) {
     comportamiento,
     setComportamiento,
     setIdentity,
+    setArea,
     setPriority,
     setDifficulty,
     setDeadline,
@@ -265,6 +267,7 @@ export default function CreateActivityView({ navigation, route }: any) {
       // comportamiento, asi que una clase puede ser flexible y una tarea
       // puede tener hora fija, que es como la gente realmente las usa.
       setIdentity(act.identity);
+      setArea(act.area);
       setIsFixed(act.isFixed());
       setPriority(act.priority === 5 ? "alta" : act.priority === 3 ? "media" : "baja");
       setDifficulty(act.difficulty);
@@ -536,6 +539,7 @@ export default function CreateActivityView({ navigation, route }: any) {
 
     setActivityName(previo.activityName);
     setIdentity(previo.identity);
+    setArea(previo.area);
     setComportamiento(previo.comportamiento);
     setSelectedDays(previo.selectedDays as DayOfWeek[]);
     setDaysDict(previo.daysDict);
@@ -555,6 +559,7 @@ export default function CreateActivityView({ navigation, route }: any) {
 
     guardarBorrador({
       activityName,
+      area,
       identity,
       comportamiento,
       selectedDays,
@@ -566,6 +571,7 @@ export default function CreateActivityView({ navigation, route }: any) {
   }, [
     esCreacion,
     activityName,
+    area,
     identity,
     comportamiento,
     selectedDays,
@@ -751,7 +757,7 @@ export default function CreateActivityView({ navigation, route }: any) {
         return (
           <WhatAndWhenStep
             activityName={activityName}
-            identity={identity}
+            area={area}
             isFixed={isFixed}
             difficulty={difficulty}
             priority={priority}
@@ -760,7 +766,7 @@ export default function CreateActivityView({ navigation, route }: any) {
               setActivityName(texto);
               formErrors.limpiar("nombre");
             }}
-            onSetIdentity={setIdentity}
+            onSetArea={setArea}
             onSetIsFixed={setIsFixed}
             comportamiento={comportamiento}
             onSetComportamiento={setComportamiento}

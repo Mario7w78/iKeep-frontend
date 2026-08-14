@@ -1,3 +1,4 @@
+import { AreaDeVida, areaDesdeIdentidad, comoArea } from './lifeArea';
 import { DayConfig } from './activity.types';
 
 export type DayOfWeek = 'Lunes' | 'Martes' | 'Miercoles' | 'Jueves' | 'Viernes' | 'Sabado' | 'Domingo';
@@ -11,6 +12,8 @@ export interface ActivityProps {
     id: string;
     title: string;
     type: ActivityType;
+    /** De qué parte de tu vida es. Ver `lifeArea`. */
+    area?: AreaDeVida;
     identity: "clase" | "trabajo" | "tarea";
     priority: number;
     difficulty: "baja" | "media" | "alta";
@@ -29,6 +32,7 @@ export class Activity {
     readonly id: string;
     readonly title: string;
     readonly type: ActivityType;
+    readonly area: AreaDeVida;
     readonly identity: "clase" | "trabajo" | "tarea";
     readonly priority: number;
     readonly difficulty: "baja" | "media" | "alta";
@@ -46,6 +50,11 @@ export class Activity {
         this.id = props.id;
         this.title = props.title;
         this.type = props.type;
+        // Una actividad creada antes del campo se deriva de su identidad: es
+        // lo único que ese dato permite afirmar.
+        this.area = props.area
+            ? comoArea(props.area)
+            : areaDesdeIdentidad(props.identity);
         this.identity = props.identity;
         this.priority = props.priority;
         this.difficulty = props.difficulty;

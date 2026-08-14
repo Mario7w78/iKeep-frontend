@@ -1,3 +1,4 @@
+import { AreaDeVida } from '../../domain/entities/lifeArea';
 import { DayOfWeek } from '../../domain/entities/Activity';
 import { PartitionConfig, DayConfig } from '../../domain/entities/activity.types';
 
@@ -21,6 +22,7 @@ export type saveActivityProps = {
     isAnchor?: boolean;
     activityName?: string;
     isFixed?: boolean;
+    area?: AreaDeVida;
     identity?: 'clase' | 'trabajo' | 'tarea';
     priority?: 'baja' | 'media' | 'alta';
     difficulty?: 'baja' | 'media' | 'alta';

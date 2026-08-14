@@ -13,5 +13,8 @@ export function scheduleToBloqueTiempo(schedule: Schedule): BloqueTiempoDto[] {
             hora_inicio: parseInt(item.assignedStartTime.split(':')[0]) * 60 + parseInt(item.assignedStartTime.split(':')[1]),
             hora_fin: parseInt(item.assignedEndTime.split(':')[0]) * 60 + parseInt(item.assignedEndTime.split(':')[1]),
             ubicacion_id: null,
+            // El backend decide con esto, no con `tipo`. Va siempre: dejarlo
+            // sin definir el servidor lo lee como "bloque viejo".
+            es_fija: item.activity!.isFixed(),
         }));
 }

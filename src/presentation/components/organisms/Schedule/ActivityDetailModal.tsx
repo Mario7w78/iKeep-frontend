@@ -10,9 +10,14 @@ interface ActivityDetailModalProps {
   activityItem: ScheduledActivity | null;
   onClose: () => void;
   onEdit?: (activityId: string) => void;
+  /**
+   * Empezar una sesión enfocada. Opcional porque no toda pantalla que abre
+   * este detalle está en condiciones de sostener una sesión.
+   */
+  onEnfocar?: (activityId: string, minutos: number) => void;
 }
 
-export function ActivityDetailModal({ visible, activityItem, onClose, onEdit }: ActivityDetailModalProps) {
+export function ActivityDetailModal({ visible, activityItem, onClose, onEdit, onEnfocar }: ActivityDetailModalProps) {
   const translateY = useRef(new Animated.Value(0)).current;
   const { colors, comfyColors, comfyFontColors } = useTheme();
   const styles = useMemo(() => createStyles(colors, comfyColors, comfyFontColors), [colors, comfyColors, comfyFontColors]);
@@ -211,6 +216,23 @@ export function ActivityDetailModal({ visible, activityItem, onClose, onEdit }: 
             </View>
           </View>
 
+          {onEnfocar && (
+            <TouchableOpacity
+              testID="empezar-sesion"
+              style={styles.editButton}
+              activeOpacity={0.8}
+              onPress={() => {
+                // La duración sale del bloque: la sesión acompaña lo que ya
+                // estaba planeado en vez de pedirle al usuario que elija un
+                // número más.
+                onEnfocar(activity.id, duracionDelBloque(activityItem));
+                onClose();
+              }}
+            >
+              <Ionicons name="timer-outline" size={20} color={colors.surface} />
+              <Text style={styles.editButtonText}>Empezar sesión</Text>
+            </TouchableOpacity>
+          )}
           {onEdit && (
             <TouchableOpacity
               style={styles.editButton}
@@ -398,3 +420,20 @@ const createStyles = (colors: ThemeColors, comfyColors: Record<string, string>, 
     fontWeight: '900',
   },
 });
+
+/**
+ * Cuánto dura el bloque, en minutos.
+ *
+ * Sale del horario y no de un selector: pedirle al usuario que elija una
+ * duración cuando la app ya sabe cuánto planeó es una decisión de más.
+ */
+function duracionDelBloque(item: any): number {
+  const aMinutos = (hhmm: string) => {
+    const [h, m] = String(hhmm ?? '').split(':').map(Number);
+    return (h || 0) * 60 + (m || 0);
+  };
+  const minutos = aMinutos(item?.assignedEndTime) - aMinutos(item?.assignedStartTime);
+  // Un bloque que cruza la medianoche da negativo; 25 minutos es un punto de
+  // partida razonable y el usuario puede terminar antes cuando quiera.
+  return minutos > 0 ? minutos : 25;
+}

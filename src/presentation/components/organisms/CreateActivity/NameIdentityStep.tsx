@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo } from "react";
 import { View, Text, TextInput, ScrollView, StyleSheet, TouchableOpacity, Switch } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme, ThemeColors } from "../../theme/colors";
+import { AreaSelector } from '../../molecules/CreateActivity/AreaSelector';
+import { AreaDeVida } from '../../../../domain/entities/lifeArea';
 import { BehaviorSelector } from "../../molecules/CreateActivity/BehaviorSelector";
 import { ComportamientoActividad } from "../../../../domain/entities/activityBehavior";
 import { FieldError } from "../../atoms/Common/FieldError";
@@ -9,13 +11,13 @@ import { StepContainer } from "../../atoms/Common/StepContainer";
 
 type NameIdentityStepProps = {
   activityName: string;
-  identity: "clase" | "trabajo" | "tarea";
   isFixed: boolean;
   difficulty: "baja" | "media" | "alta";
   priority: "baja" | "media" | "alta";
   deadline: Date | null;
   onSetActivityName: (name: string) => void;
-  onSetIdentity: (identity: "clase" | "trabajo" | "tarea") => void;
+  area: AreaDeVida;
+  onSetArea: (area: AreaDeVida) => void;
   onSetIsFixed: (fixed: boolean) => void;
   errorNombre?: string;
   comportamiento: ComportamientoActividad;
@@ -171,16 +173,16 @@ function CustomCalendar({ value, onChange }: { value: Date; onChange: (date: Dat
 
 export default function NameIdentityStep({
   activityName,
-  identity,
   isFixed,
   difficulty,
   priority,
   deadline,
   onSetActivityName,
-  onSetIdentity,
   onSetIsFixed,
   errorNombre,
   comportamiento,
+  area,
+  onSetArea,
   onSetComportamiento,
   onSetDifficulty,
   onSetPriority,
@@ -248,54 +250,13 @@ export default function NameIdentityStep({
 
       <FieldError mensaje={errorNombre} testID="error-nombre" />
 
-      <Text style={styles.sectionTitle}>Identidad de la actividad</Text>
-      <View style={styles.threeColumnGrid}>
-        <TouchableOpacity
-          style={[styles.card, identity === "clase" && styles.cardSelected]}
-          onPress={() => {
-            onSetIdentity("clase");
-            onSetIsFixed(true);
-            onSetDifficulty("media");
-            onSetPriority("alta");
-          }}
-        >
-          <Ionicons
-            name="school-outline"
-            size={24}
-            color={identity === "clase" ? colors.secondaryAccentText : colors.iconPrimary}
-          />
-          <Text style={[styles.cardTitle, identity === "clase" && styles.cardTitleSelected]}>Clase</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.card, identity === "trabajo" && styles.cardSelected]}
-          onPress={() => {
-            onSetIdentity("trabajo");
-          }}
-        >
-          <Ionicons
-            name="briefcase-outline"
-            size={24}
-            color={identity === "trabajo" ? colors.secondaryAccentText : colors.iconPrimary}
-          />
-          <Text style={[styles.cardTitle, identity === "trabajo" && styles.cardTitleSelected]}>Trabajo</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.card, identity === "tarea" && styles.cardSelected]}
-          onPress={() => {
-            onSetIdentity("tarea");
-            onSetIsFixed(false);
-          }}
-        >
-          <Ionicons
-            name="checkmark-done-circle-outline"
-            size={24}
-            color={identity === "tarea" ? colors.secondaryAccentText : colors.iconPrimary}
-          />
-          <Text style={[styles.cardTitle, identity === "tarea" && styles.cardTitleSelected]}>Tarea</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Antes aca habia tres tarjetas —Clase, Trabajo, Tarea— y elegir
+          "Clase" ademas ponia la actividad en fija y le reescribia la
+          prioridad y la dificultad al usuario sin avisar. Eran dos preguntas
+          mezcladas en una: el CUANDO ahora lo decide el selector de
+          comportamiento de abajo, y esto pregunta solo el DE QUE. */}
+      <Text style={styles.sectionTitle}>¿De qué parte de tu vida es?</Text>
+      <AreaSelector valor={area} onChange={onSetArea} />
 
       {/* Antes habia dos tarjetas, "Fijo" y "Flexible", que ademas se
           deshabilitaban si la identidad era "clase" y al tocarlas escribian

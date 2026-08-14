@@ -23,15 +23,31 @@ import { Sapo } from "../../components/atoms/Mascot/Sapo";
 import { DailyProgress } from "../../components/atoms/Rewards/DailyProgress";
 import { LoadingScreen } from "../../components/atoms/Common/LoadingScreen";
 import { Celebration } from "../../components/atoms/Rewards/Celebration";
+import { DayClose } from "../../components/organisms/Rewards/DayClose";
+import { FocusSession } from "../../components/organisms/Focus/FocusSession";
+import { useFocusSessionStore } from "../../../infrastructure/store/useFocusSessionStore";
+import { correspondeOfrecerCierre } from "../../../domain/services/dayCloseTiming";
 import { CompleteToggle } from "../../components/atoms/Rewards/CompleteToggle";
 import { StreakBadge } from "../../components/atoms/Rewards/StreakBadge";
 import { useRewardsStore } from "../../../infrastructure/store/useRewardsStore";
+import { fechaLocal } from "../../../infrastructure/api/RewardsApiService";
 import { ActivityDetailModal } from "../../components/organisms/Schedule/ActivityDetailModal";
 import {
   saveEnergyRecord,
   makeEnergyRecord,
   getEnergyHistory,
 } from "../../../infrastructure/persistence/EnergyHistoryService";
+import { EnergyRecord } from "../../../application/ports/out/EnergyRepository";
+import { Reflexion, reflexionar } from "../../../domain/services/energyReflection";
+
+/**
+ * Cuanto historial de energia se trae para poder reflejar algo.
+ *
+ * Antes se pedia 1 dia, que solo alcanzaba para preseleccionar el icono. Un
+ * mes deja afirmar rachas y comparar contra el promedio propio sin traerse
+ * los 90 dias que guarda el backend.
+ */
+const DIAS_DE_HISTORIAL = 30;
 
 const makeEnergyLevels = (
   c: typeof import("../../components/theme/colors").comfyColors,
@@ -106,6 +122,13 @@ export default function HomeView() {
   const completadas = useRewardsStore((s) => s.progreso.completadosIds);
   const alternarCompletada = useRewardsStore((s) => s.alternar);
   const diasTerminados = useRewardsStore((s) => s.diasTerminados);
+  const cerrar = useRewardsStore((s) => s.cerrar);
+  const sesion = useFocusSessionStore((s) => s.sesion);
+  const iniciarSesion = useFocusSessionStore((s) => s.iniciarSesion);
+  const anotarSalida = useFocusSessionStore((s) => s.anotarSalida);
+  const terminarSesion = useFocusSessionStore((s) => s.terminar);
+  const descartarSesion = useFocusSessionStore((s) => s.descartar);
+  const guardandoSesion = useFocusSessionStore((s) => s.guardando);
   const rachaNueva = racha.actual > 1 && progreso.terminado;
 
   // Al montar y nada mas: la racha cambia cuando el usuario marca algo, y
@@ -118,11 +141,18 @@ export default function HomeView() {
   const [savedEnergyIndex, setSavedEnergyIndex] = useState(0);
   const [selectedActivity, setSelectedActivity] = useState<ScheduledActivity | null>(null);
 
+  // El historial completo, no solo el ultimo dia: la reflexion necesita ver
+  // hacia atras para poder decir algo que el usuario no sepa ya.
+  const [historialEnergia, setHistorialEnergia] = useState<EnergyRecord[]>([]);
+  const [reflexion, setReflexion] = useState<Reflexion | null>(null);
+
   // Initialize energy level from local storage history on mount
   useEffect(() => {
     const initEnergy = async () => {
       try {
-        const history = await getEnergyHistory(1);
+        const history = await getEnergyHistory(DIAS_DE_HISTORIAL);
+        setHistorialEnergia(history);
+
         if (history.length > 0) {
           const latest = history[history.length - 1];
           const idx = latest.nivel - 1;
@@ -130,6 +160,10 @@ export default function HomeView() {
             setEnergyIndex(idx);
             setSavedEnergyIndex(idx);
           }
+          // Si ya reporto hoy, la lectura sigue estando al volver a abrir:
+          // desaparecer al cerrar la app la convertiria en un mensaje
+          // fugaz que nadie alcanza a leer.
+          setReflexion(reflexionar(latest.nivel, history));
         } else {
           setEnergyIndex(1); // Default to stable (index 1)
           setSavedEnergyIndex(1);
@@ -189,6 +223,32 @@ export default function HomeView() {
   }, [todayItems, currentMinutes]);
 
   const firstNext = nextActivities[0];
+
+  // Lo que ya termino hoy y nadie respondio. No es "lo no hecho": nadie dijo
+  // nada todavia, y esa diferencia es justamente la que el cierre viene a
+  // resolver.
+  const sinResolver = useMemo(() => {
+    return todayItems
+      .filter((item) => item.activity && item.tipo !== 'viaje')
+      .filter((item) => toMinutes(item.assignedEndTime) <= currentMinutes)
+      .filter((item) => !completadas.includes(item.activity!.id))
+      .map((item) => ({
+        id: item.activity!.id,
+        titulo: item.activity!.title || 'Actividad sin nombre',
+      }));
+  }, [todayItems, currentMinutes, completadas]);
+
+  // Se pregunta una vez por dia. Volver a preguntar lo ya contestado es la
+  // forma mas rapida de ensenarle a alguien a ignorar la pregunta.
+  const [diaCerrado, setDiaCerrado] = useState<string | null>(null);
+  const [cerrandoDia, setCerrandoDia] = useState(false);
+
+  const hoyISO = fechaLocal();
+  const ofrecerCierre = correspondeOfrecerCierre({
+    hora: currentTime.getHours(),
+    sinResolver: sinResolver.length,
+    yaCerro: diaCerrado === hoyISO,
+  });
 
   const nextDayWithItems = useMemo(() => {
     if (!schedule) return null;
@@ -257,7 +317,14 @@ export default function HomeView() {
             try {
               const nivel = energyIndex + 1;
               await saveEnergyRecord(makeEnergyRecord(nivel));
-              const historial = await getEnergyHistory(14);
+              const historial = await getEnergyHistory(DIAS_DE_HISTORIAL);
+              setHistorialEnergia(historial);
+
+              // Decir algo verdadero sobre lo que acaba de reportar. Se
+              // calcula antes de regenerar porque no depende del horario, y
+              // asi aparece aunque la generacion falle.
+              setReflexion(reflexionar(nivel, historial));
+
               await handleGenerateSchedule({
                 nivel_energia: nivel,
                 historial_energia: historial,
@@ -375,6 +442,50 @@ export default function HomeView() {
         mensaje={rachaNueva ? `¡${racha.actual} días seguidos!` : undefined}
       />
 
+      <FocusSession
+        sesion={sesion}
+        titulo={
+          todayItems.find((i) => i.activity?.id === sesion?.activityId)?.activity
+            ?.title ?? 'Sesión'
+        }
+        guardando={guardandoSesion}
+        onSalir={anotarSalida}
+        onDescartar={descartarSesion}
+        onTerminar={async () => {
+          try {
+            await terminarSesion();
+            // La racha y el progreso los recalcula el servidor: adivinarlos
+            // acá sería una segunda implementación de las mismas reglas.
+            await cargarLogros();
+          } catch {
+            // El store conserva la sesión si falla la red. Perderla obligaría
+            // al usuario a rehacer el trabajo que ya hizo.
+          }
+        }}
+      />
+
+      <DayClose
+        visible={ofrecerCierre}
+        pendientes={sinResolver}
+        guardando={cerrandoDia}
+        onCerrar={() => setDiaCerrado(hoyISO)}
+        onResponder={async (respuesta, hechas) => {
+          // Se marca cerrado antes de esperar al servidor: si la llamada
+          // falla, insistir con la misma pregunta seria castigar al usuario
+          // por un problema de red.
+          setDiaCerrado(hoyISO);
+          setCerrandoDia(true);
+          try {
+            await cerrar(respuesta, hechas, hoyISO);
+          } catch {
+            // El store ya revirtio y avisa por consola. Acá no hay nada que
+            // el usuario deba hacer.
+          } finally {
+            setCerrandoDia(false);
+          }
+        }}
+      />
+
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.content}
@@ -445,6 +556,19 @@ export default function HomeView() {
               />
               <Text style={styles.saveEnergyButtonText}>Guardar</Text>
             </TouchableOpacity>
+          )}
+
+          {/* La respuesta al check-in. Solo aparece cuando hay algo cierto
+              que decir: preguntar y devolver una frase de relleno enseña que
+              la pregunta es decorativa, y se deja de contestar. */}
+          {reflexion?.texto && (
+            <View style={styles.reflexion} testID="reflexion-energia">
+              {/* Hueco reservado para el sapo. Va vacío a propósito: la
+                  ilustración llega después y el tamaño ya está tomado, así
+                  que al ponerla no se mueve nada de lo de al lado. */}
+              <View style={styles.huecoSapo} testID="hueco-sapo" />
+              <Text style={styles.reflexionTexto}>{reflexion.texto}</Text>
+            </View>
           )}
         </LinearGradient>
 
@@ -644,6 +768,7 @@ export default function HomeView() {
           </View>
         )}
         <ActivityDetailModal
+          onEnfocar={iniciarSesion}
           visible={selectedActivity !== null}
           activityItem={selectedActivity}
           onClose={() => setSelectedActivity(null)}
@@ -760,6 +885,31 @@ const createStyles = (
     fontSize: 13,
     fontWeight: "800",
     textAlign: "center",
+  },
+  reflexion: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginTop: 16,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: colors.cardBorder,
+  },
+  huecoSapo: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    // Marcado apenas para que se lea como un espacio previsto y no como un
+    // error de maquetacion. Al llegar la ilustracion, este borde se va.
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: colors.cardBorder,
+  },
+  reflexionTexto: {
+    flex: 1,
+    color: colors.textSecondary,
+    fontSize: 13,
+    lineHeight: 18,
   },
   fabChatBtn: {
     position: 'absolute',

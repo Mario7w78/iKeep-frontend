@@ -1,3 +1,4 @@
+import { AreaDeVida } from '../../../domain/entities/lifeArea';
 import { DayOfWeek } from "../../../domain/entities/Activity";
 import { DayConfig } from "../../../domain/entities/activity.types";
 
@@ -5,6 +6,8 @@ export interface CreateActivityCommand {
   id?: string;
   activityName: string;
   isFixed: boolean;
+  /** De qué parte de tu vida es. Ver `lifeArea`. */
+  area?: AreaDeVida;
   identity: "clase" | "trabajo" | "tarea";
   priority: number;
   difficulty: "baja" | "media" | "alta";

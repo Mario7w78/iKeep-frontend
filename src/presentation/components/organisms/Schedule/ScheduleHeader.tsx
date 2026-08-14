@@ -10,7 +10,7 @@ interface Props {
   activityCount: number;
   onSelectDay: (day: DayOfWeek) => void;
   onRefresh?: () => void;
-  viewMode: 'grid' | 'list';
+  viewMode: 'grid' | 'list' | 'mes';
   onToggleViewMode: () => void;
 }
 
@@ -52,7 +52,17 @@ export function ScheduleHeader({ selectedDay, activityCount, onSelectDay, onRefr
         </View>
         <View style={s.actionButtons}>
           <TouchableOpacity style={s.toggleBtn} onPress={onToggleViewMode} hitSlop={12}>
-            <Ionicons name={viewMode === 'grid' ? 'list-outline' : 'calendar-outline'} size={24} color={comfyColors.green} />
+            {/* El icono muestra a donde vas, no donde estas: es lo que
+                hace el ciclo predecible. */}
+            <Ionicons
+              name={
+                viewMode === 'grid' ? 'list-outline'
+                : viewMode === 'list' ? 'calendar-outline'
+                : 'grid-outline'
+              }
+              size={24}
+              color={comfyColors.green}
+            />
           </TouchableOpacity>
           {onRefresh && (
             <TouchableOpacity style={s.refreshBtn} onPress={onRefresh} hitSlop={12}>

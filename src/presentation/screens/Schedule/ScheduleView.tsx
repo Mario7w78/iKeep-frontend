@@ -18,7 +18,9 @@ import {
 } from '../../../infrastructure/persistence/EnergyHistoryService';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LoadingScreen } from '../../components/atoms/Common/LoadingScreen';
+import { MonthGrid } from '../../components/organisms/Schedule/MonthGrid';
 import { WeekGrid } from '../../components/organisms/Schedule/WeekGrid';
+import { useCalendarStore } from '../../../infrastructure/store/useCalendarStore';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const DAYS_ORDER = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo'];
@@ -193,7 +195,21 @@ export default function ScheduleView() {
 
   const [showEnergyPicker, setShowEnergyPicker] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState<ScheduledActivity | null>(null);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'mes'>('grid');
+  const [diaElegido, setDiaElegido] = useState<string | null>(null);
+
+  const mesVisible = useCalendarStore((s) => s.mesVisible);
+  const porDia = useCalendarStore((s) => s.porDia);
+  const cargandoCalendario = useCalendarStore((s) => s.cargando);
+  const errorCalendario = useCalendarStore((s) => s.error);
+  const cargarMes = useCalendarStore((s) => s.cargarMes);
+  const irAlMes = useCalendarStore((s) => s.irAlMes);
+
+  // Solo al entrar al modo mes: pedirlo siempre gastaria un viaje de red que
+  // la mayoria de las aperturas no usa.
+  useEffect(() => {
+    if (viewMode === 'mes') cargarMes();
+  }, [viewMode, cargarMes]);
 
   const horizontalScrollRef = useRef<ScrollView>(null);
   const scrollX = useRef(0);
@@ -284,6 +300,27 @@ export default function ScheduleView() {
     return <LoadingScreen mensaje="Cargando tu horario..." />;
   }
 
+  if (viewMode === 'mes' && !showEmptyState) {
+    return (
+      <View style={s.container}>
+        <MonthGrid
+          mesVisible={mesVisible}
+          porDia={porDia}
+          cargando={cargandoCalendario}
+          error={errorCalendario}
+          diaSeleccionado={diaElegido}
+          onSeleccionarDia={setDiaElegido}
+          onCambiarMes={irAlMes}
+          onReintentar={() => cargarMes()}
+        />
+        <TouchableOpacity style={s.volverAlDia} onPress={() => setViewMode('grid')}>
+          <Ionicons name="today-outline" size={18} color={comfyColors.green} />
+          <Text style={[s.btnText, { color: comfyColors.green }]}>Ver el día</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   // Girar el telefono ya ocultaba la barra de tabs para ganar alto; lo que
   // faltaba era usarlo. La semana entera se ve de una y sirve para la foto.
   if (esApaisado && !showEmptyState) {
@@ -332,7 +369,7 @@ export default function ScheduleView() {
             onSelectDay={changeSelectedDayProgrammatically}
             onRefresh={handleGeneratePress}
             viewMode={viewMode}
-            onToggleViewMode={() => setViewMode(prev => prev === 'grid' ? 'list' : 'grid')}
+            onToggleViewMode={() => setViewMode(prev => prev === 'grid' ? 'list' : prev === 'list' ? 'mes' : 'grid')}
           />
           
           <ScrollView
@@ -419,6 +456,15 @@ const createStyles = (
   comfyFontColors: ReturnType<typeof useTheme>['comfyFontColors'],
 ) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.screenBackground },
+  volverAlDia: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderTopWidth: 1,
+    borderTopColor: colors.cardBorder,
+  },
   center: {
     flex: 1,
     justifyContent: "center",

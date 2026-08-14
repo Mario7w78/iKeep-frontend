@@ -61,7 +61,12 @@ export async function descompletarActividad(activityId: string, fecha = fechaLoc
 }
 
 export async function obtenerResumen(fecha = fechaLocal()): Promise<ResumenDeLogros> {
-  const dto = await backendRequest<any>(`${RUTA}/resumen?fecha=${fecha}`);
+  // La racha cuenta días en que el usuario apareció, y "el día" es el suyo:
+  // sin el desfase, un check-in de las 20:00 en Lima contaría como de mañana.
+  const desfase = -new Date().getTimezoneOffset();
+  const dto = await backendRequest<any>(
+    `${RUTA}/resumen?fecha=${fecha}&desfase_utc_minutos=${desfase}`
+  );
   return {
     racha: {
       actual: dto.racha.actual,

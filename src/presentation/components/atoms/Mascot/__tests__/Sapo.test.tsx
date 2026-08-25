@@ -1,52 +1,95 @@
 /**
- * La mascota y su máquina de estados.
+ * La mascota y su máquina de estados, contra el runtime Rive mockeado.
  *
- * Hay siete estados previstos y tres animaciones producidas. El componente
- * declara los siete igual: así el resto de la app puede pedir `celebrating`
- * hoy, ver algo razonable, y empezar a mostrar la animación buena el día que
- * exista, sin tocar quien la usa.
+ * El mock vive en `__mocks__/rive-react-native.tsx` y jest-expo lo aplica
+ * solo para todo el runner: acá solo se afirma contra él.
  */
 
-// El mock reenvia el ref y expone play(): el componente lo usa para
-// reproducir solo un tramo, y sin eso el render explota.
-jest.mock('lottie-react-native', () => {
-  const React = require('react');
-  const { View } = require('react-native');
-  const Mock = React.forwardRef((props: any, ref: any) => {
-    React.useImperativeHandle(ref, () => ({
-      play: jest.fn(),
-      pause: jest.fn(),
-      reset: jest.fn(),
-    }));
-    return React.createElement(View, { ...props, testID: props.testID });
-  });
-  return { __esModule: true, default: Mock };
-});
+// El store de la racha arrastra Supabase y AsyncStorage, que no tienen
+// nativo en jest. Acá la racha se fija con setState: las APIs no se tocan.
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  setItem: jest.fn(),
+  getItem: jest.fn().mockResolvedValue(null),
+  removeItem: jest.fn(),
+  clear: jest.fn(),
+}));
+
+// El asset se resuelve bien en el runner (stub por moduleNameMapper); la
+// prueba de "falta el asset" baja esta bandera en vez de reimportar todo.
+// `undefined` = usar el real; se resuelve perezoso para esquivar el TDZ
+// del factory izado de jest.mock.
+const mockFuenteVisible: { valor: number | null | undefined } = { valor: undefined };
+jest.mock('../sapoAssets', () => ({
+  get FUENTE_SAPO() {
+    if (mockFuenteVisible.valor === undefined) {
+      mockFuenteVisible.valor = jest.requireActual('../sapoAssets').FUENTE_SAPO;
+    }
+    return mockFuenteVisible.valor;
+  },
+}));
 
 import React from 'react';
 import { StyleSheet } from 'react-native';
-import { render } from '@testing-library/react-native';
+import { act, render } from '@testing-library/react-native';
 
+import { LoopMode } from 'rive-react-native';
+// Los helpers del mock no existen en los tipos reales del paquete: solo
+// viven en la instancia que jest resuelve en el runner.
+const { __instancias, __reset } = require('rive-react-native') as {
+  __instancias: Array<{
+    props: Record<string, any>;
+    play: ReturnType<typeof jest.fn>;
+    pause: ReturnType<typeof jest.fn>;
+    stop: ReturnType<typeof jest.fn>;
+    reset: ReturnType<typeof jest.fn>;
+  }>;
+  __reset(): void;
+};
+
+import { useRewardsStore } from '../../../../../infrastructure/store/useRewardsStore';
 import { Sapo } from '../Sapo';
-import { animacionDe, ESTADOS_CON_ANIMACION, esEnBucle, rangoDe } from '../sapoStates';
+import { ESTADOS_CON_ANIMACION, animacionDe } from '../sapoStates';
+
+const ponerRacha = (dias: number) => {
+  useRewardsStore.setState({
+    racha: { actual: dias, mejor: dias, enRiesgo: false },
+  });
+};
+
+beforeEach(() => {
+  __reset();
+});
+
+afterEach(() => {
+  useRewardsStore.setState({
+    racha: { actual: 0, mejor: 0, enRiesgo: false },
+  });
+});
 
 describe('animacionDe', () => {
-  it('devuelve la animación propia cuando existe', () => {
-    expect(animacionDe('idle')).toBe(animacionDe('idle'));
-    expect(animacionDe('waving')).not.toBe(animacionDe('idle'));
+  it.each([
+    ['happy', 'Jumping'],
+    ['celebrating', 'Jumping'],
+  ] as const)('%i mapea a %s'.replace('%i', '%s'), (estado, esperada) => {
+    expect(animacionDe(estado, 'bebé').principal).toBe(esperada);
+    expect(animacionDe(estado, 'bebé').enBucle).toBe(false);
   });
 
-  it('los estados sin animación propia caen a idle', () => {
+  it('el saludo solo existe en el bebé: las demás etapas caen a reposo', () => {
+    expect(animacionDe('waving', 'bebé').principal).toBe('Waving tail');
+    expect(animacionDe('waving', 'niño').principal).toBe('Idle');
+    expect(animacionDe('waving', 'adulto').principal).toBe('Idle');
+  });
+
+  it('los estados sin animación propia caen a Idle con parpadeo en bucle', () => {
     /** Degradar a reposo es preferible a no mostrar nada: la mascota
      *  sigue presente y la pantalla no cambia de forma. */
-    expect(animacionDe('thinking')).toBe(animacionDe('idle'));
-    expect(animacionDe('sad')).toBe(animacionDe('idle'));
-    expect(animacionDe('sleeping')).toBe(animacionDe('idle'));
-  });
-
-  it('celebrar y alegrarse usan la de éxito', () => {
-    expect(animacionDe('happy')).toBe(animacionDe('celebrating'));
-    expect(animacionDe('happy')).not.toBe(animacionDe('idle'));
+    for (const estado of ['idle', 'thinking', 'sad', 'sleeping'] as const) {
+      const mapeo = animacionDe(estado, 'niño');
+      expect(mapeo.principal).toBe('Idle');
+      expect(mapeo.ambiental).toBe('Blinking');
+      expect(mapeo.enBucle).toBe(true);
+    }
   });
 
   it('declara qué estados tienen animación propia', () => {
@@ -56,111 +99,96 @@ describe('animacionDe', () => {
   });
 });
 
-describe('esEnBucle', () => {
-  it('reposo y espera se repiten', () => {
-    expect(esEnBucle('idle')).toBe(true);
-    expect(esEnBucle('thinking')).toBe(true);
-    expect(esEnBucle('sleeping')).toBe(true);
-  });
+describe('artboard por etapa', () => {
+  // La racha elige el artboard: los cortes los prueba frogStage.test,
+  // acá se verifica que la elección llega al runtime.
+  it.each([
+    [3, 'Baby_Sapo'],
+    [10, 'Kid_Sapo'],
+    [45, 'Adult_Sapo'],
+  ])('con racha %i monta %s', async (racha, artboard) => {
+    ponerRacha(racha);
+    await render(<Sapo />);
 
-  it('las celebraciones y el saludo ocurren una vez', () => {
-    /** Un saludo en bucle deja de leerse como saludo. */
-    expect(esEnBucle('waving')).toBe(false);
-    expect(esEnBucle('happy')).toBe(false);
-    expect(esEnBucle('celebrating')).toBe(false);
+    expect(__instancias.at(-1)?.props.artboardName).toBe(artboard);
   });
 });
 
-describe('Sapo', () => {
-  it('se dibuja en reposo por defecto', async () => {
-    const vista = await render(<Sapo />);
+describe('reproducción', () => {
+  it('reposo reproduce Idle y Blinking en bucle', async () => {
+    await render(<Sapo />);
 
-    expect(vista.getByTestId('sapo')).toBeTruthy();
+    const rive = __instancias.at(-1);
+    expect(rive?.play).toHaveBeenCalledWith('Idle', LoopMode.Loop);
+    expect(rive?.play).toHaveBeenCalledWith('Blinking', LoopMode.Loop);
   });
 
-  it('un estado en bucle se repite', async () => {
-    const vista = await render(<Sapo estado="idle" />);
+  it('alegrarse reproduce Jumping una vez y vuelve al reposo al terminar', async () => {
+    await render(<Sapo estado="happy" />);
 
-    expect(vista.getByTestId('sapo').props.loop).toBe(true);
+    const rive = __instancias.at(-1)!;
+    expect(rive.play).toHaveBeenCalledWith('Jumping', LoopMode.OneShot);
+    expect(rive.play).not.toHaveBeenCalledWith('Idle', LoopMode.Loop);
+    expect(rive.play).not.toHaveBeenCalledWith('Blinking', LoopMode.Loop);
+
+    // Jumping no loopea mientras dura la alegría: termina sola.
+    rive.play.mockClear();
+
+    // El runtime avisa el fin de una OneShot con onPause (iOS) o onStop;
+    // cualquiera de las dos devuelve a la mascota al reposo.
+    await act(async () => rive.props.onStop?.('Jumping'));
+
+    expect(rive.play).toHaveBeenCalledWith('Idle', LoopMode.Loop);
+    expect(rive.play).toHaveBeenCalledWith('Blinking', LoopMode.Loop);
   });
 
-  it('un estado puntual no se repite', async () => {
-    const vista = await render(<Sapo estado="waving" />);
+  it('el fin de otra animación no cambia nada', async () => {
+    await render(<Sapo estado="happy" />);
 
-    expect(vista.getByTestId('sapo').props.loop).toBe(false);
+    const rive = __instancias.at(-1)!;
+    await act(async () => rive.props.onStop?.('Blinking'));
+
+    expect(rive.play).not.toHaveBeenCalledWith('Idle', LoopMode.Loop);
   });
 
-  it('arranca reproduciendo', async () => {
-    const vista = await render(<Sapo estado="idle" />);
+  it('el saludo del bebé no vuelve a reposo solo: ocurre una vez y queda quieta', async () => {
+    await render(<Sapo estado="waving" />);
 
-    expect(vista.getByTestId('sapo').props.autoPlay).toBe(true);
-  });
+    const rive = __instancias.at(-1)!;
+    expect(rive.play).toHaveBeenCalledWith('Waving tail', LoopMode.OneShot);
 
-  it('acepta un tamaño', async () => {
-    const vista = await render(<Sapo estado="idle" tamano={120} />);
+    await act(async () => rive.props.onPause?.('Waving tail'));
 
-    // El estilo llega como array porque se combina con el que reciba por
-    // props; hay que aplanarlo para leerlo.
-    const estilo = StyleSheet.flatten(vista.getByTestId('sapo').props.style);
-    expect(estilo).toEqual(expect.objectContaining({ width: 120, height: 120 }));
-  });
-
-  it('se dibuja cuadrado aunque las animaciones no compartan proporcion', async () => {
-    /** `success` es 4:3 y las otras casi cuadradas: sin esto la mascota
-     *  cambiaria de tamano al celebrar. */
-    const vista = await render(<Sapo estado="celebrating" tamano={96} />);
-
-    const estilo = StyleSheet.flatten(vista.getByTestId('sapo').props.style);
-    expect(estilo.width).toBe(estilo.height);
-    expect(vista.getByTestId('sapo').props.resizeMode).toBe('contain');
+    expect(rive.play).toHaveBeenCalledWith('Idle', LoopMode.Loop);
   });
 });
 
 describe('Sapo sin animar', () => {
-  it('no reproduce cuando se le pide quieto', async () => {
-    const vista = await render(<Sapo estado="idle" animar={false} />);
+  it('no llama al runtime cuando se le pide quieto', async () => {
+    await render(<Sapo animar={false} />);
+    await render(<Sapo estado="happy" animar={false} />);
 
-    expect(vista.getByTestId('sapo').props.autoPlay).toBe(false);
-    expect(vista.getByTestId('sapo').props.loop).toBe(false);
-  });
-
-  it('queda en un cuadro fijo, no en negro', async () => {
-    const vista = await render(<Sapo estado="idle" animar={false} />);
-
-    expect(vista.getByTestId('sapo').props.progress).toBe(0);
-  });
-
-  it('animado no fija el cuadro', async () => {
-    const vista = await render(<Sapo estado="idle" />);
-
-    expect(vista.getByTestId('sapo').props.progress).toBeUndefined();
+    for (const instancia of __instancias) {
+      expect(instancia.play).not.toHaveBeenCalled();
+    }
   });
 });
 
-describe('recorte de la celebracion', () => {
-  it('la celebracion declara el tramo util', () => {
-    /** success dura 7s pero la celebracion ocurre en los primeros 3: el
-     *  resto son pausas y el personaje volviendo a su pose. */
-    expect(rangoDe('happy')).toEqual([0, 192]);
-    expect(rangoDe('celebrating')).toEqual([0, 192]);
-  });
+describe('Sapo sin asset', () => {
+  it('un require que falla deja el hueco reservado, sin romper nada', async () => {
+    /** La mascota es decoración: si falta el asset, la pantalla conserva
+     *  su composición en vez de romperse o reacomodarse. */
+    const montadas = __instancias.length;
+    mockFuenteVisible.valor = null;
+    try {
+      const vista = await render(<Sapo tamano={80} />);
 
-  it('los demas estados se reproducen enteros', () => {
-    expect(rangoDe('idle')).toBeNull();
-    expect(rangoDe('waving')).toBeNull();
-  });
-
-  it('un estado con rango no usa autoPlay', async () => {
-    /** autoPlay siempre va del frame 0 al final, que es justo lo que hay
-     *  que evitar cuando el archivo trae cola larga. */
-    const vista = await render(<Sapo estado="happy" />);
-
-    expect(vista.getByTestId('sapo').props.autoPlay).toBe(false);
-  });
-
-  it('un estado sin rango si lo usa', async () => {
-    const vista = await render(<Sapo estado="waving" />);
-
-    expect(vista.getByTestId('sapo').props.autoPlay).toBe(true);
+      const estilo = StyleSheet.flatten(vista.getByTestId('sapo').props.style);
+      expect(estilo).toEqual(expect.objectContaining({ width: 80, height: 80 }));
+    } finally {
+      mockFuenteVisible.valor = require('../sapoAssets').FUENTE_SAPO;
+    }
+    // No quedó ninguna instancia de Rive montada por este render.
+    expect(__instancias).toHaveLength(montadas);
   });
 });

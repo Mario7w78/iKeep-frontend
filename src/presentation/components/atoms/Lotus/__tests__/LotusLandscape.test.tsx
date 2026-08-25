@@ -68,8 +68,16 @@ describe('LotusLandscape', () => {
     expect(rive.play).toHaveBeenCalledWith('Cloud_Loop', LoopMode.Loop);
     expect(rive.play).toHaveBeenCalledWith('Nenufar_Loop', LoopMode.Loop);
     expect(
-      rive.play.mock.calls.filter(([nombre]: [string]) => nombre === 'Evening')
+      rive.play.mock.calls.filter((llamada: any[]) => llamada[0] === 'Evening')
     ).toHaveLength(1);
+    vista.unmount();
+  });
+
+  it('el runtime recibe la referencia del asset loto', async () => {
+    const { FUENTE_LOTUS } = jest.requireActual('../lotusAssets');
+    const vista = await render(<LotusLandscape />);
+
+    expect(__instancias.at(-1)?.props.source).toBe(FUENTE_LOTUS);
     vista.unmount();
   });
 

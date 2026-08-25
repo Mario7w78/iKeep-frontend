@@ -80,6 +80,9 @@ importers:
       react-native-url-polyfill:
         specifier: ^4.0.0
         version: 4.0.0(react-native@0.83.4(@babel/core@7.29.7)(@types/react@19.2.15)(react@19.2.0))
+      rive-react-native:
+        specifier: ^9.8.5
+        version: 9.8.5(react-native@0.83.4(@babel/core@7.29.7)(@types/react@19.2.15)(react@19.2.0))(react@19.2.0)
       zustand:
         specifier: ^5.0.12
         version: 5.0.13(@types/react@19.2.15)(react@19.2.0)(use-sync-external-store@1.6.0(react@19.2.0))
@@ -3252,6 +3255,13 @@ packages:
     resolution: {integrity: sha512-JZkJMZkAGFFPP2YqXZXPbMlMBgsxzE8ILs4lMIX/2o0L9UBw9O/Y3o6wFw/i9YLapcUJWwqbi3kdxIPdC62TIA==}
     deprecated: Rimraf versions prior to v4 are no longer supported
     hasBin: true
+
+  rive-react-native@9.8.5:
+    resolution: {integrity: sha512-hEuULtNdUKD0x3fjjoa4mJ0Hevj3uhquoBt7dLl+DFbo7pX4m57nK0kqQKBa4ACQGfGtkLg5vNXa5EiA2b5lfQ==}
+    engines: {node: '>=16'}
+    peerDependencies:
+      react: '*'
+      react-native: '*'
 
   safe-buffer@5.2.1:
     resolution: {integrity: sha512-rp3So07KcdmmKbGvgaNxQSJr7bGVSVk5S9Eq1F+ppbRo70+YeaDxkw5Dd8NPN+GD6bjnYm2VuPuCXmpuYvmCXQ==}
@@ -7743,6 +7753,11 @@ snapshots:
   rimraf@3.0.2:
     dependencies:
       glob: 7.2.3
+
+  rive-react-native@9.8.5(react-native@0.83.4(@babel/core@7.29.7)(@types/react@19.2.15)(react@19.2.0))(react@19.2.0):
+    dependencies:
+      react: 19.2.0
+      react-native: 0.83.4(@babel/core@7.29.7)(@types/react@19.2.15)(react@19.2.0)
 
   safe-buffer@5.2.1: {}
 

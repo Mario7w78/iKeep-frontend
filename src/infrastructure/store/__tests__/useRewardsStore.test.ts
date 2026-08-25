@@ -33,6 +33,7 @@ const RESUMEN = {
     fraccion: 1 / 3,
     terminado: false,
     completadosIds: ['act-1'],
+    noHechasIds: [],
   },
 };
 
@@ -53,6 +54,7 @@ describe('useRewardsStore', () => {
         fraccion: 1,
         terminado: false,
         completadosIds: [],
+        noHechasIds: [],
       },
       diasTerminados: 0,
     });
@@ -148,6 +150,7 @@ describe('useRewardsStore', () => {
         ...RESUMEN.progreso,
         completadas: 1,
         completadosIds: ['act-1'],
+        noHechasIds: [],
         total: 1,
         terminado: true,
       },

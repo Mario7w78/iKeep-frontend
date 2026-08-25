@@ -27,6 +27,7 @@ import { DayClose } from "../../components/organisms/Rewards/DayClose";
 import { FocusSession } from "../../components/organisms/Focus/FocusSession";
 import { useFocusSessionStore } from "../../../infrastructure/store/useFocusSessionStore";
 import { correspondeOfrecerCierre } from "../../../domain/services/dayCloseTiming";
+import { sinResponder } from "../../../domain/services/pendingAnswers";
 import { CompleteToggle } from "../../components/atoms/Rewards/CompleteToggle";
 import { StreakBadge } from "../../components/atoms/Rewards/StreakBadge";
 import { useRewardsStore } from "../../../infrastructure/store/useRewardsStore";
@@ -120,6 +121,7 @@ export default function HomeView() {
   const progreso = useRewardsStore((s) => s.progreso);
   const cargarLogros = useRewardsStore((s) => s.cargar);
   const completadas = useRewardsStore((s) => s.progreso.completadosIds);
+  const noHechas = useRewardsStore((s) => s.progreso.noHechasIds);
   const alternarCompletada = useRewardsStore((s) => s.alternar);
   const diasTerminados = useRewardsStore((s) => s.diasTerminados);
   const cerrar = useRewardsStore((s) => s.cerrar);
@@ -224,19 +226,18 @@ export default function HomeView() {
 
   const firstNext = nextActivities[0];
 
-  // Lo que ya termino hoy y nadie respondio. No es "lo no hecho": nadie dijo
-  // nada todavia, y esa diferencia es justamente la que el cierre viene a
-  // resolver.
-  const sinResolver = useMemo(() => {
-    return todayItems
-      .filter((item) => item.activity && item.tipo !== 'viaje')
-      .filter((item) => toMinutes(item.assignedEndTime) <= currentMinutes)
-      .filter((item) => !completadas.includes(item.activity!.id))
-      .map((item) => ({
-        id: item.activity!.id,
-        titulo: item.activity!.title || 'Actividad sin nombre',
-      }));
-  }, [todayItems, currentMinutes, completadas]);
+  // Lo que ya termino hoy y nadie respondio. Ojo con la diferencia: "no la
+  // hice" es una RESPUESTA, no una ausencia, y por eso no entra acá.
+  const sinResolver = useMemo(
+    () =>
+      sinResponder({
+        items: todayItems,
+        minutoActual: currentMinutes,
+        completadas,
+        noHechas,
+      }),
+    [todayItems, currentMinutes, completadas, noHechas],
+  );
 
   // Se pregunta una vez por dia. Volver a preguntar lo ya contestado es la
   // forma mas rapida de ensenarle a alguien a ignorar la pregunta.

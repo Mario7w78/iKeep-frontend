@@ -23,7 +23,17 @@ export interface ProgresoDelDia {
   /** Entre 0 y 1. Un dia sin nada programado vale 1: no hay nada pendiente. */
   fraccion: number;
   terminado: boolean;
+  /** Lo que se dijo que SÍ. Es lo único que cuenta como progreso. */
   completadosIds: string[];
+  /**
+   * Lo que se dijo que NO.
+   *
+   * Va aparte porque hay TRES situaciones y no dos: hecha, no hecha, y la
+   * ausencia —que es «sin resolver»—. Sin esta lista, «me contestaste que no»
+   * y «todavía no me contestaste» se ven igual, y el cierre del día vuelve a
+   * preguntar lo que el usuario ya respondió.
+   */
+  noHechasIds: string[];
 }
 
 export interface ResumenDeLogros {
@@ -106,6 +116,7 @@ export async function cerrarDia(
     fraccion: dto.fraccion,
     terminado: dto.terminado,
     completadosIds: dto.completados_ids ?? [],
+    noHechasIds: dto.no_hechas_ids ?? [],
   };
 }
 
@@ -135,6 +146,7 @@ export async function obtenerResumen(fecha = fechaLocal()): Promise<ResumenDeLog
       fraccion: dto.progreso.fraccion,
       terminado: dto.progreso.terminado,
       completadosIds: dto.progreso.completados_ids ?? [],
+      noHechasIds: dto.progreso.no_hechas_ids ?? [],
     },
     diasCompletados: dto.dias_completados ?? [],
   };

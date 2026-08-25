@@ -31,6 +31,7 @@ const PROGRESO_VACIO: ProgresoDelDia = {
   fraccion: 1,
   terminado: false,
   completadosIds: [],
+  noHechasIds: [],
 };
 
 interface RewardsState {

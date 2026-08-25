@@ -28,10 +28,17 @@ import { FocusSession } from "../../components/organisms/Focus/FocusSession";
 import { useFocusSessionStore } from "../../../infrastructure/store/useFocusSessionStore";
 import { correspondeOfrecerCierre } from "../../../domain/services/dayCloseTiming";
 import { sinResponder } from "../../../domain/services/pendingAnswers";
+import {
+  areaDestacada as calcularAreaDestacada,
+} from "../../../domain/services/dayRecap";
 import { CompleteToggle } from "../../components/atoms/Rewards/CompleteToggle";
 import { StreakBadge } from "../../components/atoms/Rewards/StreakBadge";
 import { useRewardsStore } from "../../../infrastructure/store/useRewardsStore";
-import { fechaLocal } from "../../../infrastructure/api/RewardsApiService";
+import {
+  fechaLocal,
+  RespuestaDeCierre,
+} from "../../../infrastructure/api/RewardsApiService";
+import { DayRecap } from "../../components/organisms/Rewards/DayRecap";
 import { ActivityDetailModal } from "../../components/organisms/Schedule/ActivityDetailModal";
 import {
   saveEnergyRecord,
@@ -239,10 +246,29 @@ export default function HomeView() {
     [todayItems, currentMinutes, completadas, noHechas],
   );
 
+  // En que area se movio mas hoy. Regla de negocio pura: si hay empate, no
+  // se destaca nada — afirmar un ganador arbitrario seria inventar un hecho.
+  const areaDelDia = useMemo(
+    () =>
+      calcularAreaDestacada(
+        todayItems
+          .filter((item) => item.activity)
+          .map((item) => ({
+            id: String(item.activity!.id),
+            area: item.activity!.area,
+          })),
+        completadas
+      ),
+    [todayItems, completadas]
+  );
+
   // Se pregunta una vez por dia. Volver a preguntar lo ya contestado es la
   // forma mas rapida de ensenarle a alguien a ignorar la pregunta.
   const [diaCerrado, setDiaCerrado] = useState<string | null>(null);
   const [cerrandoDia, setCerrandoDia] = useState(false);
+  const [recapPendiente, setRecapPendiente] = useState(false);
+  const [respuestaDelCierre, setRespuestaDelCierre] =
+    useState<RespuestaDeCierre | null>(null);
 
   const hoyISO = fechaLocal();
   const ofrecerCierre = correspondeOfrecerCierre({
@@ -478,6 +504,10 @@ export default function HomeView() {
           setCerrandoDia(true);
           try {
             await cerrar(respuesta, hechas, hoyISO);
+            // El resumen solo se gana cerrando de verdad: en el camino del
+            // error no hay foto que mostrar.
+            setRespuestaDelCierre(respuesta);
+            setRecapPendiente(true);
           } catch {
             // El store ya revirtio y avisa por consola. Acá no hay nada que
             // el usuario deba hacer.
@@ -485,6 +515,15 @@ export default function HomeView() {
             setCerrandoDia(false);
           }
         }}
+      />
+
+      <DayRecap
+        visible={recapPendiente && diaCerrado === hoyISO}
+        progreso={progreso}
+        racha={racha}
+        areaDestacada={areaDelDia}
+        respuestaCierre={respuestaDelCierre ?? 'algunas'}
+        onDismiss={() => setRecapPendiente(false)}
       />
 
       <ScrollView

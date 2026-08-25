@@ -138,4 +138,50 @@ describe('ApiActivityRepository', () => {
       method: 'DELETE',
     });
   });
+
+  // calendario-mensual: el dia puntual de un evento unico debe sobrevivir
+  // entity -> DTO -> API y volver.
+  describe('fecha_unica', () => {
+    const actividad = (fechaUnica: string | null) =>
+      new Activity({
+        id: 'act-1',
+        title: 'Parcial',
+        type: 'fija' as any,
+        identity: 'clase' as any,
+        priority: 1,
+        difficulty: 'alta' as any,
+        deadline: null,
+        daysEnabled: [] as any,
+        daysConfig: {},
+        optionalDay: false,
+        isAnchor: false,
+        fechaUnica,
+      });
+
+    it('el viaje de ida y vuelta conserva la fecha exacta', async () => {
+      pedir.mockResolvedValue([{ ...RESPUESTA, days_enabled: [], fecha_unica: '2026-09-10' }]);
+
+      const [leida] = await repo.getAll();
+      expect(leida.fechaUnica).toBe('2026-09-10');
+
+      pedir.mockClear();
+      await repo.save(actividad('2026-09-10'));
+
+      const [, opciones] = pedir.mock.calls[0];
+      expect(opciones.body.fecha_unica).toBe('2026-09-10');
+    });
+
+    it('un DTO sin el campo lee null y no emite una fecha inventada', async () => {
+      pedir.mockResolvedValue([{ ...RESPUESTA, days_enabled: [] }]);
+
+      const [leida] = await repo.getAll();
+      expect(leida.fechaUnica).toBeNull();
+
+      pedir.mockClear();
+      await repo.save(actividad(null));
+
+      const [, opciones] = pedir.mock.calls[0];
+      expect(opciones.body.fecha_unica).toBeNull();
+    });
+  });
 });

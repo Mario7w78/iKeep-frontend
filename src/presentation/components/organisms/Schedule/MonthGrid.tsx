@@ -16,6 +16,11 @@ interface Props {
   onSeleccionarDia: (fecha: string) => void;
   onCambiarMes: (delta: number) => void;
   onReintentar: () => void;
+  /**
+   * Crear una actividad puntual en el día elegido. Opcional para que las
+   * pantallas que aún no lo cablean sigan compilando sin cambios.
+   */
+  onCrearEnDia?: (fecha: string) => void;
 }
 
 /**
@@ -66,6 +71,7 @@ export const MonthGrid: React.FC<Props> = ({
   onSeleccionarDia,
   onCambiarMes,
   onReintentar,
+  onCrearEnDia,
 }) => {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -172,9 +178,26 @@ export const MonthGrid: React.FC<Props> = ({
 
       {diaSeleccionado && !error && (
         <ScrollView style={styles.detalle} testID="dia-detalle">
-          <Text style={styles.detalleTitulo}>
-            {Number(diaSeleccionado.slice(8))} de {MESES[Number(diaSeleccionado.slice(5, 7)) - 1]}
-          </Text>
+          <View style={styles.detalleEncabezado}>
+            <Text style={styles.detalleTitulo}>
+              {Number(diaSeleccionado.slice(8))} de {MESES[Number(diaSeleccionado.slice(5, 7)) - 1]}
+            </Text>
+
+            {/* Crear justo donde se esta mirando: la fecha viaja como texto
+                local YYYY-MM-DD y el wizard la muestra, no la vuelve a
+                preguntar. */}
+            {onCrearEnDia && (
+              <TouchableOpacity
+                testID="crear-en-dia"
+                style={styles.botonCrear}
+                onPress={() => onCrearEnDia(diaSeleccionado)}
+                accessibilityLabel={`Crear actividad el ${diaSeleccionado}`}
+                hitSlop={10}
+              >
+                <Ionicons name="add" size={20} color={colors.iconPrimary} />
+              </TouchableOpacity>
+            )}
+          </View>
 
           {delDia.length === 0 ? (
             <Text style={styles.detalleVacio}>Nada agendado. Día libre.</Text>
@@ -281,6 +304,22 @@ const createStyles = (colors: ThemeColors) =>
       paddingTop: ESPACIO.md,
       borderTopWidth: 1,
       borderTopColor: colors.cardBorder,
+    },
+    detalleEncabezado: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: ESPACIO.sm,
+    },
+    botonCrear: {
+      width: 30,
+      height: 30,
+      borderRadius: RADIO.pill,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      backgroundColor: colors.cardBackground,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     detalleTitulo: {
       fontSize: TEXTO.cuerpo,

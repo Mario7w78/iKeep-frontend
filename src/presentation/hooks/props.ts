@@ -31,4 +31,11 @@ export type saveActivityProps = {
     preferredEndTime?: number | null;
     optionalDay?: boolean;
     silent?: boolean;
+    /**
+     * Fecha puntual `YYYY-MM-DD` (modo solo-día desde el mes). Cuando viene,
+     * el comando viaja con `days: []`: el backend expande por `fecha_unica` y
+     * los días de la semana no aplican. `daysConfig` conserva el día
+     * sintético porque la configuración horaria vive ahí.
+     */
+    fechaUnica?: string | null;
 }

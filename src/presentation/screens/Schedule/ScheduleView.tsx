@@ -242,7 +242,19 @@ export default function ScheduleView() {
       const today = JS_DAY_TO_DAYOFWEEK[new Date().getDay()];
       changeSelectedDayProgrammatically(today);
       loadActivities();
-    }, [changeSelectedDayProgrammatically, loadActivities])
+      // Volver del wizard en modo mes: la actividad recién creada con fecha
+      // única solo existe para el calendario, así que hay que pedirlo de
+      // nuevo o el usuario no la vería sin refrescar a mano.
+      if (viewMode === 'mes') cargarMes();
+    }, [changeSelectedDayProgrammatically, loadActivities, viewMode, cargarMes])
+  );
+
+  /** El "+" del panel del día: abre el wizard con esa fecha como puntual. */
+  const crearEnDia = useCallback(
+    (fecha: string) => {
+      navigation.navigate('CreateActivityModal', { fechaUnica: fecha });
+    },
+    [navigation]
   );
 
   // Sync scroll position when selectedDay changes (e.g. from header tabs)
@@ -312,6 +324,7 @@ export default function ScheduleView() {
           onSeleccionarDia={setDiaElegido}
           onCambiarMes={irAlMes}
           onReintentar={() => cargarMes()}
+          onCrearEnDia={crearEnDia}
         />
         <TouchableOpacity style={s.volverAlDia} onPress={() => setViewMode('grid')}>
           <Ionicons name="today-outline" size={18} color={comfyColors.green} />

@@ -20,6 +20,8 @@ export interface CreateActivityCommand {
   dayFrom?: number;
   dayTo?: number;
   isAnchor?: boolean;
+  /** Fecha puntual `YYYY-MM-DD` (evento de un solo día); null si se repite. */
+  fechaUnica?: string | null;
 }
 
 export interface CreateActivityPort {

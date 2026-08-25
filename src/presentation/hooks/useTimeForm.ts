@@ -438,6 +438,8 @@ export default function useTimeForm(
     const finalDayFrom = overrides.dayFrom !== undefined ? overrides.dayFrom : dayFrom;
     const finalDayTo = overrides.dayTo !== undefined ? overrides.dayTo : dayTo;
     const finalIsAnchor = overrides.isAnchor !== undefined ? overrides.isAnchor : isAnchor;
+    // Modo solo-día: la fecha viaja por override y no hay estado que leer.
+    const finalFechaUnica = overrides.fechaUnica ?? null;
 
     // Domain rule: una actividad flexible NO puede ser "clase" — clase siempre es fija.
     const sanitizedIdentity: 'clase' | 'trabajo' | 'tarea' =
@@ -530,13 +532,17 @@ export default function useTimeForm(
       difficulty: finalDifficulty,
       deadline: finalDeadline ? finalDeadline.toISOString() : null,
       daysConfig: daysDict as Record<string, any>,
-      days: configuredDays,
+      // Con fecha puntual los días recurrentes no significan nada: el
+      // backend expande por fecha_unica y un día marcado sería ruido (o peor,
+      // una segunda lectura de la actividad en otras semanas).
+      days: finalFechaUnica ? [] : configuredDays,
       preferredStartTime: finalPrefStart,
       preferredEndTime: finalPrefEnd,
       optionalDay: finalOptionalDay,
       dayFrom: finalDayFrom ?? undefined,
       dayTo: finalDayTo ?? undefined,
       isAnchor: finalIsAnchor || undefined,
+      fechaUnica: finalFechaUnica,
     });
 
     try {

@@ -115,6 +115,43 @@ describe('el detalle del dia', () => {
   });
 });
 
+describe('el boton de crear en el dia', () => {
+  // calendario-mensual: crear una actividad puntual justo donde se esta
+  // mirando, con la fecha del dia elegido.
+  it('con dia elegido aparece y avisa con la fecha local', async () => {
+    const crear = jest.fn();
+    const vista = await pintar({
+      diaSeleccionado: '2026-08-11',
+      onCrearEnDia: crear,
+    });
+
+    const boton = vista.getByTestId('crear-en-dia');
+    expect(boton.props.accessibilityLabel).toBe('Crear actividad el 2026-08-11');
+
+    await act(async () => { fireEvent.press(boton); });
+
+    expect(crear).toHaveBeenCalledWith('2026-08-11');
+  });
+
+  it('un dia vacio tambien ofrece crearlo', async () => {
+    const crear = jest.fn();
+    const vista = await pintar({
+      diaSeleccionado: '2026-08-12',
+      onCrearEnDia: crear,
+    });
+
+    await act(async () => { fireEvent.press(vista.getByTestId('crear-en-dia')); });
+
+    expect(crear).toHaveBeenCalledWith('2026-08-12');
+  });
+
+  it('sin handler no existe: pantallas viejas no cambian', async () => {
+    const vista = await pintar({ diaSeleccionado: '2026-08-11' });
+
+    expect(vista.queryByTestId('crear-en-dia')).toBeNull();
+  });
+});
+
 describe('cuando falla', () => {
   it('lo dice y ofrece reintentar, no muestra un mes vacio', async () => {
     // Una cuadricula vacia se lee como "no tienes nada", que es mentira.

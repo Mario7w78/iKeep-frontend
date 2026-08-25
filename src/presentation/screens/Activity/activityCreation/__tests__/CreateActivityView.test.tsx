@@ -1,5 +1,5 @@
 import React from 'react';
-import { render } from '@testing-library/react-native';
+import { render, fireEvent, act, waitFor } from '@testing-library/react-native';
 import CreateActivityView from '../CreateActivityView';
 import { LayoutAnimation } from 'react-native';
 
@@ -20,6 +20,43 @@ jest.mock('../../../../../infrastructure/api/ScheduleApiService', () => ({
     recomendaciones: [],
     tareas_omitidas: [],
   }),
+}));
+
+// Captura el comando que la pantalla manda al store al guardar. Vive aca
+// para que los tests de flujo puedan afirmar sobre el payload real.
+let comandoCapturado: any = null;
+// Prefijo `mock` obligatorio: los factories de jest.mock no pueden leer
+// variables del scope salvo las que empiezan asi.
+const mockHandleCreateActivity = jest.fn(async (comando: any) => {
+  comandoCapturado = comando;
+  return 'act-nueva';
+});
+
+// Los stores reales tocan red y Supabase; el wizard solo necesita leerlos.
+jest.mock('../../../../../di/Dependencies', () => ({
+  useActivityStore: jest.fn((selector?: any) => {
+    const state = {
+      activities: [],
+      isLoading: false,
+      handleCreateActivity: mockHandleCreateActivity,
+    };
+    return selector ? selector(state) : state;
+  }),
+  useScheduleStore: Object.assign(
+    jest.fn((selector?: any) => {
+      const state = {
+        startHour: 0,
+        endHour: 1440,
+        schedule: undefined,
+        handleGenerateSchedule: jest.fn().mockResolvedValue(undefined),
+      };
+      return selector ? selector(state) : state;
+    }),
+    { getState: () => ({ schedule: undefined }) }
+  ),
+  useChatStore: jest.fn((selector?: any) =>
+    selector ? selector({ resolverPropuestaDesdeWizard: jest.fn() }) : {}
+  ),
 }));
 
 // Mock AsyncStorage since it is used in the repository
@@ -77,5 +114,64 @@ describe('CreateActivityView - Manual Wizard Flow', () => {
     // Verify choose mode step options are NOT visible
     expect(queryByText('Texto libre')).toBeNull();
     expect(queryByText('Formulario manual')).toBeNull();
+  });
+
+  // calendario-mensual: el wizard con preset de fecha puntual.
+  describe('modo solo día (fechaUnica)', () => {
+    it('muestra "Solo este día" con la fecha del preset y sin selectores de días', async () => {
+      const vista = await render(
+        <CreateActivityView
+          navigation={mockNavigation}
+          route={{ params: { fechaUnica: '2026-09-10' } }}
+        />
+      );
+
+      expect(vista.getByTestId('solo-este-dia')).toBeTruthy();
+      expect(vista.getByText('Solo este día: 2026-09-10')).toBeTruthy();
+    });
+
+    it('un preset con forma inválida degrada al flujo estándar', async () => {
+      const vista = await render(
+        <CreateActivityView
+          navigation={mockNavigation}
+          route={{ params: { fechaUnica: '10/09/2026' } }}
+        />
+      );
+
+      expect(vista.queryByTestId('solo-este-dia')).toBeNull();
+    });
+
+    it('guardar manda fecha_unica al comando y NO días recurrentes', async () => {
+      const vista = await render(
+        <CreateActivityView
+          navigation={mockNavigation}
+          route={{ params: { fechaUnica: '2026-09-10' } }}
+        />
+      );
+
+      // act alrededor de cada paso: sin él, el press lee estado viejo.
+      await act(async () => {
+        fireEvent(
+          vista.getByPlaceholderText('Ej. Seminario, Trabajo...'),
+          'onChangeText',
+          'Parcial'
+        );
+      });
+      await act(async () => {
+        fireEvent.press(vista.getByText('Continuar a horarios'));
+      });
+      await act(async () => {
+        fireEvent.press(vista.getByText('Crear actividad'));
+      });
+
+      await waitFor(() => expect(mockHandleCreateActivity).toHaveBeenCalled());
+
+      // El 2026-09-10 es jueves: ese día sintético carga la config horaria.
+      const comando = comandoCapturado;
+      expect(comando.activityName).toBe('Parcial');
+      expect(comando.fechaUnica).toBe('2026-09-10');
+      expect(comando.days).toEqual([]);
+      expect(Object.keys(comando.daysConfig)).toContain('Jueves');
+    });
   });
 });

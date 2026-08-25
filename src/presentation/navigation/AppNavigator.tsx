@@ -34,6 +34,14 @@ export type RootStackParamList = {
      * la app, aunque los valores si.
      */
     origenChatId?: string;
+    /**
+     * Dia puntual `YYYY-MM-DD` (local) desde el que se creo la actividad.
+     *
+     * Por parametro y no en el borrador por el mismo motivo que
+     * `origenChatId`: un preset de navegacion no debe sobrevivir a la
+     * pantalla ni filtrarse a creaciones que nada tienen que ver.
+     */
+    fechaUnica?: string;
   };
   ManageActivities: undefined;
   AIChatView: undefined;

@@ -26,6 +26,12 @@ export interface ActivityProps {
     dayFrom?: number;
     dayTo?: number;
     isAnchor?: boolean;
+    /**
+     * Si está puesta, la actividad ocurre una sola vez ese día y los días de
+     * la semana no aplican. Viaja como string local `YYYY-MM-DD`, nunca por
+     * UTC. Es lo que permite representar un parcial.
+     */
+    fechaUnica?: string | null;
 }
 
 export class Activity {
@@ -45,6 +51,8 @@ export class Activity {
     readonly dayFrom?: number;
     readonly dayTo?: number;
     readonly isAnchor?: boolean;
+    /** Fecha puntual `YYYY-MM-DD`; null cuando la actividad se repite. */
+    readonly fechaUnica: string | null;
 
     constructor(props: ActivityProps) {
         this.id = props.id;
@@ -67,6 +75,7 @@ export class Activity {
         this.dayFrom = props.dayFrom;
         this.dayTo = props.dayTo;
         this.isAnchor = props.isAnchor ?? false;
+        this.fechaUnica = props.fechaUnica ?? null;
     }
 
     isFixed(): boolean {

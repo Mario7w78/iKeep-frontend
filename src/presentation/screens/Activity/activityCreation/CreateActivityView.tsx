@@ -69,6 +69,18 @@ export default function CreateActivityView({ navigation, route }: any) {
   const activityIdParam = route.params?.activityId;
   /** El mensaje del chat cuya propuesta se vino a ajustar, si vino de ahi. */
   const origenChatId = route.params?.origenChatId;
+  /**
+   * Dia puntual desde el mes ("Solo este día").
+   *
+   * Se valida por forma y no se confia: un parametro con otra cosa debe
+   * degradar al flujo estandar, no romper el wizard.
+   */
+  const fechaUnica = useMemo(() => {
+    const valor = route.params?.fechaUnica;
+    return typeof valor === "string" && /^\d{4}-\d{2}-\d{2}$/.test(valor)
+      ? valor
+      : null;
+  }, [route.params?.fechaUnica]);
 
   const existingActivity = useMemo(() => {
     if (!activityIdParam) return null;
@@ -79,6 +91,32 @@ export default function CreateActivityView({ navigation, route }: any) {
   const [isLoading, setIsLoading] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
   const [activeDay, setActiveDay] = useState<DayOfWeek | null>(null);
+
+  /**
+   * Día sintético: el día de semana de la fecha preset.
+   *
+   * La configuración horaria vive por día en `daysDict`, así que el modo
+   * solo-día necesita un día donde asentarla para que el paso de horarios
+   * funcione sin cambios. Al guardar, ese día NO viaja como recurrente:
+   * `handleSaveActivity` manda `days: []` cuando hay `fechaUnica`.
+   */
+  const diaSintetico = useMemo<DayOfWeek | null>(() => {
+    if (!fechaUnica) return null;
+    const [y, m, d] = fechaUnica.split("-").map(Number);
+    // Lunes primero, igual que WEEKDAY_ORDER; getDay() es domingo-primero.
+    return WEEKDAY_ORDER[(new Date(y, m - 1, d).getDay() + 6) % 7];
+  }, [fechaUnica]);
+
+  // El preset siembra su día sintético una sola vez, al montar y solo al
+  // crear. Editar una actividad existente no debe pisar sus días reales.
+  useEffect(() => {
+    if (!diaSintetico || activityIdParam) return;
+    setSelectedDays([diaSintetico]);
+    formErrors.limpiar("dias");
+    // Solo al montar: el preset no cambia mientras el wizard está abierto.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const translateY = useRef(new Animated.Value(SHEET_HEIGHT)).current;
   
   const backdropOpacity = translateY.interpolate({
@@ -529,8 +567,11 @@ export default function CreateActivityView({ navigation, route }: any) {
    * No es mezclar dos cosas: la propuesta describe justamente como deberia
    * quedar esa actividad. Sin esto, ajustar una modificacion abria el
    * formulario con los valores viejos y perdia lo que el asistente entendio.
+   *
+   * En modo solo-día tampoco: restaurar un borrador pisaria el día
+   * sintético del preset con los días de otra creación.
    */
-  const restauraBorrador = esCreacion || !!origenChatId;
+  const restauraBorrador = (esCreacion && !fechaUnica) || !!origenChatId;
 
   useEffect(() => {
     if (!restauraBorrador) return;
@@ -553,6 +594,9 @@ export default function CreateActivityView({ navigation, route }: any) {
 
   useEffect(() => {
     if (!esCreacion) return;
+    // Una sesión con preset no es un borrador reanudable: al guardar o
+    // cerrar, la próxima creación estándar no debe arrancar con este día.
+    if (fechaUnica) return;
     // Sin nombre no hay nada que valga la pena restaurar, y guardar un
     // formulario vacio haria que la proxima apertura ofreciera basura.
     if (!activityName.trim()) return;
@@ -621,6 +665,20 @@ export default function CreateActivityView({ navigation, route }: any) {
   // current values through refs rather than capturing the first render.
   const stepRef = useRef(step);
   const backPressRef = useRef(handleBackPress);
+
+  /**
+   * El cierre diferido tras el guardado exitoso. Si la pantalla se desmonta
+   * antes —el usuario toca algo, o un test termina— dejarlo correr ejecutaria
+   * goBack y la animacion sobre una pantalla muerta.
+   */
+  const cierrePendiente = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (cierrePendiente.current) clearTimeout(cierrePendiente.current);
+    },
+    []
+  );
+
   isDirtyRef.current = isDirty;
   requestCloseRef.current = requestClose;
   stepRef.current = step;
@@ -690,6 +748,7 @@ export default function CreateActivityView({ navigation, route }: any) {
       const idGuardado = await handleSaveActivity({
         daysDict,
         selectedDays,
+        fechaUnica,
       });
       // Until now the sheet just vanished, with no sign the save had worked.
       // Hold the overlay on a confirmation beat before dismissing.
@@ -718,7 +777,7 @@ export default function CreateActivityView({ navigation, route }: any) {
       // creacion arrancara con los datos de esta.
       limpiarBorrador();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
-      setTimeout(closeSheet, SUCCESS_FEEDBACK_MS);
+      cierrePendiente.current = setTimeout(closeSheet, SUCCESS_FEEDBACK_MS);
     } catch (e) {
       console.error("Error saving activity:", e);
       setIsLoading(false);
@@ -782,6 +841,7 @@ export default function CreateActivityView({ navigation, route }: any) {
             onSelectDay={handleSelect}
             isDayConfigured={isDayConfigured}
             errorDias={formErrors.error("dias")}
+            fechaUnica={fechaUnica}
             onContarleAlAsistente={activityIdParam ? undefined : irAlAsistente}
           />
         );

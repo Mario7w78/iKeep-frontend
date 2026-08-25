@@ -33,6 +33,8 @@ export interface ActivityDto {
   day_from?: number | null;
   day_to?: number | null;
   is_anchor?: boolean;
+  /** Fecha puntual `YYYY-MM-DD`; ausente o null cuando la actividad se repite. */
+  fecha_unica?: string | null;
 }
 
 export function dtoToActivity(dto: ActivityDto): Activity {
@@ -54,6 +56,7 @@ export function dtoToActivity(dto: ActivityDto): Activity {
     dayFrom: dto.day_from ?? undefined,
     dayTo: dto.day_to ?? undefined,
     isAnchor: dto.is_anchor ?? false,
+    fechaUnica: dto.fecha_unica ?? null,
   });
 }
 
@@ -76,6 +79,7 @@ export function activityToDto(activity: Activity): Omit<ActivityDto, 'user_id'> 
     day_from: activity.dayFrom ?? null,
     day_to: activity.dayTo ?? null,
     is_anchor: activity.isAnchor ?? false,
+    fecha_unica: activity.fechaUnica ?? null,
   };
 }
 

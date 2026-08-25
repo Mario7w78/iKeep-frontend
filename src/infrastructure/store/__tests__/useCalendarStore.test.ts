@@ -53,6 +53,7 @@ describe('useCalendarStore', () => {
     mockBorrar.mockReset().mockResolvedValue(undefined);
     useCalendarStore.setState({
       mesVisible: new Date(2026, 7, 15), porDia: {}, cargando: false, error: null,
+      canceladasEnSesion: [],
     });
   });
 
@@ -122,5 +123,69 @@ describe('useCalendarStore', () => {
     await useCalendarStore.getState().restaurar('act-1', '2026-08-11');
 
     expect(mockBorrar).toHaveBeenCalledWith('act-1', '2026-08-11');
+  });
+
+  // calendario-mensual: el servidor descarta las canceladas del GET, asi que
+  // la lista local es la unica forma de ofrecer Restaurar despues de recargar.
+  describe('canceladas en sesion', () => {
+    const OCURRENCIA = {
+      fecha: '2026-08-11',
+      actividad: { id: 'act-1', title: 'Cálculo' },
+      movidaDesde: null,
+      esUnica: false,
+    } as any;
+
+    it('cancelar registra antes del PUT y sobrevive a la recarga', async () => {
+      useCalendarStore.setState({ porDia: { '2026-08-11': [OCURRENCIA] } });
+      let durante: any = null;
+      mockGuardar.mockImplementation(async () => {
+        durante = useCalendarStore.getState().canceladasEnSesion;
+      });
+
+      await useCalendarStore.getState().cancelar('act-1', '2026-08-11');
+
+      // Antes del PUT ya estaba anotada; despues de recargar (el servidor
+      // la descarta) sigue estando.
+      expect(durante).toHaveLength(1);
+      expect(useCalendarStore.getState().canceladasEnSesion).toEqual([OCURRENCIA]);
+    });
+
+    it('cancelar algo que no esta en porDia igual registra lo justo', async () => {
+      await useCalendarStore.getState().cancelar('act-9', '2026-08-11');
+
+      expect(useCalendarStore.getState().canceladasEnSesion).toEqual([
+        { fecha: '2026-08-11', actividad: { id: 'act-9' }, movidaDesde: null, esUnica: false },
+      ]);
+    });
+
+    it('un fallo no deja una fila restaurable fantasma y propaga', async () => {
+      useCalendarStore.setState({ porDia: { '2026-08-11': [OCURRENCIA] } });
+      mockGuardar.mockRejectedValue(new Error('sin red'));
+      jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+      await expect(
+        useCalendarStore.getState().cancelar('act-1', '2026-08-11')
+      ).rejects.toThrow('sin red');
+
+      expect(useCalendarStore.getState().canceladasEnSesion).toEqual([]);
+    });
+
+    it('restaurar quita la fila de la lista y recarga', async () => {
+      useCalendarStore.setState({ canceladasEnSesion: [OCURRENCIA] });
+
+      await useCalendarStore.getState().restaurar('act-1', '2026-08-11');
+
+      expect(mockBorrar).toHaveBeenCalledWith('act-1', '2026-08-11');
+      expect(useCalendarStore.getState().canceladasEnSesion).toEqual([]);
+      expect(mockVer).toHaveBeenCalled();
+    });
+
+    it('cambiar de mes limpia las canceladas', async () => {
+      useCalendarStore.setState({ canceladasEnSesion: [OCURRENCIA] });
+
+      await useCalendarStore.getState().irAlMes(1);
+
+      expect(useCalendarStore.getState().canceladasEnSesion).toEqual([]);
+    });
   });
 });

@@ -7,6 +7,7 @@
  */
 
 import React from 'react';
+import { Alert } from 'react-native';
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 
 // El callback de foco se captura para poder dispararlo cuando queramos,
@@ -52,10 +53,12 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 }));
 
 const mockVer = jest.fn();
+const mockGuardar = jest.fn();
+const mockBorrar = jest.fn();
 jest.mock('../../../../infrastructure/api/CalendarApiService', () => ({
   verCalendario: (...a: any[]) => mockVer(...a),
-  guardarExcepcion: jest.fn(),
-  borrarExcepcion: jest.fn(),
+  guardarExcepcion: (...a: any[]) => mockGuardar(...a),
+  borrarExcepcion: (...a: any[]) => mockBorrar(...a),
   MAXIMO_DIAS: 120,
   aFechaLocal: (d: Date) => {
     const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -63,6 +66,19 @@ jest.mock('../../../../infrastructure/api/CalendarApiService', () => ({
     return `${d.getFullYear()}-${m}-${dd}`;
   },
 }));
+
+// Stub del picker nativo: capturamos props para disparar onChange a mano.
+const mockPickerProps: { current: any } = { current: null };
+jest.mock('@react-native-community/datetimepicker', () => {
+  const { View } = require('react-native');
+  return {
+    __esModule: true,
+    default: (props: any) => {
+      mockPickerProps.current = props;
+      return <View testID="datetimepicker-stub" />;
+    },
+  };
+});
 
 jest.mock('../../../../infrastructure/persistence/EnergyHistoryService', () => ({
   saveEnergyRecord: jest.fn(), makeEnergyRecord: jest.fn(), getEnergyHistory: jest.fn(),
@@ -118,13 +134,18 @@ import ScheduleView from '../ScheduleView';
 import { useCalendarStore } from '../../../../infrastructure/store/useCalendarStore';
 
 describe('ScheduleView en modo mes', () => {
+  let alertaEspia: jest.SpyInstance;
+
   beforeEach(() => {
     // Sin clearAllMocks global: borra implementaciones de mocks internos de
     // RNTL/RN y deja el siguiente render con el arbol vacio.
     mockVer.mockReset().mockResolvedValue([]);
-    mockLoadActivities.mockReset().mockResolvedValue(undefined);
+    mockGuardar.mockReset().mockResolvedValue(undefined);
+    mockBorrar.mockReset().mockResolvedValue(undefined);
     mockNavigate.mockClear();
     mockSetSelectedDay.mockClear();
+    mockLoadActivities.mockReset().mockResolvedValue(undefined);
+    alertaEspia = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
     useCalendarStore.setState({
       mesVisible: new Date(2026, 8, 15),
       porDia: {},
@@ -132,6 +153,10 @@ describe('ScheduleView en modo mes', () => {
       error: null,
       canceladasEnSesion: [],
     });
+  });
+
+  afterEach(() => {
+    alertaEspia.mockRestore();
   });
 
   // RNTL v14: render es async.
@@ -183,5 +208,106 @@ describe('ScheduleView en modo mes', () => {
     await act(async () => { fireEvent.press(vista.getByTestId('dia-2026-09-10')); });
     expect(await vista.findByText('Parcial')).toBeTruthy();
     await vista.unmount();
+  });
+
+  describe('mutaciones del panel', () => {
+    const OCURRENCIA = {
+      fecha: '2026-09-10',
+      actividad: { id: 'act-1', title: 'Examen' },
+      movidaDesde: null,
+      esUnica: false,
+    };
+
+    async function montarConOcurrencia() {
+      mockVer.mockResolvedValue([OCURRENCIA]);
+      const vista = await montar();
+      await irAMes(vista);
+      await waitFor(() => expect(mockVer).toHaveBeenCalledTimes(1));
+      await act(async () => { fireEvent.press(vista.getByTestId('dia-2026-09-10')); });
+      // La fila esta lista cuando expone sus acciones (el titulo puede estar
+      // repetido en la seccion Canceladas).
+      await vista.findByTestId('cancelar-act-1');
+      return vista;
+    }
+
+    it('mover: la fecha elegida viaja exacta, sin drift UTC, y el mes se recarga', async () => {
+      const vista = await montarConOcurrencia();
+
+      await act(async () => { fireEvent.press(vista.getByTestId('mover-act-1')); });
+      expect(vista.queryByTestId('picker-destino')).toBeTruthy();
+
+      // El usuario gira el spinner al 12 de septiembre de 2026.
+      await act(async () => { mockPickerProps.current.onChange({}, new Date(2026, 8, 12)); });
+      await act(async () => { fireEvent.press(vista.getByTestId('confirmar-movimiento')); });
+
+      // La excepcion lleva el string local exacto: ni un byte de UTC.
+      await waitFor(() =>
+        expect(mockGuardar).toHaveBeenCalledWith({
+          activityId: 'act-1', fecha: '2026-09-10', tipo: 'movida', nuevaFecha: '2026-09-12',
+        })
+      );
+      // Y el grid se recargo solo (Requirement: refleja mutaciones al instante).
+      await waitFor(() => expect(mockVer).toHaveBeenCalledTimes(2));
+      expect(vista.queryByTestId('picker-destino')).toBeNull();
+      await vista.unmount();
+    });
+
+    it('cancelar pide confirmacion destructiva y deja la fila en Canceladas', async () => {
+      const vista = await montarConOcurrencia();
+
+      await act(async () => { fireEvent.press(vista.getByTestId('cancelar-act-1')); });
+      expect(alertaEspia).toHaveBeenCalledWith(
+        '¿Cancelar esta actividad?',
+        expect.any(String),
+        expect.any(Array)
+      );
+      const [, , botones] = alertaEspia.mock.calls[0];
+      const destructivo = botones.find((b: any) => b.style === 'destructive');
+      await act(async () => { destructivo.onPress(); });
+
+      await waitFor(() =>
+        expect(mockGuardar).toHaveBeenCalledWith({
+          activityId: 'act-1', fecha: '2026-09-10', tipo: 'cancelada',
+        })
+      );
+      // Tras recargar (el servidor la descarta), la fila vive en Canceladas.
+      expect(await vista.findByTestId('seccion-canceladas')).toBeTruthy();
+      expect(vista.getByTestId('restaurar-act-1')).toBeTruthy();
+      await vista.unmount();
+    });
+
+    it('restaurar borra la excepcion y recarga', async () => {
+      useCalendarStore.setState({
+        canceladasEnSesion: [{ ...OCURRENCIA } as any],
+      });
+      const vista = await montarConOcurrencia();
+
+      expect(await vista.findByTestId('seccion-canceladas')).toBeTruthy();
+      await act(async () => { fireEvent.press(vista.getByTestId('restaurar-act-1')); });
+
+      await waitFor(() => expect(mockBorrar).toHaveBeenCalledWith('act-1', '2026-09-10'));
+      await vista.unmount();
+    });
+
+    it('un fallo avisa con Alert y Reintentar repite la misma accion', async () => {
+      mockGuardar.mockRejectedValueOnce(new Error('sin red'));
+      const vista = await montarConOcurrencia();
+
+      await act(async () => { fireEvent.press(vista.getByTestId('cancelar-act-1')); });
+      const [, , botonesConfirmacion] = alertaEspia.mock.calls[0];
+      const destructivo = botonesConfirmacion.find((b: any) => b.style === 'destructive');
+      await act(async () => { destructivo.onPress(); });
+
+      // El PUT fallo: aparece la alerta de error con Reintentar (D4).
+      await waitFor(() => expect(alertaEspia).toHaveBeenCalledTimes(2));
+      const [tituloError, , botonesError] = alertaEspia.mock.calls[1];
+      expect(tituloError).toContain('No pudimos cancelar');
+      const reintentar = botonesError.find((b: any) => b.text === 'Reintentar');
+      expect(reintentar).toBeTruthy();
+
+      await act(async () => { reintentar.onPress(); });
+      await waitFor(() => expect(mockGuardar).toHaveBeenCalledTimes(2));
+      await vista.unmount();
+    });
   });
 });

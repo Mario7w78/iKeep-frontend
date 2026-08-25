@@ -1,8 +1,9 @@
 // screens/schedule/ScheduleView.tsx
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { useWindowDimensions, View, ActivityIndicator, TouchableOpacity, Text, StyleSheet, ScrollView, Dimensions, Alert } from 'react-native';
+import { useWindowDimensions, View, ActivityIndicator, TouchableOpacity, Text, StyleSheet, ScrollView, Dimensions, Alert, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { ScheduleHeader } from '../../components/organisms/Schedule/ScheduleHeader';
 import { ScheduleGrid } from '../../components/organisms/Schedule/ScheduleGrid';
 import { EnergyPicker } from '../../components/molecules/Energy/EnergyPicker';
@@ -21,6 +22,7 @@ import { LoadingScreen } from '../../components/atoms/Common/LoadingScreen';
 import { MonthGrid } from '../../components/organisms/Schedule/MonthGrid';
 import { WeekGrid } from '../../components/organisms/Schedule/WeekGrid';
 import { useCalendarStore } from '../../../infrastructure/store/useCalendarStore';
+import { aFechaLocal } from '../../../infrastructure/api/CalendarApiService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const DAYS_ORDER = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo'];
@@ -197,13 +199,21 @@ export default function ScheduleView() {
   const [selectedActivity, setSelectedActivity] = useState<ScheduledActivity | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'mes'>('grid');
   const [diaElegido, setDiaElegido] = useState<string | null>(null);
+  /** Fila esperando fecha destino para moverse. */
+  const [moverPendiente, setMoverPendiente] = useState<{ activityId: string; desde: string } | null>(null);
+  /** Fecha destino elegida en el picker, local `YYYY-MM-DD`. */
+  const [destinoElegido, setDestinoElegido] = useState<string | null>(null);
 
   const mesVisible = useCalendarStore((s) => s.mesVisible);
   const porDia = useCalendarStore((s) => s.porDia);
   const cargandoCalendario = useCalendarStore((s) => s.cargando);
   const errorCalendario = useCalendarStore((s) => s.error);
+  const canceladasEnSesion = useCalendarStore((s) => s.canceladasEnSesion);
   const cargarMes = useCalendarStore((s) => s.cargarMes);
   const irAlMes = useCalendarStore((s) => s.irAlMes);
+  const cancelarOcurrenciaEnStore = useCalendarStore((s) => s.cancelar);
+  const moverOcurrenciaEnStore = useCalendarStore((s) => s.mover);
+  const restaurarOcurrenciaEnStore = useCalendarStore((s) => s.restaurar);
 
   // Solo al entrar al modo mes: pedirlo siempre gastaria un viaje de red que
   // la mayoria de las aperturas no usa.
@@ -255,6 +265,60 @@ export default function ScheduleView() {
       navigation.navigate('CreateActivityModal', { fechaUnica: fecha });
     },
     [navigation]
+  );
+
+  // D4: ninguna mutacion falla en silencio. Reintentar repite exactamente
+  // la misma accion, sin loops automaticos.
+  const ejecutarConReintento = useCallback((accion: () => Promise<void>, verbo: string) => {
+    accion().catch(() => {
+      Alert.alert(`No pudimos ${verbo} la actividad`, 'Revisá tu conexión y volvé a intentar.', [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Reintentar', onPress: () => { ejecutarConReintento(accion, verbo); } },
+      ]);
+    });
+  }, []);
+
+  /** Confirma el movimiento con destino `YYYY-MM-DD` local. */
+  const confirmarMovimiento = useCallback(
+    (pendiente: { activityId: string; desde: string }, destino: string) => {
+      setMoverPendiente(null);
+      setDestinoElegido(null);
+      ejecutarConReintento(
+        () => moverOcurrenciaEnStore(pendiente.activityId, pendiente.desde, destino),
+        'mover'
+      );
+    },
+    [moverOcurrenciaEnStore, ejecutarConReintento]
+  );
+
+  const pedirFechaDestino = useCallback((activityId: string, desde: string) => {
+    setDestinoElegido(desde);
+    setMoverPendiente({ activityId, desde });
+  }, []);
+
+  const cancelarOcurrencia = useCallback(
+    (activityId: string, fecha: string) => {
+      Alert.alert(
+        '¿Cancelar esta actividad?',
+        'Desaparece de este día. Podés restaurarla desde la sección Canceladas.',
+        [
+          { text: 'Conservar', style: 'cancel' },
+          {
+            text: 'Cancelar actividad',
+            style: 'destructive',
+            onPress: () => { ejecutarConReintento(() => cancelarOcurrenciaEnStore(activityId, fecha), 'cancelar'); },
+          },
+        ]
+      );
+    },
+    [cancelarOcurrenciaEnStore, ejecutarConReintento]
+  );
+
+  const restaurarOcurrencia = useCallback(
+    (activityId: string, fecha: string) => {
+      ejecutarConReintento(() => restaurarOcurrenciaEnStore(activityId, fecha), 'restaurar');
+    },
+    [restaurarOcurrenciaEnStore, ejecutarConReintento]
   );
 
   // Sync scroll position when selectedDay changes (e.g. from header tabs)
@@ -325,11 +389,58 @@ export default function ScheduleView() {
           onCambiarMes={irAlMes}
           onReintentar={() => cargarMes()}
           onCrearEnDia={crearEnDia}
+          canceladasEnSesion={canceladasEnSesion}
+          onMover={pedirFechaDestino}
+          onCancelar={cancelarOcurrencia}
+          onRestaurar={restaurarOcurrencia}
         />
         <TouchableOpacity style={s.volverAlDia} onPress={() => setViewMode('grid')}>
           <Ionicons name="today-outline" size={18} color={comfyColors.green} />
           <Text style={[s.btnText, { color: comfyColors.green }]}>Ver el día</Text>
         </TouchableOpacity>
+
+        {moverPendiente && (
+          <View style={s.pickerContenedor} testID="picker-destino">
+            {/* La fecha viaja local: se formatea con aFechaLocal y nunca pasa
+                por toISOString(), que la corriente al UTC. */}
+            <DateTimePicker
+              value={new Date(`${destinoElegido ?? moverPendiente.desde}T12:00:00`)}
+              mode="date"
+              display="spinner"
+              themeVariant="dark"
+              locale="es_ES"
+              onChange={(_, elegida) => {
+                if (!elegida) return;
+                const destino = aFechaLocal(elegida);
+                if (Platform.OS === 'ios') {
+                  // El spinner de iOS dispara onChange en cada giro: solo se
+                  // anota, el movimiento se confirma con "Mover aquí".
+                  setDestinoElegido(destino);
+                } else {
+                  confirmarMovimiento(moverPendiente, destino);
+                }
+              }}
+            />
+            {Platform.OS === 'ios' && (
+              <View style={s.pickerAcciones}>
+                <TouchableOpacity
+                  testID="descartar-movimiento"
+                  onPress={() => { setMoverPendiente(null); setDestinoElegido(null); }}
+                  accessibilityLabel="Descartar movimiento"
+                >
+                  <Text style={s.pickerAccionTexto}>Conservar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  testID="confirmar-movimiento"
+                  onPress={() => confirmarMovimiento(moverPendiente, destinoElegido ?? moverPendiente.desde)}
+                  accessibilityLabel={`Mover al ${destinoElegido ?? moverPendiente.desde}`}
+                >
+                  <Text style={[s.pickerAccionTexto, s.pickerAccionConfirmar]}>Mover aquí</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        )}
       </View>
     );
   }
@@ -477,6 +588,24 @@ const createStyles = (
     paddingVertical: 14,
     borderTopWidth: 1,
     borderTopColor: colors.cardBorder,
+  },
+  pickerContenedor: {
+    backgroundColor: colors.cardBackground,
+    borderTopWidth: 1.5,
+    borderTopColor: colors.cardBorder,
+  },
+  pickerAcciones: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingVertical: 10,
+  },
+  pickerAccionTexto: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: colors.textSecondary,
+  },
+  pickerAccionConfirmar: {
+    color: comfyColors.green,
   },
   center: {
     flex: 1,

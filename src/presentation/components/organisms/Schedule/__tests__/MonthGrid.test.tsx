@@ -152,6 +152,95 @@ describe('el boton de crear en el dia', () => {
   });
 });
 
+describe('las acciones del panel', () => {
+  // calendario-mensual: mover y cancelar viven en la fila, a la vista.
+  it('cada fila expone Mover y Cancelar con su fecha', async () => {
+    const mover = jest.fn();
+    const cancelar = jest.fn();
+    const vista = await pintar({
+      porDia: { '2026-08-11': [OCURRENCIA] },
+      diaSeleccionado: '2026-08-11',
+      onMover: mover,
+      onCancelar: cancelar,
+    });
+
+    expect(vista.getByTestId('mover-1')).toBeTruthy();
+    expect(vista.getByTestId('cancelar-1')).toBeTruthy();
+    expect(vista.getByLabelText('Mover Cálculo del 2026-08-11')).toBeTruthy();
+
+    await act(async () => { fireEvent.press(vista.getByTestId('mover-1')); });
+    await act(async () => { fireEvent.press(vista.getByTestId('cancelar-1')); });
+
+    expect(mover).toHaveBeenCalledWith('1', '2026-08-11');
+    expect(cancelar).toHaveBeenCalledWith('1', '2026-08-11');
+  });
+
+  it('sin handlers las filas no ofrecen acciones: pantallas viejas intactas', async () => {
+    const vista = await pintar({
+      porDia: { '2026-08-11': [OCURRENCIA] },
+      diaSeleccionado: '2026-08-11',
+    });
+
+    expect(vista.queryByTestId('mover-1')).toBeNull();
+    expect(vista.queryByTestId('cancelar-1')).toBeNull();
+  });
+
+  it('solo Mover sin Cancelar tambien compila', async () => {
+    const vista = await pintar({
+      porDia: { '2026-08-11': [OCURRENCIA] },
+      diaSeleccionado: '2026-08-11',
+      onMover: jest.fn(),
+    });
+
+    expect(vista.getByTestId('mover-1')).toBeTruthy();
+    expect(vista.queryByTestId('cancelar-1')).toBeNull();
+  });
+});
+
+describe('la seccion de canceladas', () => {
+  // El servidor descarta las canceladas del GET: estas filas vienen de la
+  // lista en sesion, y Restaurar borra la excepcion.
+  const CANCELADA = { ...OCURRENCIA };
+
+  it('lista las canceladas del dia con su boton Restaurar', async () => {
+    const restaurar = jest.fn();
+    const vista = await pintar({
+      porDia: {},
+      canceladasEnSesion: [CANCELADA],
+      diaSeleccionado: '2026-08-11',
+      onRestaurar: restaurar,
+    });
+
+    expect(vista.getByTestId('seccion-canceladas')).toBeTruthy();
+    expect(vista.getByText('Cálculo')).toBeTruthy();
+
+    await act(async () => { fireEvent.press(vista.getByTestId('restaurar-1')); });
+
+    expect(restaurar).toHaveBeenCalledWith('1', '2026-08-11');
+  });
+
+  it('no mezcla canceladas de otros dias', async () => {
+    const vista = await pintar({
+      porDia: {},
+      canceladasEnSesion: [CANCELADA],
+      diaSeleccionado: '2026-08-12',
+    });
+
+    expect(vista.queryByTestId('seccion-canceladas')).toBeNull();
+  });
+
+  it('un dia vacio con canceladas no dice "dia libre"', async () => {
+    const vista = await pintar({
+      porDia: {},
+      canceladasEnSesion: [CANCELADA],
+      diaSeleccionado: '2026-08-11',
+      onRestaurar: jest.fn(),
+    });
+
+    expect(vista.queryByText('Nada agendado. Día libre.')).toBeNull();
+  });
+});
+
 describe('cuando falla', () => {
   it('lo dice y ofrece reintentar, no muestra un mes vacio', async () => {
     // Una cuadricula vacia se lee como "no tienes nada", que es mentira.

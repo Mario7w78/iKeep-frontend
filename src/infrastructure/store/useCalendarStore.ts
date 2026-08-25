@@ -8,6 +8,7 @@ import {
   guardarExcepcion,
   verCalendario,
 } from '../api/CalendarApiService';
+import { Activity } from '../../domain/entities/Activity';
 
 /**
  * El mes que se está mirando.
@@ -23,6 +24,13 @@ interface CalendarState {
   porDia: Record<string, Ocurrencia[]>;
   cargando: boolean;
   error: string | null;
+  /**
+   * Canceladas en esta sesión, para poder ofrecer "Restaurar".
+   *
+   * El servidor descarta las canceladas de la expansión: tras recargar, la
+   * fila ya no está en `porDia` y no habría nada que la traiga de vuelta.
+   */
+  canceladasEnSesion: Ocurrencia[];
 
   irAlMes: (delta: number) => Promise<void>;
   cargarMes: (referencia?: Date) => Promise<void>;
@@ -67,6 +75,7 @@ export const useCalendarStore = create<CalendarState>()((set, get) => ({
   porDia: {},
   cargando: false,
   error: null,
+  canceladasEnSesion: [],
 
   cargarMes: async (referencia = get().mesVisible) => {
     const { desde, hasta } = rangoDelMes(referencia);
@@ -88,14 +97,36 @@ export const useCalendarStore = create<CalendarState>()((set, get) => ({
     const actual = get().mesVisible;
     const nuevo = new Date(actual.getFullYear(), actual.getMonth() + delta, 1);
     // Se limpia antes de pedir: mostrar el mes anterior mientras carga el
-    // siguiente hace que el usuario lea fechas que no corresponden.
-    set({ mesVisible: nuevo, porDia: {} });
+    // siguiente hace que el usuario lea fechas que no corresponden. Las
+    // canceladas viajan con su mes: quedarse aqui seria basura de otro mes.
+    set({ mesVisible: nuevo, porDia: {}, canceladasEnSesion: [] });
     await get().cargarMes(nuevo);
   },
 
   cancelar: async (activityId, fecha) => {
-    await guardarExcepcion({ activityId, fecha, tipo: 'cancelada' });
-    await get().cargarMes();
+    // Se registra ANTES del PUT (D3b): la recarga posterior descarta la
+    // ocurrencia y si no queda anotada, nadie podria ofrecer Restaurar.
+    const existente = get().porDia[fecha]?.find((o) => o.actividad.id === activityId);
+    const registro: Ocurrencia = existente ?? {
+      fecha,
+      actividad: { id: activityId } as Activity,
+      movidaDesde: null,
+      esUnica: false,
+    };
+    set({ canceladasEnSesion: [...get().canceladasEnSesion, registro] });
+    try {
+      await guardarExcepcion({ activityId, fecha, tipo: 'cancelada' });
+      await get().cargarMes();
+    } catch (e) {
+      // Si el servidor no se enteró, ofrecer "Restaurar" sería mentir: la
+      // fila sale de la lista y el error sube para que la pantalla avise.
+      set({
+        canceladasEnSesion: get().canceladasEnSesion.filter(
+          (o) => !(o.actividad.id === activityId && o.fecha === fecha)
+        ),
+      });
+      throw e;
+    }
   },
 
   mover: async (activityId, fecha, nuevaFecha) => {
@@ -105,6 +136,11 @@ export const useCalendarStore = create<CalendarState>()((set, get) => ({
 
   restaurar: async (activityId, fecha) => {
     await borrarExcepcion(activityId, fecha);
+    set({
+      canceladasEnSesion: get().canceladasEnSesion.filter(
+        (o) => !(o.actividad.id === activityId && o.fecha === fecha)
+      ),
+    });
     await get().cargarMes();
   },
 }));

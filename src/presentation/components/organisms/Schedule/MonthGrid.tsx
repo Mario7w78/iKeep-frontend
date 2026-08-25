@@ -21,6 +21,11 @@ interface Props {
    * pantallas que aún no lo cablean sigan compilando sin cambios.
    */
   onCrearEnDia?: (fecha: string) => void;
+  /** Canceladas de la sesión: filas con acción Restaurar (D3b). */
+  canceladasEnSesion?: Ocurrencia[];
+  onMover?: (activityId: string, desde: string) => void;
+  onCancelar?: (activityId: string, fecha: string) => void;
+  onRestaurar?: (activityId: string, fecha: string) => void;
 }
 
 /**
@@ -72,6 +77,10 @@ export const MonthGrid: React.FC<Props> = ({
   onCambiarMes,
   onReintentar,
   onCrearEnDia,
+  canceladasEnSesion = [],
+  onMover,
+  onCancelar,
+  onRestaurar,
 }) => {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -81,6 +90,9 @@ export const MonthGrid: React.FC<Props> = ({
   const mesActual = mesVisible.getMonth();
 
   const delDia = diaSeleccionado ? porDia[diaSeleccionado] ?? [] : [];
+  const canceladasDelDia = diaSeleccionado
+    ? canceladasEnSesion.filter((o) => o.fecha === diaSeleccionado)
+    : [];
 
   return (
     <View style={styles.contenedor} testID="month-grid">
@@ -199,7 +211,7 @@ export const MonthGrid: React.FC<Props> = ({
             )}
           </View>
 
-          {delDia.length === 0 ? (
+          {delDia.length === 0 && canceladasDelDia.length === 0 ? (
             <Text style={styles.detalleVacio}>Nada agendado. Día libre.</Text>
           ) : (
             delDia.map((o, i) => (
@@ -216,9 +228,73 @@ export const MonthGrid: React.FC<Props> = ({
                   {o.esUnica && !o.movidaDesde && (
                     <Text style={styles.itemNota}>Solo este día</Text>
                   )}
+
+                  {/* Acciones a la vista (D3): la lista del día es corta y
+                      las etiquetas dicen lo que hacen sin adivinar. */}
+                  {(onMover || onCancelar) && (
+                    <View style={styles.acciones}>
+                      {onMover && (
+                        <TouchableOpacity
+                          testID={`mover-${o.actividad.id}`}
+                          style={styles.botonAccion}
+                          onPress={() => onMover(o.actividad.id, diaSeleccionado!)}
+                          accessibilityLabel={`Mover ${o.actividad.title} del ${diaSeleccionado}`}
+                          hitSlop={8}
+                        >
+                          <Ionicons name="move-outline" size={13} color={colors.secondaryAccent} />
+                          <Text style={styles.botonAccionTexto}>Mover</Text>
+                        </TouchableOpacity>
+                      )}
+                      {onCancelar && (
+                        <TouchableOpacity
+                          testID={`cancelar-${o.actividad.id}`}
+                          style={styles.botonAccion}
+                          onPress={() => onCancelar(o.actividad.id, diaSeleccionado!)}
+                          accessibilityLabel={`Cancelar ${o.actividad.title} del ${diaSeleccionado}`}
+                          hitSlop={8}
+                        >
+                          <Ionicons name="close-circle-outline" size={13} color={colors.warning} />
+                          <Text style={styles.botonAccionTexto}>Cancelar</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  )}
                 </View>
               </View>
             ))
+          )}
+
+          {canceladasDelDia.length > 0 && (
+            <View style={styles.seccionCanceladas} testID="seccion-canceladas">
+              <Text style={styles.tituloCanceladas}>Canceladas</Text>
+              {canceladasDelDia.map((o, i) => (
+                <View key={`cancelada-${o.actividad.id}-${i}`} style={styles.item}>
+                  <View style={[styles.itemPunto, styles.puntoCancelada]} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.itemTitulo, styles.itemTituloCancelado]}>
+                      {o.actividad.title ?? 'Actividad'}
+                    </Text>
+
+                    {/* El servidor descarta las canceladas: esta fila solo
+                        existe en sesion, y Restaurar borra la excepcion. */}
+                    {onRestaurar && (
+                      <View style={styles.acciones}>
+                        <TouchableOpacity
+                          testID={`restaurar-${o.actividad.id}`}
+                          style={styles.botonAccion}
+                          onPress={() => onRestaurar(o.actividad.id, o.fecha)}
+                          accessibilityLabel={`Restaurar ${o.actividad.title ?? 'actividad'} del ${o.fecha}`}
+                          hitSlop={8}
+                        >
+                          <Ionicons name="refresh-outline" size={13} color={colors.secondaryAccent} />
+                          <Text style={styles.botonAccionTexto}>Restaurar</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </View>
+                </View>
+              ))}
+            </View>
           )}
         </ScrollView>
       )}
@@ -343,4 +419,36 @@ const createStyles = (colors: ThemeColors) =>
     },
     itemTitulo: { fontSize: TEXTO.pie, fontWeight: PESO.medio, color: colors.surface },
     itemNota: { fontSize: TEXTO.micro, color: colors.textSecondary, marginTop: 1 },
+    acciones: { flexDirection: 'row', gap: ESPACIO.sm, marginTop: ESPACIO.xs },
+    botonAccion: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingVertical: 3,
+      paddingHorizontal: ESPACIO.sm,
+      borderRadius: RADIO.pill,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      backgroundColor: colors.cardBackground,
+    },
+    botonAccionTexto: {
+      fontSize: TEXTO.micro,
+      fontWeight: PESO.fuerte,
+      color: colors.textSecondary,
+    },
+    seccionCanceladas: {
+      marginTop: ESPACIO.md,
+      paddingTop: ESPACIO.md,
+      borderTopWidth: 1,
+      borderTopColor: colors.cardBorder,
+    },
+    tituloCanceladas: {
+      fontSize: TEXTO.pie,
+      fontWeight: PESO.fuerte,
+      color: colors.textSecondary,
+      textTransform: 'uppercase',
+      marginBottom: ESPACIO.xs,
+    },
+    puntoCancelada: { backgroundColor: colors.textTertiary, opacity: 0.6 },
+    itemTituloCancelado: { color: colors.textSecondary, textDecorationLine: 'line-through' },
   });

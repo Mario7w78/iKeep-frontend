@@ -1,0 +1,187 @@
+/**
+ * ScheduleView en modo mes.
+ *
+ * La mitad de crear que no se ve en el wizard: al volver, el calendario se
+ * recarga solo. Sin esto, la actividad recien creada no aparece hasta que el
+ * usuario refresque a mano.
+ */
+
+import React from 'react';
+import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
+
+// El callback de foco se captura para poder dispararlo cuando queramos,
+// simulando la vuelta del wizard sin un navegador completo.
+const mockNavigate = jest.fn();
+let mockFocusCb: (() => void) | undefined;
+async function dispararFoco() {
+  // Async y esperado: el act sincronico mezcla scopes y contamina el
+  // siguiente render en RNTL v14.
+  await act(async () => { mockFocusCb?.(); });
+}
+
+jest.mock('@react-navigation/native', () => ({
+  useNavigation: () => ({ navigate: mockNavigate }),
+  // El foco real dispara una vez por enfocado, no en cada cambio de estado:
+  // corremos el callback al montar y `dispararFoco` ejecuta siempre el mas
+  // reciente (el del render vigente).
+  useFocusEffect: (cb: () => void) => {
+    const { useEffect, useRef } = require('react');
+    const ultimo = useRef(cb);
+    ultimo.current = cb;
+    useEffect(() => {
+      mockFocusCb = () => ultimo.current();
+      ultimo.current();
+    }, []);
+  },
+}));
+
+jest.mock('react-native-safe-area-context', () => ({
+  SafeAreaView: (props: any) => {
+    const { View } = require('react-native');
+    const { children, style, ...rest } = props;
+    return <View style={style} {...rest}>{children}</View>;
+  },
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+
+jest.mock('@expo/vector-icons', () => ({ Ionicons: () => null }));
+
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  setItem: jest.fn(), getItem: jest.fn().mockResolvedValue(null),
+  removeItem: jest.fn(), clear: jest.fn(),
+}));
+
+const mockVer = jest.fn();
+jest.mock('../../../../infrastructure/api/CalendarApiService', () => ({
+  verCalendario: (...a: any[]) => mockVer(...a),
+  guardarExcepcion: jest.fn(),
+  borrarExcepcion: jest.fn(),
+  MAXIMO_DIAS: 120,
+  aFechaLocal: (d: Date) => {
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${d.getFullYear()}-${m}-${dd}`;
+  },
+}));
+
+jest.mock('../../../../infrastructure/persistence/EnergyHistoryService', () => ({
+  saveEnergyRecord: jest.fn(), makeEnergyRecord: jest.fn(), getEnergyHistory: jest.fn(),
+}));
+
+const mockSetSelectedDay = jest.fn();
+jest.mock('../../../../di/Dependencies', () => ({
+  useScheduleStore: (selector: any) => {
+    const state = {
+      activitiesForDay: () => [],
+      handleGenerateSchedule: jest.fn(),
+      isLoading: false,
+      schedule: { getAllItems: () => [{ id: 'x' }], getItemsByDay: () => [] },
+      selectedDay: 'Lunes',
+      setSelectedDay: mockSetSelectedDay,
+      startHour: 8,
+      endHour: 22,
+      perDayStartHours: null,
+      perDayEndHours: null,
+    };
+    return selector ? selector(state) : state;
+  },
+  useActivityStore: (selector: any) => {
+    const state = { activities: [], loadActivities: mockLoadActivities, isLoading: false };
+    return selector ? selector(state) : state;
+  },
+}));
+
+const mockLoadActivities = jest.fn();
+
+// Componentes ajenos a lo probado: su arbol de dependencias no aporta nada aqui.
+jest.mock('../../../components/organisms/Schedule/ActivityDetailModal', () => ({
+  ActivityDetailModal: () => null,
+}));
+jest.mock('../../../components/molecules/Energy/EnergyPicker', () => ({
+  EnergyPicker: () => null,
+}));
+
+// El encabezado real dibuja iconos y dias; para este test basta con un boton
+// que gire el modo de vista igual que el original.
+jest.mock('../../../components/organisms/Schedule/ScheduleHeader', () => ({
+  ScheduleHeader: ({ onToggleViewMode }: any) => {
+    const { TouchableOpacity, Text } = require('react-native');
+    return (
+      <TouchableOpacity testID="toggle-vista" onPress={onToggleViewMode}>
+        <Text>toggle</Text>
+      </TouchableOpacity>
+    );
+  },
+}));
+
+import ScheduleView from '../ScheduleView';
+import { useCalendarStore } from '../../../../infrastructure/store/useCalendarStore';
+
+describe('ScheduleView en modo mes', () => {
+  beforeEach(() => {
+    // Sin clearAllMocks global: borra implementaciones de mocks internos de
+    // RNTL/RN y deja el siguiente render con el arbol vacio.
+    mockVer.mockReset().mockResolvedValue([]);
+    mockLoadActivities.mockReset().mockResolvedValue(undefined);
+    mockNavigate.mockClear();
+    mockSetSelectedDay.mockClear();
+    useCalendarStore.setState({
+      mesVisible: new Date(2026, 8, 15),
+      porDia: {},
+      cargando: false,
+      error: null,
+      canceladasEnSesion: [],
+    });
+  });
+
+  // RNTL v14: render es async.
+  function montar() {
+    return render(<ScheduleView />);
+  }
+
+  async function irAMes(vista: Awaited<ReturnType<typeof montar>>) {
+    // El ciclo es grid -> list -> mes.
+    await act(async () => { fireEvent.press(vista.getByTestId('toggle-vista')); });
+    await act(async () => { fireEvent.press(vista.getByTestId('toggle-vista')); });
+  }
+
+  it('en modo grid enfocar NO pide el mes', async () => {
+    const vista = await montar();
+    await dispararFoco();
+
+    expect(mockVer).not.toHaveBeenCalled();
+    await vista.unmount();
+  });
+
+  it('al entrar al modo mes carga el mes sin refrescar a mano', async () => {
+    const vista = await montar();
+    await irAMes(vista);
+
+    await waitFor(() => expect(mockVer).toHaveBeenCalled());
+    await vista.unmount();
+  });
+
+  it('volver del wizard reenfoca y recarga el mes con lo nuevo', async () => {
+    const vista = await montar();
+    await irAMes(vista);
+    await waitFor(() => expect(mockVer).toHaveBeenCalledTimes(1));
+
+    // La actividad creada en el wizard ahora existe para el servidor.
+    mockVer.mockResolvedValue([
+      {
+        fecha: '2026-09-10',
+        actividad: { id: 'nueva-1', title: 'Parcial' },
+        movidaDesde: null,
+        esUnica: true,
+      },
+    ]);
+
+    await dispararFoco();
+
+    await waitFor(() => expect(mockVer).toHaveBeenCalledTimes(2));
+    // Y lo pedido se ve: la ocurrencia nueva aparece en el detalle del día.
+    await act(async () => { fireEvent.press(vista.getByTestId('dia-2026-09-10')); });
+    expect(await vista.findByText('Parcial')).toBeTruthy();
+    await vista.unmount();
+  });
+});

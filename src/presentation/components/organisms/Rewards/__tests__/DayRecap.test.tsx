@@ -21,7 +21,7 @@ import { DayRecap } from '../DayRecap';
 import {
   ProgresoDelDia,
   Racha,
-} from '../../../../infrastructure/api/RewardsApiService';
+} from '../../../../../infrastructure/api/RewardsApiService';
 
 const PROGRESO: ProgresoDelDia = {
   completadas: 4,
@@ -65,12 +65,12 @@ async function montar(
 
 describe('lo que cuenta del dia', () => {
   beforeEach(() => {
-    (global as any).fetch = jest.fn();
+    (globalThis as any).fetch = jest.fn();
   });
 
   afterEach(() => {
     // Ninguna variante justifica una llamada: la data ya está en el store.
-    expect((global as any).fetch).not.toHaveBeenCalled();
+    expect((globalThis as any).fetch).not.toHaveBeenCalled();
   });
 
   it('dice cuantas hizo de cuantas eran', async () => {

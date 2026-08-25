@@ -20,6 +20,7 @@ import { ScheduledActivity } from "../../../domain/entities/Schedule";
 import { JS_DAY_TO_DAYOFWEEK } from "../../utils/scheduleUtils";
 import { useTheme } from "../../components/theme/colors";
 import { Sapo } from "../../components/atoms/Mascot/Sapo";
+import { LotusLandscape } from "../../components/atoms/Lotus/LotusLandscape";
 import { DailyProgress } from "../../components/atoms/Rewards/DailyProgress";
 import { LoadingScreen } from "../../components/atoms/Common/LoadingScreen";
 import { Celebration } from "../../components/atoms/Rewards/Celebration";
@@ -530,6 +531,11 @@ export default function HomeView() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.content}
       >
+        {/* El cuadro principal: el paisaje que sigue la hora del día. Va
+            arriba de todo porque es lo primero que recibe al usuario. Si
+            falta el asset, reserva su hueco y nada más. */}
+        <LotusLandscape testID="lotus-card" style={styles.lotusCard} />
+
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.mascot}
@@ -857,6 +863,12 @@ const createStyles = (
     paddingHorizontal: 20,
     paddingTop: 28,
     paddingBottom: 64,
+  },
+  lotusCard: {
+    height: 180,
+    borderRadius: 24,
+    overflow: "hidden",
+    marginBottom: 24,
   },
   header: {
     flexDirection: "row",

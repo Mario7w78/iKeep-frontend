@@ -32,7 +32,8 @@
       "@react-native-community/datetimepicker",
       "./plugins/withoutRemotePush",
       "expo-notifications",
-      "expo-font"
+      "expo-font",
+      "expo-web-browser"
     ],
     "extra": {
       "eas": {

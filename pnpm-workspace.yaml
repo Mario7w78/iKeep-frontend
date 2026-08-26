@@ -1,3 +1,6 @@
 allowBuilds:
   msgpackr-extract: set this to true or false
   unrs-resolver: set this to true or false
+minimumReleaseAgeExclude:
+  - expo-crypto@55.0.19
+  - expo-web-browser@55.0.20

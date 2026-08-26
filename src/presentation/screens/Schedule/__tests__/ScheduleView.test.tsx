@@ -67,6 +67,17 @@ jest.mock('../../../../infrastructure/api/CalendarApiService', () => ({
   },
 }));
 
+// Lo de google se simula en el borde HTTP: el store queda real, que es lo
+// que ScheduleView usa.
+const mockGoogleEstado = jest.fn();
+const mockGoogleCargarEventos = jest.fn();
+jest.mock('../../../../infrastructure/api/GoogleCalendarApiService', () => ({
+  iniciarConexion: jest.fn(),
+  consultarEstado: (...a: any[]) => mockGoogleEstado(...a),
+  cargarEventos: (...a: any[]) => mockGoogleCargarEventos(...a),
+  desconectar: jest.fn(),
+}));
+
 // Stub del picker nativo: capturamos props para disparar onChange a mano.
 const mockPickerProps: { current: any } = { current: null };
 jest.mock('@react-native-community/datetimepicker', () => {
@@ -132,6 +143,7 @@ jest.mock('../../../components/organisms/Schedule/ScheduleHeader', () => ({
 
 import ScheduleView from '../ScheduleView';
 import { useCalendarStore } from '../../../../infrastructure/store/useCalendarStore';
+import { useGoogleCalendarStore } from '../../../../infrastructure/store/useGoogleCalendarStore';
 
 describe('ScheduleView en modo mes', () => {
   let alertaEspia: jest.SpyInstance;
@@ -163,6 +175,87 @@ describe('ScheduleView en modo mes', () => {
   function montar() {
     return render(<ScheduleView />);
   }
+
+  describe('la sincronizacion de google (importar-google-calendar)', () => {
+    beforeEach(() => {
+      mockGoogleEstado.mockReset().mockResolvedValue(false);
+      mockGoogleCargarEventos.mockReset().mockResolvedValue({
+        conectado: true, eventos: [], diasPorEvento: {},
+      });
+      useGoogleCalendarStore.setState({
+        estado: 'conectado', porDia: {}, cargando: false, error: null, verificado: true,
+      });
+    });
+
+    it('entrar al modo mes sincroniza el MISMO rango que la cuadricula', async () => {
+      const vista = await montar();
+      await irAMes(vista);
+
+      await waitFor(() => expect(mockGoogleCargarEventos).toHaveBeenCalled());
+      // Septiembre 2026: lunes 31/8 al domingo 4/10, bordes de semana.
+      expect(mockGoogleCargarEventos).toHaveBeenCalledWith('2026-08-31', '2026-10-04');
+      // Conectado y verificado: ni una llamada a /estado de mas.
+      expect(mockGoogleEstado).not.toHaveBeenCalled();
+      await vista.unmount();
+    });
+
+    it('los importados llegan al grid con su punto propio', async () => {
+      mockVer.mockResolvedValue([]);
+      mockGoogleCargarEventos.mockResolvedValue({
+        conectado: true,
+        eventos: [{ id: 'g-1', titulo: 'Dentista', inicio: '2026-09-10T13:00:00Z', fin: '2026-09-10T14:00:00Z', todoElDia: false }],
+        diasPorEvento: { 'g-1': ['2026-09-10'] },
+      });
+
+      const vista = await montar();
+      await irAMes(vista);
+
+      expect(await vista.findByTestId('punto-importado-g-1-2026-09-10')).toBeTruthy();
+      await vista.unmount();
+    });
+
+    it('desconectado conocido: navegar meses dispara CERO llamadas google', async () => {
+      // spec external-events-ui: tras desconectar, cero llamadas. El store
+      // corta ANTES de la red; la pantalla solo tiene que no forzar nada.
+      useGoogleCalendarStore.setState({ estado: 'desconectado', verificado: true });
+      const vista = await montar();
+      await irAMes(vista);
+
+      await waitFor(() => expect(mockVer).toHaveBeenCalled());
+      await act(async () => { fireEvent.press(vista.getByTestId('mes-siguiente')); });
+      await waitFor(() => expect(mockVer).toHaveBeenCalledTimes(2));
+
+      expect(mockGoogleCargarEventos).not.toHaveBeenCalled();
+      expect(mockGoogleEstado).not.toHaveBeenCalled();
+      await vista.unmount();
+    });
+
+    it('cambiar de mes vuelve a sincronizar, ahora con el rango nuevo', async () => {
+      const vista = await montar();
+      await irAMes(vista);
+      await waitFor(() => expect(mockGoogleCargarEventos).toHaveBeenCalledTimes(1));
+
+      await act(async () => { fireEvent.press(vista.getByTestId('mes-siguiente')); });
+
+      await waitFor(() => expect(mockGoogleCargarEventos).toHaveBeenCalledTimes(2));
+      // Octubre 2026: lunes 28/9 al domingo 1/11.
+      expect(mockGoogleCargarEventos).toHaveBeenLastCalledWith('2026-09-28', '2026-11-01');
+      await vista.unmount();
+    });
+
+    it('un fallo de google NO rompe la pantalla del mes', async () => {
+      mockGoogleCargarEventos.mockRejectedValue(new Error('sin red'));
+      jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const vista = await montar();
+      await irAMes(vista);
+
+      // El calendario propio carga igual; el grid esta ahi.
+      await waitFor(() => expect(mockVer).toHaveBeenCalled());
+      expect(await vista.findByTestId('month-grid')).toBeTruthy();
+      await vista.unmount();
+    });
+  });
 
   async function irAMes(vista: Awaited<ReturnType<typeof montar>>) {
     // El ciclo es grid -> list -> mes.

@@ -21,7 +21,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LoadingScreen } from '../../components/atoms/Common/LoadingScreen';
 import { MonthGrid } from '../../components/organisms/Schedule/MonthGrid';
 import { WeekGrid } from '../../components/organisms/Schedule/WeekGrid';
-import { useCalendarStore } from '../../../infrastructure/store/useCalendarStore';
+import { useCalendarStore, rangoDelMes } from '../../../infrastructure/store/useCalendarStore';
+import { useGoogleCalendarStore } from '../../../infrastructure/store/useGoogleCalendarStore';
 import { aFechaLocal } from '../../../infrastructure/api/CalendarApiService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -215,11 +216,33 @@ export default function ScheduleView() {
   const moverOcurrenciaEnStore = useCalendarStore((s) => s.mover);
   const restaurarOcurrenciaEnStore = useCalendarStore((s) => s.restaurar);
 
+  // Lo importado vive en SU store (D7): si Google falla, esto queda vacio o
+  // con lo ultimo valido y el calendario propio ni se entera.
+  const importadosPorDia = useGoogleCalendarStore((s) => s.porDia);
+  const cargarEnGoogleStore = useGoogleCalendarStore((s) => s.cargar);
+
+  /** El MISMO rango que pide la cuadricula: bordes de semana incluidos.
+   *  Desconectado, el store hace cero llamadas: aca no se pregunta nada. */
+  const sincronizarGoogleDelMes = useCallback(() => {
+    const { desde, hasta } = rangoDelMes(useCalendarStore.getState().mesVisible);
+    void cargarEnGoogleStore(desde, hasta);
+  }, [cargarEnGoogleStore]);
+
+  const cambiarMesConGoogle = useCallback(
+    (delta: number) => {
+      void irAlMes(delta).then(sincronizarGoogleDelMes);
+    },
+    [irAlMes, sincronizarGoogleDelMes]
+  );
+
   // Solo al entrar al modo mes: pedirlo siempre gastaria un viaje de red que
   // la mayoria de las aperturas no usa.
   useEffect(() => {
-    if (viewMode === 'mes') cargarMes();
-  }, [viewMode, cargarMes]);
+    if (viewMode === 'mes') {
+      cargarMes();
+      sincronizarGoogleDelMes();
+    }
+  }, [viewMode, cargarMes, sincronizarGoogleDelMes]);
 
   const horizontalScrollRef = useRef<ScrollView>(null);
   const scrollX = useRef(0);
@@ -255,8 +278,11 @@ export default function ScheduleView() {
       // Volver del wizard en modo mes: la actividad recién creada con fecha
       // única solo existe para el calendario, así que hay que pedirlo de
       // nuevo o el usuario no la vería sin refrescar a mano.
-      if (viewMode === 'mes') cargarMes();
-    }, [changeSelectedDayProgrammatically, loadActivities, viewMode, cargarMes])
+      if (viewMode === 'mes') {
+        cargarMes();
+        sincronizarGoogleDelMes();
+      }
+    }, [changeSelectedDayProgrammatically, loadActivities, viewMode, cargarMes, sincronizarGoogleDelMes])
   );
 
   /** El "+" del panel del día: abre el wizard con esa fecha como puntual. */
@@ -386,10 +412,11 @@ export default function ScheduleView() {
           error={errorCalendario}
           diaSeleccionado={diaElegido}
           onSeleccionarDia={setDiaElegido}
-          onCambiarMes={irAlMes}
+          onCambiarMes={cambiarMesConGoogle}
           onReintentar={() => cargarMes()}
           onCrearEnDia={crearEnDia}
           canceladasEnSesion={canceladasEnSesion}
+          importadosPorDia={importadosPorDia}
           onMover={pedirFechaDestino}
           onCancelar={cancelarOcurrencia}
           onRestaurar={restaurarOcurrencia}

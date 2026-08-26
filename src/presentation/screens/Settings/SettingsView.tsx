@@ -14,6 +14,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { useTheme, getThemePresets } from "../../components/theme/colors";
 import { useScheduleStore } from "../../../di/Dependencies";
 import { useAuthStore } from "../../../infrastructure/store/useAuthStore";
+import { GoogleCalendarSection } from "../../components/organisms/Settings/GoogleCalendarSection";
 import {
   dateToMinutes,
   minutesToDate,
@@ -333,6 +334,13 @@ const SettingsView = () => {
         </View>
         <Text style={styles.sectionFooter}>
           El scheduler usa tu nivel de energía para distribuir tareas pesadas sin saturarte.
+        </Text>
+
+        {/* ═══════════════ CALENDARIO DE GOOGLE ═══════════════ */}
+        <Text style={styles.sectionHeader}>CALENDARIO DE GOOGLE</Text>
+        <GoogleCalendarSection />
+        <Text style={styles.sectionFooter}>
+          Importa los eventos de tu Google Calendar al calendario mensual. Solo lectura: acá no se editan.
         </Text>
 
         {/* ═══════════════ CUENTA ═══════════════ */}

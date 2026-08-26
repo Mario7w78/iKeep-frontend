@@ -49,13 +49,6 @@ import {
 import { EnergyRecord } from "../../../application/ports/out/EnergyRepository";
 import { Reflexion, reflexionar } from "../../../domain/services/energyReflection";
 
-/**
- * Cuanto historial de energia se trae para poder reflejar algo.
- *
- * Antes se pedia 1 dia, que solo alcanzaba para preseleccionar el icono. Un
- * mes deja afirmar rachas y comparar contra el promedio propio sin traerse
- * los 90 dias que guarda el backend.
- */
 const DIAS_DE_HISTORIAL = 30;
 
 const makeEnergyLevels = (
@@ -110,8 +103,6 @@ const DAY_DISPLAY_NAMES: Record<string, string> = {
 export default function HomeView() {
   const navigation = useNavigation<any>();
   const { colors, comfyColors, comfyFontColors, esClaro } = useTheme();
-  // Antes se deducia comparando el fondo contra dos hex escritos a mano, y
-  // nunca daba true porque ningun preset usaba esos valores.
   const isLight = esClaro;
   const ENERGY_LEVELS = useMemo(() => makeEnergyLevels(comfyColors, colors.cardBackground, isLight), [comfyColors, colors.cardBackground, isLight]);
   const styles = useMemo(() => createStyles(colors, comfyColors, comfyFontColors), [colors]);
@@ -141,8 +132,6 @@ export default function HomeView() {
   const guardandoSesion = useFocusSessionStore((s) => s.guardando);
   const rachaNueva = racha.actual > 1 && progreso.terminado;
 
-  // Al montar y nada mas: la racha cambia cuando el usuario marca algo, y
-  // ese camino ya recarga por su cuenta.
   useEffect(() => {
     cargarLogros();
   }, [cargarLogros]);
@@ -151,12 +140,9 @@ export default function HomeView() {
   const [savedEnergyIndex, setSavedEnergyIndex] = useState(0);
   const [selectedActivity, setSelectedActivity] = useState<ScheduledActivity | null>(null);
 
-  // El historial completo, no solo el ultimo dia: la reflexion necesita ver
-  // hacia atras para poder decir algo que el usuario no sepa ya.
   const [historialEnergia, setHistorialEnergia] = useState<EnergyRecord[]>([]);
   const [reflexion, setReflexion] = useState<Reflexion | null>(null);
 
-  // Initialize energy level from local storage history on mount
   useEffect(() => {
     const initEnergy = async () => {
       try {
@@ -170,9 +156,7 @@ export default function HomeView() {
             setEnergyIndex(idx);
             setSavedEnergyIndex(idx);
           }
-          // Si ya reporto hoy, la lectura sigue estando al volver a abrir:
-          // desaparecer al cerrar la app la convertiria en un mensaje
-          // fugaz que nadie alcanza a leer.
+
           setReflexion(reflexionar(latest.nivel, history));
         } else {
           setEnergyIndex(1); // Default to stable (index 1)
@@ -234,8 +218,6 @@ export default function HomeView() {
 
   const firstNext = nextActivities[0];
 
-  // Lo que ya termino hoy y nadie respondio. Ojo con la diferencia: "no la
-  // hice" es una RESPUESTA, no una ausencia, y por eso no entra acá.
   const sinResolver = useMemo(
     () =>
       sinResponder({
@@ -247,8 +229,6 @@ export default function HomeView() {
     [todayItems, currentMinutes, completadas, noHechas],
   );
 
-  // En que area se movio mas hoy. Regla de negocio pura: si hay empate, no
-  // se destaca nada — afirmar un ganador arbitrario seria inventar un hecho.
   const areaDelDia = useMemo(
     () =>
       calcularAreaDestacada(
@@ -263,8 +243,6 @@ export default function HomeView() {
     [todayItems, completadas]
   );
 
-  // Se pregunta una vez por dia. Volver a preguntar lo ya contestado es la
-  // forma mas rapida de ensenarle a alguien a ignorar la pregunta.
   const [diaCerrado, setDiaCerrado] = useState<string | null>(null);
   const [cerrandoDia, setCerrandoDia] = useState(false);
   const [recapPendiente, setRecapPendiente] = useState(false);
@@ -531,9 +509,6 @@ export default function HomeView() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.content}
       >
-        {/* El cuadro principal: el paisaje que sigue la hora del día. Va
-            arriba de todo porque es lo primero que recibe al usuario. Si
-            falta el asset, reserva su hueco y nada más. */}
         <LotusLandscape testID="lotus-card" style={styles.lotusCard} />
 
         <View style={styles.header}>
@@ -542,9 +517,7 @@ export default function HomeView() {
             activeOpacity={0.75}
             onPress={() => navigation.navigate("AIChatView")}
           >
-            {/* La pantalla que el usuario abre todos los dias, y ya era
-                el atajo al chat: es donde la mascota mas se ve. */}
-            <Sapo estado="idle" tamano={72} />
+            <Sapo estado="idle" size={72} />
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
             <Text style={styles.title}>Hola, {username || "Usuario"}. Tu día está listo.</Text>
@@ -865,8 +838,7 @@ const createStyles = (
     paddingBottom: 64,
   },
   lotusCard: {
-    height: 180,
-    borderRadius: 24,
+    height: 300,
     overflow: "hidden",
     marginBottom: 24,
   },

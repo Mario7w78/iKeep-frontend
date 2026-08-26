@@ -13,7 +13,14 @@
  * - `__reset()` limpia entre tests.
  * - `LoopMode` y `Fit` replican el vocabulario del paquete real.
  */
-import React, { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
+import React, {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from 'react';
 import { View } from 'react-native';
 
 export const LoopMode = {
@@ -29,11 +36,14 @@ export const Fit = {
   None: 'none',
 } as const;
 
+export const AutoBind = (value: boolean) => ({ type: 'autobind', value });
+
 type Controles = {
   play: ReturnType<typeof jest.fn>;
   pause: ReturnType<typeof jest.fn>;
   stop: ReturnType<typeof jest.fn>;
   reset: ReturnType<typeof jest.fn>;
+  setEnum: ReturnType<typeof jest.fn>;
 };
 
 /** Instancias montadas; la última es la que acaba de renderizar. */
@@ -52,6 +62,7 @@ const Rive = forwardRef<Controles, Props>((props, ref) => {
     pause: jest.fn(),
     stop: jest.fn(),
     reset: jest.fn(),
+    setEnum: jest.fn(),
   }).current;
 
   useEffect(() => {
@@ -71,3 +82,19 @@ const Rive = forwardRef<Controles, Props>((props, ref) => {
 Rive.displayName = 'Rive';
 
 export default Rive;
+
+export function useRive(): [(node: Controles | null) => void, Controles | null] {
+  const [riveRef, setRiveRef] = useState<Controles | null>(null);
+  return [setRiveRef, riveRef];
+}
+
+export function useRiveEnum(
+  riveRef: Controles | null,
+  path: string
+): [undefined, (value: string) => void] {
+  const setValue = useCallback(
+    (value: string) => riveRef?.setEnum(path, value),
+    [path, riveRef]
+  );
+  return [undefined, setValue];
+}

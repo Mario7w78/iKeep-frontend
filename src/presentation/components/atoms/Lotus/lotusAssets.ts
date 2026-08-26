@@ -5,7 +5,7 @@
  * principal no se puede venir abajo por una decoración.
  */
 
-let fuente: number | null = null;
+let fuente
 try {
   fuente = require('../../../../../assets/mascot/lotus_landscape.riv');
 } catch {

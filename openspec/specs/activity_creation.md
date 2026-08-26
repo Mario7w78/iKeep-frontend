@@ -48,6 +48,18 @@ Improve the usability, clarity, and UX of the activity creation flow by splittin
 
 ---
 
+### 7. Preset Single-Date (fechaUnica) Mode
+
+- The wizard MUST accept a preset `fechaUnica` navigation parameter. When present, Step 4 (day selection) SHALL be replaced by a read-only "Solo este día" confirmation showing the preset date, without restructuring the remaining steps or their order.
+
+### 8. fechaUnica Round-Trip Mapping
+
+- The `Activity` entity (`ActivityProps`) MUST expose `fechaUnica?: string | null`, and both mappers in `ApiActivityRepository` (`dtoToActivity` and `activityToDto`) MUST map it bidirectionally to the DTO field `fecha_unica` so the value survives entity → DTO → API round-trips.
+
+> **Non-goal (documented limitation):** Activities created in single-date mode appear only in the month calendar — not in the solver weekly grid / daily schedule. The wizard copy ("Solo este día") SHOULD communicate this. Deferred to future change `unica-en-horario-semanal`.
+
+---
+
 ## Scenarios
 
 ### Scenario 1: Creating an Optimizable Activity (Happy Path)
@@ -115,3 +127,32 @@ Improve the usability, clarity, and UX of the activity creation flow by splittin
 - **When** the user proceeds to Step 3, the priority options (Baja, Normal, Alta) MUST be enabled and selectable
 - **When** the user goes back to Step 2 and changes type to "Fijo"
 - **And** goes forward to Step 3, the priority MUST be set to "Alta" and disabled
+
+### Scenario 11: Wizard opens in single-date mode from month view
+- **Given** the user tapped "+" on day `2026-09-10` in month view
+- **When** the wizard opens with `fechaUnica = "2026-09-10"`
+- **Then** the day-selection step MUST show "Solo este día: 2026-09-10" instead of weekday selectors
+- **And** Steps 1–3, 5, and 6 MUST behave exactly as in the standard flow
+
+### Scenario 12: Standard flow unaffected without preset param
+- **Given** the user opens the wizard normally (no preset date)
+- **When** navigating to Step 4
+- **Then** the regular day-selection UI MUST render unchanged
+- **And** all existing wizard scenarios MUST still pass with no regression
+
+### Scenario 13: Save sends fechaUnica in single-date mode
+- **Given** the wizard is in single-date mode with `2026-09-10`
+- **When** the user completes the flow
+- **Then** the save payload MUST include `fecha_unica = "2026-09-10"`
+- **And** the payload MUST NOT include recurring day-selection fields derived from Step 4
+
+### Scenario 14: fechaUnica survives serialization round-trip
+- **Given** an `Activity` entity with `fechaUnica = "2026-09-10"`
+- **When** it is converted via `activityToDto` and back via `dtoToActivity`
+- **Then** the resulting entity MUST have `fechaUnica = "2026-09-10"` exactly
+
+### Scenario 15: Activities without fechaUnica map to null
+- **Given** an activity DTO with no `fecha_unica` field
+- **When** mapped via `dtoToActivity`
+- **Then** the entity's `fechaUnica` MUST be `null`
+- **And** `activityToDto` MUST NOT emit a non-null `fecha_unica` for such activities

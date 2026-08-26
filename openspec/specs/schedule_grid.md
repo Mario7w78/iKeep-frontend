@@ -32,6 +32,30 @@ Improve grid usability and scroll stability, provide a chronological list view o
 
 ---
 
+### 5. Create One-Off Activity from Selected Day
+
+- The month view day-detail panel MUST provide a "+" action that opens the activity creation wizard with the selected day's date pre-filled as a one-off (`fecha_unica`) activity. The created activity SHALL apply only to that date ("Solo este día" semantics).
+
+### 6. Move Occurrence to Another Date
+
+- The day-detail panel MUST offer a move action per occurrence row. Moving SHALL persist a `movida` exception via `PUT /api/v1/calendario/excepciones` with the picked target date.
+
+### 7. Cancel and Restore Occurrence
+
+- The day-detail panel MUST offer a cancel action per occurrence row, persisting a `cancelada` exception. Cancelled occurrences of activities that still exist MUST offer a restore action that deletes the exception.
+
+### 8. Month View Reflects Mutations Immediately
+
+- After any successful create, move, or cancel/restore from the day-detail panel, the system MUST reload the visible month so the grid reflects the change without manual refresh.
+
+### 9. Local Date Strings Only
+
+- All dates in create/move/cancel flows MUST travel as local `YYYY-MM-DD` strings. The system MUST NOT convert them through UTC or timezone-shifting operations.
+
+> **Non-goal (documented limitation):** One-off (`fecha_unica`) events appear ONLY in month view; the solver-generated weekly grid and daily schedule do NOT display them. This is out of scope here and deferred to future change `unica-en-horario-semanal`. UX copy must make this explicit.
+
+---
+
 ## Scenarios
 
 ### Scenario 1: Toggling between Grid and Chronological view (Happy Path)
@@ -78,3 +102,43 @@ Improve grid usability and scroll stability, provide a chronological list view o
 - **Given** the user completed onboarding with username "Lucía"
 - **When** the user navigates to the Home screen
 - **Then** the top greeting header MUST display: "Hola, Lucía. Tu día está listo."
+
+### Scenario 9: Plus button opens wizard with date preset
+- **Given** the user is in month view and has selected day `2026-09-10`
+- **When** the user taps "+" in the day-detail panel
+- **Then** the creation wizard MUST open with `2026-09-10` pre-filled as the activity date
+- **And** the wizard MUST indicate "Solo este día" instead of Step 4 day selection
+
+### Scenario 10: Created one-off persists and appears on its date
+- **Given** the user completed the wizard from day `2026-09-10`
+- **When** the save request succeeds
+- **Then** the activity MUST be persisted with `fecha_unica = 2026-09-10`
+- **And** after month reload, day `2026-09-10` MUST list the new occurrence
+
+### Scenario 11: Move occurrence from day-detail panel
+- **Given** day `2026-09-10` shows an occurrence of activity "Examen"
+- **When** the user taps "Mover", picks target date `2026-09-12`, and confirms
+- **Then** a `movida` exception MUST be saved for (`activity_id`, `2026-09-10`) with `nueva_fecha = 2026-09-12`
+- **And** after reload, `2026-09-10` no longer lists it and `2026-09-12` shows it flagged `movida_desde = 2026-09-10`
+
+### Scenario 12: Cancel occurrence
+- **Given** day `2026-09-10` shows an occurrence
+- **When** the user taps "Cancelar" and confirms
+- **Then** a `cancelada` exception MUST be saved and the occurrence MUST disappear from day `2026-09-10` after reload
+
+### Scenario 13: Restore cancelled occurrence
+- **Given** an occurrence on `2026-09-10` was cancelled
+- **When** the user taps "Restaurar" on that row
+- **Then** the exception MUST be deleted via `DELETE /api/v1/calendario/excepciones`
+- **And** the occurrence MUST reappear in day `2026-09-10` after reload
+
+### Scenario 14: Grid updates without manual refresh
+- **Given** the user performs any create/move/cancel/restore action from the panel
+- **When** the mutation succeeds
+- **Then** the month data MUST be reloaded automatically
+- **And** the grid dots and day-detail list MUST reflect the new state
+
+### Scenario 15: No timezone drift
+- **Given** the user selects `2026-09-10` in any picker
+- **When** the value reaches the API payload
+- **Then** it MUST arrive exactly as `"2026-09-10"`

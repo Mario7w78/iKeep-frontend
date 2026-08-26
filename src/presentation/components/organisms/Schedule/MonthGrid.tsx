@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-nati
 import { Ionicons } from '@expo/vector-icons';
 
 import { Ocurrencia, aFechaLocal } from '../../../../infrastructure/api/CalendarApiService';
+import { EventoImportado } from '../../../../infrastructure/api/GoogleCalendarApiService';
 import { ThemeColors, useTheme } from '../../theme/colors';
 import { ESPACIO, PESO, RADIO, TEXTO } from '../../theme/tokens';
 import { DIA_CORTO } from '../../../theme/copy';
@@ -23,6 +24,14 @@ interface Props {
   onCrearEnDia?: (fecha: string) => void;
   /** Canceladas de la sesión: filas con acción Restaurar (D3b). */
   canceladasEnSesion?: Ocurrencia[];
+  /**
+   * Eventos importados de Google Calendar, ya expandidos por día.
+   *
+   * Opcional y aditivo: sin la prop la cuadrícula no cambia NADA. Con ella,
+   * los eventos se dibujan con su propio punto y en una sección separada,
+   * siempre de solo lectura — nunca alimentan flujos de edición.
+   */
+  importadosPorDia?: Record<string, EventoImportado[]>;
   onMover?: (activityId: string, desde: string) => void;
   onCancelar?: (activityId: string, fecha: string) => void;
   onRestaurar?: (activityId: string, fecha: string) => void;
@@ -78,18 +87,22 @@ export const MonthGrid: React.FC<Props> = ({
   onReintentar,
   onCrearEnDia,
   canceladasEnSesion = [],
+  importadosPorDia,
   onMover,
   onCancelar,
   onRestaurar,
 }) => {
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const { colors, comfyColors } = useTheme();
+  const styles = useMemo(() => createStyles(colors, comfyColors), [colors, comfyColors]);
 
   const celdas = useMemo(() => celdasDelMes(mesVisible), [mesVisible]);
   const hoy = aFechaLocal(new Date());
   const mesActual = mesVisible.getMonth();
 
   const delDia = diaSeleccionado ? porDia[diaSeleccionado] ?? [] : [];
+  const importadosDelDia = diaSeleccionado
+    ? importadosPorDia?.[diaSeleccionado] ?? []
+    : [];
   const canceladasDelDia = diaSeleccionado
     ? canceladasEnSesion.filter((o) => o.fecha === diaSeleccionado)
     : [];
@@ -140,6 +153,10 @@ export const MonthGrid: React.FC<Props> = ({
           {celdas.map((d) => {
             const clave = aFechaLocal(d);
             const ocurrencias = porDia[clave] ?? [];
+            // Los importados usan lo que queda de la fila de puntos: nunca
+            // le roban lugar a una actividad propia.
+            const importados = importadosPorDia?.[clave] ?? [];
+            const cupoImportados = Math.max(0, MAXIMO_PUNTOS - Math.min(ocurrencias.length, MAXIMO_PUNTOS));
             const esDeOtroMes = d.getMonth() !== mesActual;
             const esHoy = clave === hoy;
             const elegido = clave === diaSeleccionado;
@@ -150,7 +167,7 @@ export const MonthGrid: React.FC<Props> = ({
                 testID={`dia-${clave}`}
                 style={[styles.celda, elegido && styles.celdaElegida]}
                 onPress={() => onSeleccionarDia(clave)}
-                accessibilityLabel={`${d.getDate()} de ${MESES[d.getMonth()]}, ${ocurrencias.length} actividades`}
+                accessibilityLabel={`${d.getDate()} de ${MESES[d.getMonth()]}, ${ocurrencias.length} actividades${importados.length > 0 ? `, ${importados.length} de google` : ''}`}
               >
                 <Text
                   style={[
@@ -171,6 +188,19 @@ export const MonthGrid: React.FC<Props> = ({
                       style={[
                         styles.punto,
                         o.esUnica && styles.puntoUnico,
+                        esDeOtroMes && styles.puntoOtroMes,
+                      ]}
+                    />
+                  ))}
+                  {/* Punto distinto para lo importado: mismo tamaño, otro
+                      color. Que se note que NO es una actividad propia. */}
+                  {importados.slice(0, cupoImportados).map((e) => (
+                    <View
+                      key={e.id}
+                      testID={`punto-importado-${e.id}-${clave}`}
+                      style={[
+                        styles.punto,
+                        styles.puntoImportado,
                         esDeOtroMes && styles.puntoOtroMes,
                       ]}
                     />
@@ -211,7 +241,7 @@ export const MonthGrid: React.FC<Props> = ({
             )}
           </View>
 
-          {delDia.length === 0 && canceladasDelDia.length === 0 ? (
+          {delDia.length === 0 && importadosDelDia.length === 0 && canceladasDelDia.length === 0 ? (
             <Text style={styles.detalleVacio}>Nada agendado. Día libre.</Text>
           ) : (
             delDia.map((o, i) => (
@@ -264,6 +294,31 @@ export const MonthGrid: React.FC<Props> = ({
             ))
           )}
 
+          {importadosDelDia.length > 0 && (
+            <View style={styles.seccionImportados} testID="seccion-importados">
+              <Text style={styles.tituloImportados}>De Google Calendar</Text>
+              {/* Filas planas, sin TouchableOpacity y sin acciones: lo
+                  importado se LEE, nunca se edita (spec external-events-ui).
+                  El titulo va tal cual llegó de Google. */}
+              {importadosDelDia.map((e) => (
+                <View key={e.id} testID={`importado-${e.id}`} style={styles.item}>
+                  <View style={[styles.itemPunto, styles.puntoImportado]} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.itemTitulo}>{e.titulo}</Text>
+                    {!e.todoElDia && (
+                      <Text style={styles.itemNota}>
+                        {new Date(e.inicio).toLocaleTimeString('es', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </Text>
+                    )}
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+
           {canceladasDelDia.length > 0 && (
             <View style={styles.seccionCanceladas} testID="seccion-canceladas">
               <Text style={styles.tituloCanceladas}>Canceladas</Text>
@@ -302,7 +357,7 @@ export const MonthGrid: React.FC<Props> = ({
   );
 };
 
-const createStyles = (colors: ThemeColors) =>
+const createStyles = (colors: ThemeColors, comfyColors: ReturnType<typeof useTheme>['comfyColors']) =>
   StyleSheet.create({
     contenedor: { flex: 1, paddingHorizontal: ESPACIO.md },
     encabezado: {
@@ -354,6 +409,9 @@ const createStyles = (colors: ThemeColors) =>
     // usuario no puede permitirse pasar por alto.
     puntoUnico: { backgroundColor: colors.warning },
     puntoOtroMes: { opacity: 0.35 },
+    // Lo importado viste de celeste: mismo tamaño que un punto propio pero
+    // IMPOSIBLE de confundir con uno. El color viene del tema (skyBlue).
+    puntoImportado: { backgroundColor: comfyColors.skyBlue },
     cargando: {
       textAlign: 'center',
       paddingVertical: ESPACIO.sm,
@@ -451,4 +509,17 @@ const createStyles = (colors: ThemeColors) =>
     },
     puntoCancelada: { backgroundColor: colors.textTertiary, opacity: 0.6 },
     itemTituloCancelado: { color: colors.textSecondary, textDecorationLine: 'line-through' },
+    seccionImportados: {
+      marginTop: ESPACIO.md,
+      paddingTop: ESPACIO.md,
+      borderTopWidth: 1,
+      borderTopColor: colors.cardBorder,
+    },
+    tituloImportados: {
+      fontSize: TEXTO.pie,
+      fontWeight: PESO.fuerte,
+      color: colors.textSecondary,
+      textTransform: 'uppercase',
+      marginBottom: ESPACIO.xs,
+    },
   });

@@ -18,6 +18,14 @@ import { MonthGrid } from '../MonthGrid';
 
 const AGOSTO = new Date(2026, 7, 15);
 
+const EVENTO_GOOGLE = {
+  id: 'g-ev-1',
+  titulo: 'Dentista',
+  inicio: '2026-08-11T13:00:00Z',
+  fin: '2026-08-11T14:00:00Z',
+  todoElDia: false,
+};
+
 function pintar(props: any = {}) {
   return render(
     <MonthGrid
@@ -238,6 +246,91 @@ describe('la seccion de canceladas', () => {
     });
 
     expect(vista.queryByText('Nada agendado. Día libre.')).toBeNull();
+  });
+});
+
+describe('los eventos importados de google', () => {
+  // external-events-ui: lo importado se distingue y se LEE, nunca se edita.
+  it('el dia con importados muestra su punto con estilo propio', async () => {
+    const vista = await pintar({
+      importadosPorDia: { '2026-08-11': [EVENTO_GOOGLE] },
+    });
+
+    const punto = vista.getByTestId('punto-importado-g-ev-1-2026-08-11');
+    expect(punto).toBeTruthy();
+    // Distinto del punto de actividad (secondaryAccent) y del unico (warning).
+    expect(punto.props.style).toEqual(
+      expect.arrayContaining([expect.objectContaining({ backgroundColor: '#a5b2eb' })])
+    );
+  });
+
+  it('sin la prop no hay ningun cambio: aditivo', async () => {
+    const vista = await pintar();
+
+    expect(vista.queryByTestId('punto-importado-g-ev-1-2026-08-11')).toBeNull();
+    expect(vista.queryByTestId('seccion-importados')).toBeNull();
+  });
+
+  it('un evento multi-dia aparece en cada dia que ocupa', async () => {
+    const viaje = { ...EVENTO_GOOGLE, id: 'g-viaje', titulo: 'Viaje' };
+    const vista = await pintar({
+      importadosPorDia: { '2026-08-14': [viaje], '2026-08-15': [viaje], '2026-08-16': [viaje] },
+    });
+
+    expect(vista.getByTestId('punto-importado-g-viaje-2026-08-14')).toBeTruthy();
+    expect(vista.getByTestId('punto-importado-g-viaje-2026-08-15')).toBeTruthy();
+    expect(vista.getByTestId('punto-importado-g-viaje-2026-08-16')).toBeTruthy();
+  });
+
+  describe('en el detalle del dia', () => {
+    const pintarConImportado = (props: any = {}) =>
+      pintar({
+        diaSeleccionado: '2026-08-11',
+        importadosPorDia: { '2026-08-11': [EVENTO_GOOGLE] },
+        ...props,
+      });
+
+    it('lista el titulo tal cual vino de google, sin prefijos ni adornos', async () => {
+      const vista = await pintarConImportado();
+
+      expect(vista.getByTestId('seccion-importados')).toBeTruthy();
+      expect(vista.getByText('Dentista')).toBeTruthy();   // exacto, no regex
+    });
+
+    it('la seccion esta separada y no mezcla con las actividades propias', async () => {
+      const vista = await pintarConImportado({
+        porDia: { '2026-08-11': [OCURRENCIA] },
+      });
+
+      expect(vista.getByText('Cálculo')).toBeTruthy();
+      expect(vista.getByTestId('seccion-importados')).toBeTruthy();
+    });
+
+    it('es SOLO lectura: sin Mover, sin Cancelar, sin Restaurar', async () => {
+      const vista = await pintarConImportado({
+        onMover: jest.fn(),
+        onCancelar: jest.fn(),
+        onRestaurar: jest.fn(),
+      });
+
+      expect(vista.queryByTestId('mover-g-ev-1')).toBeNull();
+      expect(vista.queryByTestId('cancelar-g-ev-1')).toBeNull();
+      expect(vista.queryByTestId('restaurar-g-ev-1')).toBeNull();
+    });
+
+    it('una fila importada no es tocable: View plano, no TouchableOpacity', async () => {
+      const vista = await pintarConImportado();
+
+      const fila = vista.getByTestId('importado-g-ev-1');
+      expect(fila.props.onPress).toBeUndefined();
+    });
+
+    it('un dia solo con importados no dice "dia libre"', async () => {
+      const vista = await pintarConImportado();
+
+      expect(vista.queryByText('Nada agendado. Día libre.')).toBeNull();
+      expect(vista.getByText('Dentista')).toBeTruthy();
+    });
   });
 });
 

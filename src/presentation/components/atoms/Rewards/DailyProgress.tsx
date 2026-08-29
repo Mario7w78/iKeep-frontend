@@ -41,7 +41,7 @@ export const DailyProgress: React.FC<Props> = ({ completadas, total, fraccion })
     <View testID="daily-progress" style={styles.contenedor}>
       <View style={styles.encabezado}>
         <Text style={styles.texto}>
-          {completadas} de {total} hoy
+          {completadas} de {total} actividades completadas
         </Text>
       </View>
 

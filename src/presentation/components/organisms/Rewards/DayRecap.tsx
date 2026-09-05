@@ -10,6 +10,8 @@ import {
 import { AREAS, AreaDeVida } from '../../../../domain/entities/lifeArea';
 import { ThemeColors, useTheme } from '../../theme/colors';
 import { ESPACIO, PESO, RADIO, TEXTO } from '../../theme/tokens';
+import { Sapo } from '../../atoms/Mascot/Sapo';
+import { EnergyLevelConfig } from '../../../screens/Home/HomeView.utils';
 
 interface Props {
   visible: boolean;
@@ -19,6 +21,10 @@ interface Props {
   areaDestacada: AreaDeVida | null;
   respuestaCierre: RespuestaDeCierre;
   onDismiss: () => void;
+  /** Hora de inicio del día (minutos desde medianoche) para mostrar en el resumen. */
+  startHour: number;
+  /** Energía seleccionada del día para el resumen de Sapo. */
+  selectedEnergy: EnergyLevelConfig;
 }
 
 /**
@@ -33,6 +39,30 @@ interface Props {
  * un Modal — Home sigue visible detrás y nada queda bloqueado después.
  */
 
+/**
+ * Genera el mensaje motivador de Sapo según el resultado del día.
+ */
+const mensajeSapo = (
+  completadas: number,
+  total: number,
+  rachaActual: number,
+  energiaLabel: string
+): string => {
+  if (total === 0) {
+    return 'Mañana es una página en blanco. ¡A escribirla!';
+  }
+  if (completadas === total) {
+    if (completadas >= 7) {
+      return '¡Imparable! La constancia es tu superpoder. 💪';
+    }
+    return '¡Día perfecto! El hábito se hace fuerte. ✨';
+  }
+  if (completadas > 0) {
+    return 'Progreso, no perfección. Mañana seguimos. 🌱';
+  }
+  return `Con energía ${energiaLabel.toLowerCase()}, mañana lo das todo. 🌙`;
+};
+
 export const DayRecap: React.FC<Props> = ({
   visible,
   progreso,
@@ -40,6 +70,8 @@ export const DayRecap: React.FC<Props> = ({
   areaDestacada,
   respuestaCierre,
   onDismiss,
+  startHour,
+  selectedEnergy,
 }) => {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -113,6 +145,41 @@ export const DayRecap: React.FC<Props> = ({
           </>
         )}
 
+        {/* Resumen de Sapo con datos del día y mensaje motivador */}
+        <View style={styles.sapoResumen}>
+          <Sapo
+            estado={progreso.completadas === progreso.total ? "celebrating" : progreso.completadas > 0 ? "happy" : "thinking"}
+            size={64}
+            tipoSapo={0}
+          />
+          <Text style={styles.sapoTitulo}>Resumen del día</Text>
+          <Text style={styles.sapoTexto}>
+            {progreso.total > 0
+              ? `Completaste {progreso.completadas} de {progreso.total} actividades.`
+              : 'Hoy no tuviste actividades programadas.'}
+          </Text>
+          <View style={styles.sapoDetalles}>
+            <Text style={styles.sapoDetalle}>
+              <Ionicons name="flash-outline" size={16} color={colors.secondaryAccent} />
+              Energía: {selectedEnergy.label}
+            </Text>
+            <Text style={styles.sapoDetalle}>
+              <Ionicons name="time-outline" size={16} color={colors.secondaryAccent} />
+              Mañana empieza a las {Math.floor(startHour / 60)}
+                .{String(startHour % 60).padStart(2, '0')}
+            </Text>
+            {racha.actual > 0 && (
+              <Text style={styles.sapoDetalle}>
+                <Ionicons name="flame-outline" size={16} color={colors.warning} />
+                Racha de {racha.actual} días
+              </Text>
+            )}
+          </View>
+          <Text style={styles.sapoMensaje}>
+            {mensajeSapo(progreso.completadas, progreso.total, racha.actual, selectedEnergy.label)}
+          </Text>
+        </View>
+
         <Text style={styles.pie}>Toca en cualquier lado para seguir</Text>
       </View>
     </Pressable>
@@ -170,6 +237,47 @@ const createStyles = (colors: ThemeColors) =>
       fontSize: TEXTO.destacado,
       fontWeight: PESO.fuerte,
       color: colors.secondaryAccent,
+    },
+    sapoResumen: {
+      alignItems: 'center',
+      gap: ESPACIO.xs,
+      marginTop: ESPACIO.md,
+      paddingTop: ESPACIO.md,
+      borderTopWidth: 1,
+      borderTopColor: colors.cardBorder,
+      minWidth: '100%',
+    },
+    sapoTitulo: {
+      fontSize: TEXTO.destacado,
+      fontWeight: PESO.fuerte,
+      color: colors.secondaryAccent,
+    },
+    sapoTexto: {
+      fontSize: TEXTO.cuerpo,
+      color: colors.surface,
+      textAlign: 'center',
+    },
+    sapoDetalles: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'center',
+      gap: ESPACIO.md,
+      marginTop: ESPACIO.xs,
+      marginBottom: ESPACIO.xs,
+    },
+    sapoDetalle: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: ESPACIO.xs,
+      fontSize: TEXTO.pie,
+      color: colors.textSecondary,
+    },
+    sapoMensaje: {
+      fontSize: TEXTO.cuerpo,
+      color: colors.surface,
+      textAlign: 'center',
+      fontStyle: 'italic',
+      marginTop: ESPACIO.xs,
     },
     pie: {
       fontSize: TEXTO.micro,

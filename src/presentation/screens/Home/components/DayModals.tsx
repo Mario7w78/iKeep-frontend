@@ -7,6 +7,7 @@ import { RespuestaDeCierre, Racha } from "../../../../infrastructure/api/Rewards
 import { AreaDeVida } from "../../../../domain/entities/lifeArea";
 import { Pendiente } from "../../../../domain/services/pendingAnswers";
 import { ScheduledActivity } from "../../../../domain/entities/Schedule";
+import { EnergyLevelConfig } from "../HomeView.utils";
 
 interface DayModalsProps {
   diasTerminados: number;
@@ -37,6 +38,10 @@ interface DayModalsProps {
   respuestaDelCierre: RespuestaDeCierre | null;
   setRespuestaDelCierre: (value: RespuestaDeCierre | null) => void;
   areaDelDia: AreaDeVida | null;
+  /** Hora de inicio del día (minutos desde medianoche) para mostrar en el resumen. */
+  startHour: number;
+  /** Energía seleccionada del día para el resumen de Sapo. */
+  selectedEnergy: EnergyLevelConfig;
 }
 
 export const DayModals = ({
@@ -61,6 +66,8 @@ export const DayModals = ({
   respuestaDelCierre,
   setRespuestaDelCierre,
   areaDelDia,
+startHour,
+  selectedEnergy,
 }: DayModalsProps) => {
   const hoyISO = new Date().toISOString().split('T')[0];
   const rachaNueva = racha.actual > 1 && progreso.terminado;
@@ -112,6 +119,8 @@ export const DayModals = ({
         areaDestacada={areaDelDia}
         respuestaCierre={respuestaDelCierre ?? 'algunas'}
         onDismiss={() => setRecapPendiente(false)}
+        startHour={startHour}
+        selectedEnergy={selectedEnergy}
       />
     </>
   );

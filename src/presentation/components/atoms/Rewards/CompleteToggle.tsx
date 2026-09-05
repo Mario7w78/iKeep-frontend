@@ -63,7 +63,7 @@ const createStyles = (colors: ThemeColors) =>
       height: 24,
       borderRadius: RADIO.md - 2,
       borderWidth: 2,
-      borderColor: colors.cardBorder,
+      borderColor: colors.secondaryAccent,
       alignItems: 'center',
       justifyContent: 'center',
     },

@@ -49,7 +49,8 @@ function actividad() {
 }
 
 function cuerpoEnviado() {
-  return JSON.parse(mockBackendRequest.mock.calls[0][1].body);
+  // `backendRequest` recibe el objeto; el stringify lo hace el cliente real.
+  return mockBackendRequest.mock.calls[0][1].body;
 }
 
 describe('aplicarPropuesta', () => {

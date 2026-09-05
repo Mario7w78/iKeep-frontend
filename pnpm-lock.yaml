@@ -56,6 +56,9 @@ importers:
       expo-linear-gradient:
         specifier: ~55.0.13
         version: 55.0.14(expo@55.0.26)(react-native@0.83.4(@babel/core@7.29.7)(@types/react@19.2.15)(react@19.2.0))(react@19.2.0)
+      expo-linking:
+        specifier: ~55.0.17
+        version: 55.0.17(expo@55.0.26)(react-native@0.83.4(@babel/core@7.29.7)(@types/react@19.2.15)(react@19.2.0))(react@19.2.0)
       expo-notifications:
         specifier: ~55.0.25
         version: 55.0.25(expo@55.0.26)(react-native@0.83.4(@babel/core@7.29.7)(@types/react@19.2.15)(react@19.2.0))(react@19.2.0)(typescript@5.9.3)

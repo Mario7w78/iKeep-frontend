@@ -198,7 +198,7 @@ export default function ScheduleView() {
 
   const [showEnergyPicker, setShowEnergyPicker] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState<ScheduledActivity | null>(null);
-  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'mes'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'mes' | 'anual'>('grid');
   const [diaElegido, setDiaElegido] = useState<string | null>(null);
   /** Fila esperando fecha destino para moverse. */
   const [moverPendiente, setMoverPendiente] = useState<{ activityId: string; desde: string } | null>(null);
@@ -402,6 +402,41 @@ export default function ScheduleView() {
     return <LoadingScreen mensaje="Cargando tu horario..." />;
   }
 
+  if (viewMode === 'anual' && !showEmptyState) {
+    return (
+      <View style={s.container}>
+        <ScrollView contentContainerStyle={s.yearGrid}>
+          {Array.from({ length: 12 }, (_, i) => {
+            const monthDate = new Date(mesVisible.getFullYear(), i, 1);
+            return (
+              <MonthGrid
+                key={i}
+                mesVisible={monthDate}
+                porDia={porDia}
+                cargando={false}
+                error={null}
+                diaSeleccionado={null}
+                onSeleccionarDia={() => {}}
+                onCambiarMes={() => {}}
+                onReintentar={() => {}}
+                onCrearEnDia={() => {}}
+                canceladasEnSesion={[]}
+                importadosPorDia={{}}
+                onMover={() => {}}
+                onCancelar={() => {}}
+                onRestaurar={() => {}}
+              />
+            );
+          })}
+        </ScrollView>
+        <TouchableOpacity style={s.volverAlDia} onPress={() => setViewMode('grid')}>
+          <Ionicons name="today-outline" size={18} color={comfyColors.green} />
+          <Text style={[s.btnText, { color: comfyColors.green }]}>Ver el día</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   if (viewMode === 'mes' && !showEmptyState) {
     return (
       <View style={s.container}>
@@ -520,7 +555,7 @@ export default function ScheduleView() {
             onSelectDay={changeSelectedDayProgrammatically}
             onRefresh={handleGeneratePress}
             viewMode={viewMode}
-            onToggleViewMode={() => setViewMode(prev => prev === 'grid' ? 'list' : prev === 'list' ? 'mes' : 'grid')}
+            onToggleViewMode={() => setViewMode(prev => prev === 'grid' ? 'list' : prev === 'list' ? 'mes' : prev === 'mes' ? 'anual' : 'grid')}
           />
           
           <ScrollView
@@ -821,5 +856,14 @@ const createStyles = (
     color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
+  },
+  yearGrid: {
+    padding: 16,
+    gap: 12,
+    paddingBottom: 80,
+  },
+  yearMonthCard: {
+    width: '48%',
+    marginBottom: 12,
   },
 });

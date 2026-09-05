@@ -23,7 +23,13 @@ export function createActivityStore(
 ): ActivityStore {
   return create<ActivityStoreState>((set, get) => ({
     activities: [],
-    isLoading: false,
+    // Arranca en "cargando" a propósito: el primer render de Home ocurre antes
+    // de que loadActivities (disparado en useFocusEffect) ponga isLoading en
+    // true. Si arranca en false, ese primer frame muestra el estado vacío
+    // ("No hay actividades / Crea tu primera") aunque el backend aún no
+    // respondió — el parpadeo de "vacío al inicio" que reportaban los usuarios
+    // con datos creados. loadActivities siempre lo resetea en finally.
+    isLoading: true,
 
     loadActivities: async () => {
       set({ isLoading: true });

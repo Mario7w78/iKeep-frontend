@@ -295,6 +295,45 @@ export default function CreateActivityView({ navigation, route }: any) {
     (campo, mensaje) => formErrors.setError(campo, mensaje),
   );
 
+  /**
+   * Qué falta para poder avanzar, y si eso hace que el botón primario no
+   * permita continuar.
+   *
+   * Los errores de validación viven bajo su campo, pero el campo puede estar
+   * arriba y el botón abajo: quien mira el pie de la pantalla no ve el rojo.
+   * Por eso el botón se muestra "apagado" cuando falta algo requerido, y al
+   * tocarlo igual responde con una alerta que dice qué falta — un botón
+   * realmente deshabilitado tocaría y no haría nada, y eso es justo el
+   * "no funciona" que venimos a evitar.
+   */
+  const faltantes = useMemo(() => {
+    const falta: string[] = [];
+    // El nombre es el único que siempre bloquea: sin él no hay actividad.
+    if (!activityName.trim()) falta.push("el nombre");
+    if (step === 1) {
+      // Los días solo bloquean a las fijas y anclas: una flexible sin días
+      // marcados se entiende como "todos los días" (ver handleContinueFromDays).
+      if ((isFixed || isAnchor) && selectedDays.length === 0) {
+        falta.push("al menos un día");
+      }
+    }
+    return falta;
+  }, [activityName, step, isFixed, isAnchor, selectedDays]);
+
+  const hayFaltantes = faltantes.length > 0;
+
+  /** Alerta global que explica qué falta, para quien mira el pie de la pantalla. */
+  const alertarFaltantes = () => {
+    const ultimo = faltantes.length - 1;
+    const descripcion = faltantes
+      .map((f, i) => (i === ultimo && faltantes.length > 1 ? ` y ${f}` : f))
+      .join(faltantes.length > 1 ? ", " : "");
+    Alert.alert(
+      "Faltan campos requeridos",
+      `Para continuar, completá ${descripcion}.`
+    );
+  };
+
   // Load existing activity for editing
   useEffect(() => {
     if (existingActivity) {
@@ -527,6 +566,15 @@ export default function CreateActivityView({ navigation, route }: any) {
   };
 
   const handlePrimaryPress = () => {
+    // Guardia global: sin los campos requeridos no se avanza (ni se crea).
+    // El botón ya se ve "apagado" cuando falta algo (estilo en el render),
+    // pero igual se mastica el toque y se explica qué falta con una alerta,
+    // en vez de tocar y que no pase nada.
+    if (hayFaltantes) {
+      alertarFaltantes();
+      return;
+    }
+
     if (step === 1) {
       // El paso junta nombre y dias, asi que valida los dos antes de avanzar.
       // Se comprueban ambos y no se corta en el primero: el usuario ve de una
@@ -966,6 +1014,7 @@ export default function CreateActivityView({ navigation, route }: any) {
             style={[
               styles.primaryButton,
               step > 1 && styles.primaryButtonWithBack,
+              hayFaltantes && styles.primaryButtonDisabled,
             ]}
             onPress={handlePrimaryPress}
           >
@@ -982,7 +1031,7 @@ export default function CreateActivityView({ navigation, route }: any) {
             // El sapo celebra el guardado. Es el unico momento del wizard con
             // algo que celebrar, y la Fase 0 ya habia puesto aca el check y la
             // haptica: la animacion completa ese gesto en vez de agregar otro.
-            <Sapo estado="happy" tamano={TAMANO_CELEBRACION} />
+            <Sapo estado="happy" size={TAMANO_CELEBRACION} />
           ) : (
             <ActivityIndicator size="large" color={colors.secondaryAccent} />
           )}
@@ -1071,6 +1120,9 @@ function createStyles(colors: ThemeColors, comfyColors: Record<string, string>, 
     },
     primaryButtonWithBack: {
       flex: 2,
+    },
+    primaryButtonDisabled: {
+      opacity: 0.45,
     },
     primaryButtonText: {
       color: comfyFontColors.green,

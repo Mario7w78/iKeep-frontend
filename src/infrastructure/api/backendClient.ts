@@ -77,8 +77,24 @@ export async function backendRequest<T>(
   }
 
   if (!response.ok) {
+    // El cuerpo de los errores de FastAPI suele traer la causa exacta del
+    // rechazo (por ejemplo el campo que falló en un 422). Se intenta leer y
+    // se expone en el mensaje: diagnosticar a ciegas es lento y adivinar
+    // gratuito.
+    let detalle = '';
+    try {
+      const cuerpo = await response.json();
+      if (typeof cuerpo === 'string') detalle = cuerpo;
+      else if (cuerpo?.detail !== undefined) {
+        detalle = typeof cuerpo.detail === 'string' ? cuerpo.detail : JSON.stringify(cuerpo.detail);
+      } else {
+        detalle = JSON.stringify(cuerpo);
+      }
+    } catch {
+      detalle = '';
+    }
     throw new BackendError(
-      `El servidor respondio ${response.status}.`,
+      `El servidor respondio ${response.status}${detalle ? `: ${detalle}` : '.'}`,
       response.status
     );
   }

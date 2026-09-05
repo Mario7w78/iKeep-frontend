@@ -75,18 +75,18 @@ export async function completarActividad(
   estado: EstadoCompletado = 'hecha',
   origen: OrigenCompletado = 'manual'
 ): Promise<void> {
+  const payload = {
+    activity_id: activityId,
+    fecha,
+    estado,
+    origen,
+    desfase_utc_minutos: desfase(),
+  };
+  // TEMP: diagnosticar el 422 de /completar
+  console.log('[completar] payload:', JSON.stringify(payload));
   await backendRequest<void>(`${RUTA}/completar`, {
     method: 'POST',
-    body: JSON.stringify({
-      activity_id: activityId,
-      fecha,
-      estado,
-      origen,
-      // El servidor valida que la fecha no sea futura ni esté fuera de plazo,
-      // y para eso necesita saber qué día es acá: con su medianoche, en Lima
-      // rechazaría marcar hoy durante cinco horas.
-      desfase_utc_minutos: desfase(),
-    }),
+    body: payload,
   });
 }
 
@@ -103,12 +103,12 @@ export async function cerrarDia(
 ): Promise<ProgresoDelDia> {
   const dto = await backendRequest<any>(`${RUTA}/cerrar-dia`, {
     method: 'POST',
-    body: JSON.stringify({
+    body: {
       fecha,
       respuesta,
       hechas,
       desfase_utc_minutos: desfase(),
-    }),
+    },
   });
   return {
     completadas: dto.completadas,
@@ -123,7 +123,7 @@ export async function cerrarDia(
 export async function descompletarActividad(activityId: string, fecha = fechaLocal()): Promise<void> {
   await backendRequest<void>(`${RUTA}/descompletar`, {
     method: 'POST',
-    body: JSON.stringify({ activity_id: activityId, fecha }),
+    body: { activity_id: activityId, fecha },
   });
 }
 

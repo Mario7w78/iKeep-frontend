@@ -13,6 +13,7 @@ import { Nunito_900Black } from '@expo-google-fonts/nunito/900Black';
 
 import AppNavigator from './src/presentation/navigation/AppNavigator';
 import { useBackendWarmUp } from './src/presentation/hooks/useBackendWarmUp';
+import { useConfirmacionEmail } from './src/presentation/hooks/useConfirmacionEmail';
 import { aplicarTipografiaGlobal } from './src/presentation/theme/typography';
 
 export default function App() {
@@ -20,6 +21,10 @@ export default function App() {
   // despertar, así que conviene empezar apenas se abre la app y no cuando el
   // usuario ya está esperando una respuesta.
   useBackendWarmUp();
+
+  // Escucha el deep link de confirmación de email (lotus://confirmar-email)
+  // en la raíz para que funcione aunque la app se abra desde el correo.
+  useConfirmacionEmail();
 
   // Se cargan solo los pesos que la app declara. Traer la familia entera
   // serían dieciocho archivos para usar seis.

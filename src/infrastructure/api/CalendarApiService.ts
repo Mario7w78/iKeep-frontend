@@ -65,12 +65,12 @@ export async function guardarExcepcion(params: {
 }): Promise<void> {
   await backendRequest<void>(`${RUTA}/excepciones`, {
     method: 'PUT',
-    body: JSON.stringify({
+    body: {
       activity_id: params.activityId,
       fecha: params.fecha,
       tipo: params.tipo,
       nueva_fecha: params.nuevaFecha ?? null,
-    }),
+    },
   });
 }
 

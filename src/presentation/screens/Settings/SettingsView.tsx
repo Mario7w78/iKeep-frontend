@@ -11,7 +11,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { useTheme, getThemePresets } from "../../components/theme/colors";
+import { useTheme } from "../../components/theme/colors";
 import { useScheduleStore } from "../../../di/Dependencies";
 import { useAuthStore } from "../../../infrastructure/store/useAuthStore";
 import { GoogleCalendarSection } from "../../components/organisms/Settings/GoogleCalendarSection";
@@ -60,8 +60,7 @@ const SettingsView = () => {
   } = useScheduleStore();
 
   const signOut = useAuthStore((s) => s.signOut);
-  const { themeId, setThemeId, colors, comfyColors, comfyFontColors } = useTheme();
-  const themePresets = getThemePresets();
+  const { colors, comfyColors, comfyFontColors } = useTheme();
   const styles = useMemo(() => createStyles(colors, comfyColors, comfyFontColors), [colors]);
 
   const [localStartTime, setLocalStartTime] = useState(
@@ -240,45 +239,6 @@ const SettingsView = () => {
           Configura el rango de horas disponible para tu día. Aplica a todos los días de la semana.
         </Text>
 
-        {/* ═══════════════ APARIENCIA ═══════════════ */}
-        <Text style={styles.sectionHeader}>APARIENCIA</Text>
-        <View style={styles.section}>
-          <View style={styles.themeGrid}>
-            {themePresets.map((preset) => {
-              const isActive = themeId === preset.id;
-              return (
-                <TouchableOpacity
-                  key={preset.id}
-                  style={[
-                    styles.themeCard,
-                    isActive && styles.themeCardActive,
-                  ]}
-                  activeOpacity={0.7}
-                  onPress={() => setThemeId(preset.id)}
-                >
-                  <View style={[styles.themePreview, { backgroundColor: preset.colors.screenBackground }]}>
-                    <View style={[styles.themePreviewCard, { backgroundColor: preset.colors.cardBackground, borderColor: preset.colors.cardBorder }]}>
-                      <View style={[styles.themePreviewDot, { backgroundColor: preset.accent }]} />
-                    </View>
-                  </View>
-                  <Text style={[
-                    styles.themeCardLabel,
-                    isActive && styles.themeCardLabelActive,
-                  ]}>
-                    {preset.name}
-                  </Text>
-                  {isActive && (
-                    <Ionicons name="checkmark-circle" size={18} color={preset.accent} style={styles.themeCheck} />
-                  )}
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
-        <Text style={styles.sectionFooter}>
-          Elegí la combinación de colores que más te guste.
-        </Text>
-
         {/* ═══════════════ ENERGÍA ═══════════════ */}
         <Text style={styles.sectionHeader}>ENERGÍA</Text>
         <View style={styles.section}>
@@ -350,7 +310,7 @@ const SettingsView = () => {
             style={styles.row}
             activeOpacity={0.7}
             onPress={() => {
-              Alert.alert("Cerrar sesión", "¿Seguro que querés cerrar sesión?", [
+              Alert.alert("Cerrar sesión", "¿Seguro que quieres cerrar sesión?", [
                 { text: "Cancelar", style: "cancel" },
                 { text: "Cerrar sesión", style: "destructive", onPress: () => signOut() },
               ]);
@@ -517,65 +477,6 @@ const createStyles = (
     fontSize: 12,
     color: colors.textTertiary,
     lineHeight: 16,
-  },
-
-  /* ─── Theme selector ─── */
-  themeGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    padding: 16,
-  },
-  themeCard: {
-    width: '30%',
-    flexGrow: 1,
-    flexBasis: '30%',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    paddingHorizontal: 8,
-    borderRadius: 14,
-    borderWidth: 2,
-    borderColor: colors.cardBorder,
-    backgroundColor: colors.screenBackground,
-  },
-  themeCardActive: {
-    borderColor: comfyColors.green,
-    backgroundColor: `${comfyColors.green}14`,
-  },
-  themePreview: {
-    width: 64,
-    height: 56,
-    borderRadius: 12,
-    overflow: 'hidden',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  themePreviewCard: {
-    width: 44,
-    height: 30,
-    borderRadius: 8,
-    borderWidth: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  themePreviewDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-  themeCardLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.textSecondary,
-  },
-  themeCardLabelActive: {
-    color: comfyColors.green,
-  },
-  themeCheck: {
-    position: 'absolute',
-    top: 6,
-    right: 6,
   },
 });
 

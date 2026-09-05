@@ -1,11 +1,14 @@
 import React from "react";
-import { View, Text, TouchableOpacity, ViewStyle, TextStyle } from "react-native";
+import { View, Text, ViewStyle, TextStyle } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../../components/theme/colors";
-import { CompleteToggle } from "../../../components/atoms/Rewards/CompleteToggle";
-import { DAY_DISPLAY_NAMES } from "../HomeView.utils";
+import { DAY_DISPLAY_NAMES, areaTituloDe } from "../HomeView.utils";
 import { ScheduledActivity } from "../../../../domain/entities/Schedule";
 import { ExtendedViewStyle } from "./styles";
+import { SwipeableActivityCard } from "../../../components/atoms/SwipeableActivityCard";
+import { AreaIcon, areaColorMap } from "../../Activity/areaIcon";
 
 interface ScheduleTimelineProps {
   nextActivities: ScheduledActivity[];
@@ -25,71 +28,85 @@ export const ScheduleTimeline = ({
   onPressActivity,
 }: ScheduleTimelineProps) => {
   const { colors, comfyColors, comfyFontColors } = useTheme();
+  const navigation = useNavigation<any>();
   const styles = React.useMemo(() => createStyles(colors, comfyColors, comfyFontColors), [colors]);
 
   const hasItems = nextActivities.length > 0 || nextDayWithItems || todayItems.length > 0;
 
   if (!hasItems) return null;
 
+  const getActionsFor = (item: ScheduledActivity) => [
+    {
+      key: "editar",
+      label: "Editar",
+      icono: "create-outline" as const,
+      color: colors.secondaryAccent,
+      onPress: () => {
+        if (item.activity) {
+          navigation.navigate("CreateActivityModal", { activityId: item.activity.id });
+        }
+      },
+    },
+    {
+      key: "ver",
+      label: "Ver detalle",
+      icono: "eye-outline" as const,
+      color: colors.accent,
+      onPress: () => onPressActivity(item),
+    },
+  ];
+
+  const renderSwipeableCard = (item: ScheduledActivity, key: string) => (
+    <SwipeableActivityCard
+      key={key}
+      actions={getActionsFor(item)}
+      onPress={() => item.activity && onPressActivity(item)}
+    >
+      <View style={styles.nextCardContent}>
+        {item.activity && (
+          <View style={[styles.cardIcon, { backgroundColor: areaColorMap[item.activity.area] }]}>
+            <AreaIcon area={item.activity.area} size={20} />
+          </View>
+        )}
+        <View style={{ flex: 1 }}>
+          <Text style={styles.nextTime}>
+            {item.assignedStartTime} - {item.assignedEndTime}
+          </Text>
+          {item.activity ? (
+            <>
+              <Text style={styles.nextTitle}>{areaTituloDe(item.activity.area)}</Text>
+              <Text style={styles.nextActivityTitle} numberOfLines={1}>
+                {item.activity.title}
+              </Text>
+            </>
+          ) : (
+            <Text style={styles.nextTitle}>
+              {item.tipo === 'trabajo' || item.tipo === 'viaje' ? '🚗 Viaje' : 'Actividad'}
+            </Text>
+          )}
+        </View>
+        <Ionicons name="chevron-forward" size={20} color={colors.iconSecondary} />
+      </View>
+    </SwipeableActivityCard>
+  );
+
   return (
-    <View style={styles.scheduleSection}>
+    <GestureHandlerRootView style={styles.scheduleSection}>
       <Text style={styles.sectionTitle}>PRÓXIMO EN TU HORARIO</Text>
       <View style={styles.timeline}>
         {nextActivities.length > 0 ? (
-          nextActivities.slice(0, 3).map((item, index) => (
-            <TouchableOpacity
-              key={`${item.activity?.id ?? item.tipo ?? index}-${index}`}
-              style={styles.nextCard}
-              activeOpacity={0.75}
-              onPress={() => item.activity && onPressActivity(item)}
-            >
-              {item.activity && (
-                <CompleteToggle
-                  completada={completadas.includes(String(item.activity.id))}
-                  nombre={item.activity.title}
-                  onToggle={() => alternarCompletada(String(item.activity!.id))}
-                />
-              )}
-              <View style={{ flex: 1 }}>
-                <Text style={styles.nextTime}>
-                  {item.assignedStartTime} - {item.assignedEndTime}
-                </Text>
-                <Text
-                  style={[
-                    styles.nextTitle,
-                    item.activity &&
-                      completadas.includes(String(item.activity.id)) &&
-                      styles.nextTitleHecha,
-                  ]}
-                >
-                  {item.activity?.title ?? (item.tipo === 'trabajo' || item.tipo === 'viaje' ? '🚗 Viaje' : 'Actividad')}
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color={colors.iconSecondary} />
-            </TouchableOpacity>
-          ))
+          nextActivities.slice(0, 3).map((item, index) =>
+            renderSwipeableCard(item, `${item.activity?.id ?? item.tipo ?? index}-${index}`)
+          )
         ) : nextDayWithItems ? (
           <>
             <Text style={styles.nextDayLabel}>{DAY_DISPLAY_NAMES[nextDayWithItems.day]}</Text>
-            {nextDayWithItems.items.slice(0, 3).map((item, index) => (
-              <TouchableOpacity
-                key={`nextday-${item.activity?.id ?? item.tipo ?? index}-${index}`}
-                style={styles.nextCard}
-                activeOpacity={0.75}
-                onPress={() => item.activity && onPressActivity(item)}
-              >
-                <View>
-                  <Text style={styles.nextTime}>
-                    {item.assignedStartTime} - {item.assignedEndTime}
-                  </Text>
-                  <Text style={styles.nextTitle}>{item.activity?.title ?? (item.tipo === 'trabajo' || item.tipo === 'viaje' ? '🚗 Viaje' : 'Actividad')}</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color={colors.iconSecondary} />
-              </TouchableOpacity>
-            ))}
+            {nextDayWithItems.items.slice(0, 3).map((item, index) =>
+              renderSwipeableCard(item, `nextday-${item.activity?.id ?? item.tipo ?? index}-${index}`)
+            )}
           </>
         ) : (
-          <View style={styles.nextCard}>
+          <View style={styles.nextCardStatic}>
             <View>
               <Text style={styles.nextTime}>
                 {todayItems.length > 0 ? "Día completado" : "Sin bloques programados"}
@@ -106,7 +123,7 @@ export const ScheduleTimeline = ({
           </View>
         )}
       </View>
-    </View>
+    </GestureHandlerRootView>
   );
 };
 
@@ -125,26 +142,36 @@ function createStyles(
       fontWeight: "900",
       letterSpacing: 0.4,
       marginBottom: 10,
-      marginLeft: 12,
+
     },
     timeline: {
-      borderLeftColor: colors.textTertiary,
-      borderLeftWidth: 1,
-      marginLeft: 22,
-      paddingLeft: 15,
       gap: 18,
     },
-    nextCard: {
+    nextCardStatic: {
       minHeight: 70,
-      borderRadius: 6,
+      borderRadius: 14,
       borderWidth: 1,
       borderColor: colors.cardBorder,
       backgroundColor: colors.cardBackground,
-      paddingHorizontal: 12,
+      paddingHorizontal: 16,
       paddingVertical: 12,
       flexDirection: "row",
       alignItems: "center",
+      justifyContent: "space-between",
       gap: 12,
+    },
+    nextCardContent: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+    },
+    cardIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: 14,
+      paddingTop: 4,
+      alignItems: "center",
+      justifyContent: "center",
     },
     nextDayLabel: {
       color: comfyColors.skyBlue,
@@ -165,9 +192,11 @@ function createStyles(
       fontSize: 15,
       fontWeight: "800",
     },
-    nextTitleHecha: {
-      textDecorationLine: 'line-through',
-      opacity: 0.55,
+    nextActivityTitle: {
+      color: colors.textTertiary,
+      fontSize: 13,
+      fontWeight: "600",
+      marginTop: 2,
     },
   };
 }

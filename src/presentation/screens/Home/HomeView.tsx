@@ -3,7 +3,10 @@ import {
   ScrollView,
   StyleSheet,
   View,
+  Text,
+  TouchableOpacity,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -17,6 +20,7 @@ import { LoadingScreen } from "../../components/atoms/Common/LoadingScreen";
 import { useFocusSessionStore } from "../../../infrastructure/store/useFocusSessionStore";
 import { useRewardsStore } from "../../../infrastructure/store/useRewardsStore";
 import { ActivityDetailModal } from "../../components/organisms/Schedule/ActivityDetailModal";
+import { useGoogleCalendarStore } from "../../../infrastructure/store/useGoogleCalendarStore";
 import { RespuestaDeCierre } from "../../../infrastructure/api/RewardsApiService";
 import { Reflexion } from "../../../domain/services/energyReflection";
 import { EnergyRecord } from "../../../application/ports/out/EnergyRepository";
@@ -26,7 +30,7 @@ import {
 
 import {
   makeEnergyLevels,
-  getIdentityLabel,
+  areaTituloDe,
   formatMinutesRemaining,
 } from "./HomeView.utils";
 import {
@@ -34,6 +38,7 @@ import {
   useTodaySchedule,
   useEnergyLevel,
   useDayClose,
+  useTipoSapo,
 } from "./hooks";
 import {
   EmptyState,
@@ -107,6 +112,7 @@ const isLight = esClaro;
 
   // ── Hooks ──
   const currentTime = useCurrentTime();
+  const { tipoSapo } = useTipoSapo();
 
   const currentMinutes = useMemo(
     () => currentTime.getHours() * 60 + currentTime.getMinutes(),
@@ -152,6 +158,10 @@ const isLight = esClaro;
     noHechas,
   });
 
+  // Google Calendar connection state
+  const googleCalendarEstado = useGoogleCalendarStore((s) => s.estado);
+  const googleCalendarConectado = googleCalendarEstado === 'conectado';
+
   const [selectedActivity, setSelectedActivity] = useState<ScheduledActivity | null>(null);
 
   // ── Derived UI state ──
@@ -162,14 +172,18 @@ const isLight = esClaro;
         pill: isCurrentTravel ? "Traslado" : "En curso",
         pillColor: isCurrentTravel ? '#C8963E' : comfyColors.green,
         pillText: isCurrentTravel ? '#F5DEB3' : comfyFontColors.green,
-        label: isCurrentTravel ? "Viaje" : getIdentityLabel(currentActivity.activity?.identity),
+        label: isCurrentTravel
+          ? "Viaje"
+          : currentActivity.activity
+          ? areaTituloDe(currentActivity.activity.area)
+          : "",
       }
     : firstNext
     ? {
         pill: "Siguiente",
         pillColor: comfyColors.skyBlue,
         pillText: comfyFontColors.skyBlue,
-        label: getIdentityLabel(firstNext.activity?.identity),
+        label: firstNext.activity ? areaTituloDe(firstNext.activity.area) : "",
       }
     : {
         pill: "Libre",
@@ -184,7 +198,6 @@ const isLight = esClaro;
     ? firstNext.activity?.title ?? 'Actividad sin nombre'
     : "Sin actividades pendientes";
 
-  // ── Area del día (para recap) ──
   const areaDelDia = useMemo(
     () =>
       calcularAreaDestacada(
@@ -217,7 +230,7 @@ const isLight = esClaro;
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
+    <SafeAreaView style={styles.safe} edges={["left", "right"]}>
       <DayModals
         diasTerminados={diasTerminados}
         racha={racha}
@@ -246,8 +259,19 @@ const isLight = esClaro;
         respuestaDelCierre={respuestaDelCierre}
         setRespuestaDelCierre={setRespuestaDelCierre}
         areaDelDia={areaDelDia}
+        startHour={startHour}
+        selectedEnergy={selectedEnergy}
       />
-      <LotusLandscape testID="lotus-card" style={styles.lotusCard} />
+      <View style={styles.lotusContainer}>
+        <LotusLandscape testID="lotus-card" style={StyleSheet.absoluteFill} />
+        <Sapo
+          key={`sapo-${tipoSapo}`}
+          estado="idle"
+          size={300}
+          style={styles.sapoOverlay}
+          tipoSapo={tipoSapo}
+        />
+      </View>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.content}
@@ -257,15 +281,24 @@ const isLight = esClaro;
           total={progreso.total}
           fraccion={progreso.fraccion}
         />
-        
-        <EnergyCard
-          selectedEnergy={selectedEnergy}
-          energyIndex={energyIndex}
-          savedEnergyIndex={savedEnergyIndex}
-          reflexion={reflexion}
-          moveEnergy={moveEnergy}
-          handleSaveEnergy={handleSaveEnergy}
-        />
+
+        {!googleCalendarConectado && (
+          <View style={styles.googleCalendarBanner}>
+            <Ionicons name="logo-google" size={24} color={colors.iconPrimary} />
+            <Text style={styles.googleCalendarBannerText}>
+              Conectá tu Google Calendar para ver tus eventos aquí
+            </Text>
+            <TouchableOpacity
+              testID="vincular-calendario"
+              style={styles.googleCalendarBannerButton}
+              onPress={() => navigation.navigate("Setting")}
+            >
+              <Text style={styles.googleCalendarBannerButtonText}>
+                Vincular ahora
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         <ScheduleStatusCards schedule={schedule} />
 
@@ -277,11 +310,11 @@ const isLight = esClaro;
           cardStatus={cardStatus}
           currentCardTitle={currentCardTitle}
           minutesLeft={minutesLeft}
+          completadas={completadas}
+          alternarCompletada={alternarCompletada}
           onPress={() => (currentActivity || firstNext) && setSelectedActivity(currentActivity || firstNext)}
           disabled={!currentActivity && !firstNext}
         />
-
-        <ChangeActions />
 
         <ScheduleTimeline
           nextActivities={nextActivities}
@@ -317,11 +350,20 @@ const createStyles = (
   },
   content: {
     paddingHorizontal: 20,
-    paddingTop: 28,
+    paddingTop: 20,
     paddingBottom: 64,
+  },
+  lotusContainer: {
+    height: 300,
+    position: 'relative',
   },
   lotusCard: {
     height: 300,
+  },
+  sapoOverlay: {
+    position: 'absolute',
+    bottom: 40,
+    alignSelf: 'center',
   },
   card: {
     backgroundColor: colors.cardBackground,
@@ -365,6 +407,39 @@ const createStyles = (
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 3 },
     elevation: 6,
+  },
+
+  googleCalendarBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: colors.cardBackground,
+    borderColor: colors.cardBorder,
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginBottom: 20,
+  },
+  googleCalendarBannerText: {
+    flex: 1,
+    color: colors.surface,
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  googleCalendarBannerButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    backgroundColor: comfyColors.green,
+  },
+  googleCalendarBannerButtonText: {
+    color: comfyFontColors.green,
+    fontSize: 14,
+    fontWeight: "800",
   },
 
   statusRow: {
@@ -467,8 +542,6 @@ const createStyles = (
     paddingVertical: 12,
     flexDirection: "row",
     alignItems: "center",
-    // Con la casilla delante, el hueco lo pone el gap y no el space-between:
-    // asi el titulo se queda pegado a su casilla en vez de irse al centro.
     gap: 12,
   },
   nextDayLabel: {

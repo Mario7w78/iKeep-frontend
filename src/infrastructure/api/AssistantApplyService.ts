@@ -65,13 +65,13 @@ export async function aplicarPropuesta(params: {
 }): Promise<ResultadoAplicado> {
   const respuesta = await backendRequest<AplicarResponseDto>(RUTA, {
     method: 'POST',
-    body: JSON.stringify({
+    body: {
       tipo: params.tipo,
       actividad: params.actividad ? activityToDto(params.actividad) : null,
       activity_id: params.activityId ?? null,
       desfase_utc_minutos: desfaseDelReloj(),
       nivel_energia: params.nivelEnergia ?? 2,
-    }),
+    },
   });
 
   return {

@@ -25,7 +25,7 @@ import { iniciarConexion } from '../../../../infrastructure/api/GoogleCalendarAp
  */
 
 /** El backend devuelve al usuario aca cuando termina el consentimiento (D6). */
-const REDIRECT_GOOGLE = 'lotus://google/callback';
+const REDIRECT_GOOGLE = 'https://ikeep-backend.onrender.com/api/v1/google/oauth/callback';
 
 export const GoogleCalendarSection: React.FC = () => {
   const { colors, comfyColors } = useTheme();

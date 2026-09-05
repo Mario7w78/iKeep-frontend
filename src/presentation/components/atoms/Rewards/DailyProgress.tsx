@@ -33,18 +33,19 @@ export const DailyProgress: React.FC<Props> = ({ completadas, total, fraccion })
     }).start();
   }, [fraccion, ancho]);
 
-  // Un día sin nada programado no tiene progreso que mostrar: no hay barra
-  // que llenar y decir "0 de 0" no significa nada.
-  if (total <= 0) return null;
+  const tieneProgreso = total > 0;
 
   return (
     <View testID="daily-progress" style={styles.contenedor}>
       <View style={styles.encabezado}>
         <Text style={styles.texto}>
-          {completadas} de {total} actividades completadas
+          {tieneProgreso
+            ? `${completadas} de ${total} actividades completadas`
+            : 'Sin actividades programadas'}
         </Text>
       </View>
 
+      {tieneProgreso && (
       <View style={styles.carril}>
         <Animated.View
           testID="daily-progress-fill"
@@ -59,6 +60,7 @@ export const DailyProgress: React.FC<Props> = ({ completadas, total, fraccion })
           ]}
         />
       </View>
+      )}
     </View>
   );
 };
@@ -75,17 +77,17 @@ const createStyles = (colors: ThemeColors) =>
     texto: {
       fontSize: TEXTO.pie,
       fontWeight: PESO.medio,
-      color: colors.textSecondary,
+      color: colors.accentText,
     },
     carril: {
-      height: 8,
+      height: 15,
       borderRadius: RADIO.pill,
-      backgroundColor: colors.cardBorder,
+      backgroundColor: colors.textTertiary,
       overflow: 'hidden',
     },
     relleno: {
       height: '100%',
       borderRadius: RADIO.pill,
-      backgroundColor: colors.secondaryAccent,
+      backgroundColor: colors.surface,
     },
   });

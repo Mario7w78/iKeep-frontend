@@ -10,7 +10,7 @@ interface Props {
   activityCount: number;
   onSelectDay: (day: DayOfWeek) => void;
   onRefresh?: () => void;
-  viewMode: 'grid' | 'list' | 'mes';
+  viewMode: 'grid' | 'list' | 'mes' | 'anual';
   onToggleViewMode: () => void;
 }
 
@@ -58,6 +58,7 @@ export function ScheduleHeader({ selectedDay, activityCount, onSelectDay, onRefr
               name={
                 viewMode === 'grid' ? 'list-outline'
                 : viewMode === 'list' ? 'calendar-outline'
+                : viewMode === 'mes' ? 'calendar-number-outline'
                 : 'grid-outline'
               }
               size={24}

@@ -14,6 +14,9 @@ import { useTheme } from '../../components/theme/colors';
 import { PrimaryButton } from '../../components/atoms/Common/PrimaryButton';
 import { useAuthStore } from '../../../infrastructure/store/useAuthStore';
 import { AuthStackParamList } from '../../navigation/AppNavigator';
+import { Sapo } from '../../components/atoms/Mascot/Sapo';
+import { useTipoSapo } from '../../screens/Home/hooks/useTipoSapo';
+import { Ionicons } from '@expo/vector-icons';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
 
@@ -21,6 +24,9 @@ export default function LoginView({ navigation }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const signInWithPassword = useAuthStore((s) => s.signInWithPassword);
+  const { tipoSapo } = useTipoSapo();
+  const recienteConfirmadoEmail = useAuthStore((s) => s.recienteConfirmadoEmail);
+  const limpiarRecienteConfirmado = useAuthStore((s) => s.limpiarRecienteConfirmado);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -32,7 +38,12 @@ export default function LoginView({ navigation }: Props) {
     setIsSubmitting(true);
     const { error: authError } = await signInWithPassword(email.trim(), password);
     setIsSubmitting(false);
-    if (authError) setError(authError);
+    if (authError) {
+      setError(authError);
+      return;
+    }
+    // El usuario ya entró: el aviso de "correo confirmado" cumplió su función.
+    limpiarRecienteConfirmado();
   };
 
   return (
@@ -42,7 +53,27 @@ export default function LoginView({ navigation }: Props) {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={styles.content}>
-          <Text style={styles.title}>Iniciar sesión</Text>
+          <View style={styles.header}>
+            <Sapo
+              estado="waving"
+              size={120}
+              tipoSapo={tipoSapo}
+              style={styles.sapo}
+            />
+            <Text style={styles.title}>Iniciar sesión</Text>
+            <Text style={styles.subtitle}>
+              Bienvenido de nuevo a Lotus
+            </Text>
+          </View>
+
+          {recienteConfirmadoEmail && (
+            <View style={styles.confirmadoCard} testID="correo-confirmado">
+              <Ionicons name="checkmark-circle" size={24} color={colors.accentText} />
+              <Text style={styles.confirmadoCardText}>
+                ¡Correo confirmado! Ya puedes iniciar sesión.
+              </Text>
+            </View>
+          )}
 
           <TextInput
             style={styles.input}
@@ -73,7 +104,7 @@ export default function LoginView({ navigation }: Props) {
           />
 
           <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
-            <Text style={styles.link}>¿No tenés cuenta? Registrate</Text>
+            <Text style={styles.link}>¿No tienes cuenta? Regístrate</Text>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -89,13 +120,25 @@ const createStyles = (colors: ReturnType<typeof useTheme>['colors']) =>
       flex: 1,
       justifyContent: 'center',
       paddingHorizontal: 24,
-      gap: 12,
+      gap: 16,
+    },
+    header: {
+      alignItems: 'center',
+      marginBottom: 8,
+      gap: 8,
+    },
+    sapo: {
+      marginBottom: 4,
     },
     title: {
       fontSize: 28,
       fontWeight: '900',
       color: colors.surface,
-      marginBottom: 16,
+      textAlign: 'center',
+    },
+    subtitle: {
+      fontSize: 16,
+      color: colors.textSecondary,
       textAlign: 'center',
     },
     input: {
@@ -123,5 +166,23 @@ const createStyles = (colors: ReturnType<typeof useTheme>['colors']) =>
       fontSize: 14,
       textAlign: 'center',
       marginTop: 16,
+    },
+    confirmadoCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      backgroundColor: colors.success,
+      borderRadius: 14,
+      paddingVertical: 14,
+      paddingHorizontal: 16,
+      borderWidth: 2,
+      borderColor: colors.accentText,
+    },
+    confirmadoCardText: {
+      flex: 1,
+      color: colors.accentText,
+      fontSize: 15,
+      fontWeight: '700',
+      lineHeight: 20,
     },
   });

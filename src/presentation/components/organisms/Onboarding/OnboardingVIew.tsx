@@ -41,9 +41,9 @@ const SLIDES = [
   },
   {
     id: "2",
-    title: "¡Listo para empezar!",
+    title: "Deja que se encargue Sapo",
     description:
-      "Establezcamos tus límites diarios para acomodar tus actividades.",
+      "Sapo sostiene tu agenda y te avisa qué sigue, para que no tengas que pensar en tu plan.",
     showTimePicker: false,
     showUsernameInput: false,
   },
@@ -232,8 +232,17 @@ export default function OnBoardingView() {
                     />
                   </View>
                 )}
-                <Text style={styles.title}>{item.title}</Text>
-                <Text style={styles.description}>{item.description}</Text>
+                <Text style={[styles.title, item.id === "2" && styles.titleCompact]}>
+                  {item.title}
+                </Text>
+                <Text
+                  style={[
+                    styles.description,
+                    item.id === "2" && styles.descriptionCompact,
+                  ]}
+                >
+                  {item.description}
+                </Text>
 
                 {item.showUsernameInput && (
                   <View style={styles.pickerContainer}>
@@ -279,7 +288,13 @@ export default function OnBoardingView() {
                           themeVariant="dark"
                           textColor={colors.surface}
                           onChange={(_, selectedDate) => {
-                            if (selectedDate) setStartTime(selectedDate);
+                            if (selectedDate) {
+                              const hours = selectedDate.getHours();
+                              // Hora de inicio: solo AM (0-11, es decir, madrugada a mediodía)
+                              if (hours >= 0 && hours <= 11) {
+                                setStartTime(selectedDate);
+                              }
+                            }
                             if (Platform.OS !== "ios") setShowStartPicker(false);
                           }}
                           style={styles.iosPicker}
@@ -317,7 +332,13 @@ export default function OnBoardingView() {
                           themeVariant="dark"
                           textColor={colors.surface}
                           onChange={(_, selectedDate) => {
-                            if (selectedDate) setEndTime(selectedDate);
+                            if (selectedDate) {
+                              const hours = selectedDate.getHours();
+                              // Hora de fin: solo madrugada (0-6, es decir, medianoche a 6 AM)
+                              if (hours >= 0 && hours <= 6) {
+                                setEndTime(selectedDate);
+                              }
+                            }
                             if (Platform.OS !== "ios") setShowEndPicker(false);
                           }}
                           style={styles.iosPicker}
@@ -402,11 +423,22 @@ function createStyles(
       textAlign: "center",
       marginBottom: 12,
     },
+    // Slide "Deja que se encargue Sapo": el texto baja de tamaño para no
+    // competir con el mensaje, porque esta slide no pide nada (es puro
+    // presentación) y ya hay demasiado ruido en los onboarding.
+    titleCompact: {
+      fontSize: 20,
+      marginBottom: 8,
+    },
     description: {
       fontSize: 16,
       color: colors.textSecondary,
       textAlign: "center",
       lineHeight: 24,
+    },
+    descriptionCompact: {
+      fontSize: 13,
+      lineHeight: 19,
     },
     pickerContainer: {
       width: "100%",

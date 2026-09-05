@@ -41,7 +41,7 @@ interface Props {
  */
 export const MessageBubble: React.FC<Props> = ({
   message,
-  isLatest,
+  isLatest: _isLatest,
   onRetry,
   onViewActivity,
   onConfirmPending,
@@ -66,10 +66,9 @@ export const MessageBubble: React.FC<Props> = ({
     <View style={[styles.row, isUser ? styles.rowUser : styles.rowAI]}>
       {!isUser && (
         <View style={styles.avatarContainer}>
-          {/* Solo el ultimo se mueve: un LottieView animandose por cada
-              mensaje seria caro en gama media, y la conversacion se siente
-              viva igual porque el movimiento esta donde el usuario mira. */}
-          <Sapo testID="sapo-avatar" estado="idle" tamano={32} animar={isLatest} />
+          {/* El size va menor que el circulo (avatarContainer) para que el
+              sapo se vea centrado dentro de el y no recortado. */}
+          <Sapo testID="sapo-avatar" estado="idle" size={24} />
         </View>
       )}
       <View

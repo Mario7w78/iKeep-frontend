@@ -13,6 +13,7 @@ interface Props {
   size?: number;
   style?: StyleProp<ViewStyle>;
   tipoSapo?: 0 | 1 | 2;
+  testID?: string;
 }
 
 const DEFAULT_SIZE = 96;
@@ -23,6 +24,7 @@ export const Sapo: React.FC<Props> = ({
   size = DEFAULT_SIZE,
   style,
   tipoSapo = 0,
+  testID,
 }) => {
   const { riveFile } = useRiveFile(require('../../../../../assets/mascot/sapo_animations.riv'));
   const { instance, isLoading } = useViewModelInstance(riveFile, { async: true });
@@ -49,11 +51,11 @@ export const Sapo: React.FC<Props> = ({
 
   // ✅ FIX: check instance también
   if (!riveFile || isLoading || !instance) {
-    return <View style={[{ width: size, height: size }, style]} />;
+    return <View testID={testID} style={[{ width: size, height: size }, style]} />;
   }
 
   return (
-    <View style={[{ width: size, height: size, overflow: "hidden" }, style]}>
+    <View testID={testID} style={[{ width: size, height: size, overflow: "hidden" }, style]}>
       <RiveView
         file={riveFile}
         dataBind={instance}

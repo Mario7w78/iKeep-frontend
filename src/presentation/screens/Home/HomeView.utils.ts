@@ -4,6 +4,7 @@
  */
 
 import { comfyColors } from "../../components/theme/colors";
+import { AreaDeVida, AREAS } from "../../../domain/entities/lifeArea";
 
 /** Niveles de energía con sus metadatos visuales */
 export const ENERGY_LEVELS_CONFIG = [
@@ -53,15 +54,6 @@ export const toMinutes = (time: string): number => {
   return hours * 60 + minutes;
 };
 
-/** Mapea identity a label legible */
-export const getIdentityLabel = (val?: string): string => {
-  switch (val) {
-    case "clase": return "Clase";
-    case "trabajo": return "Trabajo";
-    default: return "Tarea";
-  }
-};
-
 /** Formatea minutos a string legible (ej: "2h 30m", "45m") */
 export const formatMinutesRemaining = (minutes: number | null): string => {
   if (minutes === null) return "--";
@@ -73,6 +65,10 @@ export const formatMinutesRemaining = (minutes: number | null): string => {
 
 /** Días de historial de energía a cargar */
 export const DIAS_DE_HISTORIAL = 30;
+
+/** Nombre legible de un área, para que la etiqueta coincida con su icono. */
+export const areaTituloDe = (area: AreaDeVida): string =>
+  AREAS.find((a) => a.valor === area)?.titulo ?? area;
 
 /** Genera la config de gradientes por tema */
 export const makeEnergyLevels = (

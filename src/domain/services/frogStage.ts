@@ -11,10 +11,10 @@
 export type EtapaSapo = 'bebé' | 'niño' | 'adulto';
 
 /** Días de racha para pasar de bebé a niño. */
-export const RACHA_NIÑO = 7;
+export const RACHA_NIÑO = 8;
 
 /** Días de racha para pasar de niño a adulto. */
-export const RACHA_ADULTO = 30;
+export const RACHA_ADULTO = 31;
 
 /**
  * La etapa que le toca a una racha.
@@ -27,3 +27,17 @@ export function frogStageDe(rachaActual: number): EtapaSapo {
   if (rachaActual >= RACHA_NIÑO) return 'niño';
   return 'bebé';
 }
+
+/**
+ * El index del artboard (`Baby_Sapo`, `Kid_Sapo`, `Adult_Sapo`) que le
+ * corresponde a una etapa.
+ *
+ * Es el puente entre el dominio (la etapa) y Rive (el artboard): el Home le
+ * pasa este número al `Sapo` como `tipoSapo`, y al cambiar obliga a recrear
+ * el componente con la nueva apariencia.
+ */
+export const TIPO_SAPO_POR_ETAPA: Record<EtapaSapo, 0 | 1 | 2> = {
+  bebé: 0,
+  niño: 1,
+  adulto: 2,
+};

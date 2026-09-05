@@ -8,11 +8,18 @@ import {
   Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Ionicons } from "@expo/vector-icons";
 import { useActivityStore, useScheduleStore } from "../../../di/Dependencies";
 import { useTheme } from "../../components/theme/colors";
 import { Activity } from "../../../domain/entities/Activity";
 import { ActivityConfigDetailModal } from "../../components/organisms/Activity/ActivityConfigDetailModal";
+import { AreaIcon, areaColorMap } from "./areaIcon";
+import { areaTituloDe } from "../Home/HomeView.utils";
+import {
+  SwipeableActivityCard,
+  SwipeAction,
+} from "../../components/atoms/SwipeableActivityCard";
 
 export default function ManageActivitiesView({ navigation, route }: any) {
   const { colors, comfyColors, comfyFontColors } = useTheme();
@@ -62,34 +69,27 @@ export default function ManageActivitiesView({ navigation, route }: any) {
     );
   };
 
-  const getIdentityIcon = (val: string) => {
-    switch (val) {
-      case "clase": return "school-outline";
-      case "trabajo": return "briefcase-outline";
-      case "tarea": return "document-text-outline";
-      default: return "document-text-outline";
-    }
-  };
-
-  const getIdentityColor = (val: string) => {
-    switch (val) {
-      case "clase": return comfyColors.skyBlue;
-      case "trabajo": return comfyColors.orange;
-      case "tarea": return comfyColors.green;
-      default: return comfyColors.green;
-    }
-  };
-
-  const getIdentityLabel = (val: string) => {
-    switch (val) {
-      case "clase": return "Clase";
-      case "trabajo": return "Trabajo";
-      case "tarea": return "Tarea";
-      default: return val;
-    }
-  };
+  // Acciones ocultas del card: se revelan al deslizar hacia la izquierda.
+  // `SwipeableActivityCard` se encarga de cerrar el swipe al presionar.
+  const getSwipeActions = (item: Activity): SwipeAction[] => [
+    {
+      key: "editar",
+      label: "Editar",
+      icono: "create-outline",
+      color: colors.secondaryAccent,
+      onPress: () => navigation.navigate("CreateActivityModal", { activityId: item.id }),
+    },
+    {
+      key: "eliminar",
+      label: "Eliminar",
+      icono: "trash-outline",
+      color: colors.error,
+      onPress: () => onDelete(item.id, item.title),
+    },
+  ];
 
   return (
+    <GestureHandlerRootView style={styles.safe}>
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
         {navigation.canGoBack?.() && (
@@ -106,48 +106,35 @@ export default function ManageActivitiesView({ navigation, route }: any) {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         renderItem={({ item }) => (
-          <View style={styles.activityCard}>
-            <TouchableOpacity 
-              style={styles.cardInfo}
-              activeOpacity={0.7}
-              onPress={() => setSelectedActivity(item)}
-            >
-              <View style={styles.cardInfoRow}>
-                <View style={[styles.cardIcon, { backgroundColor: getIdentityColor(item.identity) + '20' }]}>
-                  <Ionicons
-                    name={getIdentityIcon(item.identity)}
-                    size={20}
-                    color={getIdentityColor(item.identity)}
-                  />
-                </View>
-                <View style={styles.cardInfoText}>
-                  <Text style={styles.activityTitle}>{item.title}</Text>
-                  <View style={styles.badgeRow}>
-                    <View style={styles.badge}>
-                      <Text style={styles.badgeText}>{getIdentityLabel(item.identity)}</Text>
-                    </View>
-                    <View style={[styles.badge, styles.difficultyBadge]}>
-                      <Text style={styles.badgeText}>Dificultad: {item.difficulty}</Text>
-                    </View>
+          <SwipeableActivityCard
+            actions={getSwipeActions(item)}
+            onPress={() => setSelectedActivity(item)}
+          >
+            <View style={styles.cardInfoRow}>
+              <View
+                style={[styles.cardIcon, { backgroundColor: areaColorMap[item.area] }]}
+              >
+                <AreaIcon area={item.area} size={20} />
+              </View>
+              <View style={styles.cardInfoText}>
+                <Text
+                  style={styles.activityTitle}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
+                  {item.title}
+                </Text>
+                <View style={styles.badgeRow}>
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>{areaTituloDe(item.area)}</Text>
+                  </View>
+                  <View style={[styles.badge, styles.difficultyBadge]}>
+                    <Text style={styles.badgeText}>Dificultad: {item.difficulty}</Text>
                   </View>
                 </View>
               </View>
-            </TouchableOpacity>
-            <View style={styles.actionButtonsCol}>
-              <TouchableOpacity
-                style={styles.editButton}
-                onPress={() => navigation.navigate("CreateActivityModal", { activityId: item.id })}
-              >
-                <Ionicons name="create-outline" size={22} color={colors.iconPrimary} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.deleteButton}
-                onPress={() => onDelete(item.id, item.title)}
-              >
-                <Ionicons name="trash-outline" size={22} color={colors.error} />
-              </TouchableOpacity>
             </View>
-          </View>
+          </SwipeableActivityCard>
         )}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
@@ -179,6 +166,7 @@ export default function ManageActivitiesView({ navigation, route }: any) {
         onClose={() => setSelectedActivity(null)}
       />
     </SafeAreaView>
+    </GestureHandlerRootView>
   );
 }
 
@@ -217,19 +205,6 @@ const createStyles = (
     padding: 16,
     gap: 12,
   },
-  activityCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.cardBackground,
-    borderColor: colors.cardBorder,
-    borderWidth: 1,
-    borderRadius: 18,
-    padding: 16,
-    justifyContent: "space-between",
-  },
-  cardInfo: {
-    flex: 1,
-  },
   cardInfoRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -239,6 +214,7 @@ const createStyles = (
     width: 40,
     height: 40,
     borderRadius: 14,
+    paddingTop: 4,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -268,21 +244,6 @@ const createStyles = (
     color: colors.textSecondary,
     fontSize: 12,
     fontWeight: "800",
-  },
-  deleteButton: {
-    padding: 8,
-    borderRadius: 12,
-    backgroundColor: `${colors.error}20`,
-  },
-  actionButtonsCol: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  editButton: {
-    padding: 8,
-    borderRadius: 12,
-    backgroundColor: `${colors.iconPrimary}20`,
   },
   emptyContainer: {
     alignItems: "center",

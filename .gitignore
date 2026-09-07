@@ -42,3 +42,5 @@ yarn-error.*
 /android
 
 .atl/
+# Graphify (grafo generado de la base de codigo)
+graphify-out/

@@ -28,6 +28,7 @@ export function comandoAActividad(cmd: CreateActivityCommand): Activity {
     dayTo: cmd.dayTo,
     isAnchor: cmd.isAnchor ?? false,
     fechaUnica: cmd.fechaUnica ?? null,
+    description: cmd.description ?? null,
   };
 
   return new Activity(props);

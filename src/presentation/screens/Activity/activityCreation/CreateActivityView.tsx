@@ -270,6 +270,8 @@ export default function CreateActivityView({ navigation, route }: any) {
     setPriority,
     setDifficulty,
     setDeadline,
+    description,
+    setDescription,
     setDurationTime,
     setTravelToValue,
     setTravelFromValue,
@@ -349,6 +351,7 @@ export default function CreateActivityView({ navigation, route }: any) {
       setPriority(act.priority === 5 ? "alta" : act.priority === 3 ? "media" : "baja");
       setDifficulty(act.difficulty);
       setDeadline(act.deadline ? new Date(act.deadline) : null);
+      setDescription(act.description ?? "");
       setPreferredStartTime(act.preferredStartTime ?? null);
       setPreferredEndTime(act.preferredEndTime ?? null);
       setOptionalDay(act.optionalDay ?? false);
@@ -635,7 +638,8 @@ export default function CreateActivityView({ navigation, route }: any) {
     setDifficulty(previo.difficulty);
     setPriority(previo.priority);
     setDeadline(previo.deadline ? new Date(previo.deadline) : null);
-    // Solo al montar: reaplicarlo en cada cambio pisaria lo que el usuario
+    setDescription(previo.description ?? "");
+    // Solo al montar: reaplicarlo en cada cambio pisaría lo que el usuario
     // acaba de escribir con lo que habia guardado antes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -659,6 +663,7 @@ export default function CreateActivityView({ navigation, route }: any) {
       difficulty,
       priority,
       deadline: deadline ? deadline.toISOString() : null,
+      description,
     });
   }, [
     esCreacion,
@@ -671,6 +676,7 @@ export default function CreateActivityView({ navigation, route }: any) {
     difficulty,
     priority,
     deadline,
+    description,
     guardarBorrador,
   ]);
 
@@ -881,6 +887,8 @@ export default function CreateActivityView({ navigation, route }: any) {
             onSetDifficulty={setDifficulty}
             onSetPriority={setPriority}
             onSetDeadline={setDeadline}
+            description={description}
+            onSetDescription={setDescription}
             isAnchor={isAnchor}
             onToggleAnchor={setIsAnchor}
             selectedDays={selectedDays}

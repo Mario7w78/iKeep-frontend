@@ -11,7 +11,6 @@ export interface DayLimits {
 interface AppState {
   hasSeenOnboarding: boolean;
   username: string;
-  themeId: string;
   /**
    * Day limits chosen during onboarding, waiting for a session.
    *
@@ -24,7 +23,6 @@ interface AppState {
   pendingDayLimits: DayLimits | null;
   setHasSeenOnboarding: (value: boolean) => void;
   setUsername: (name: string) => void;
-  setThemeId: (id: string) => void;
   setPendingDayLimits: (limits: DayLimits) => void;
   clearPendingDayLimits: () => void;
 }
@@ -34,11 +32,9 @@ export const useAppStore = create<AppState>()(
     (set) => ({
       hasSeenOnboarding: false,
       username: '',
-      themeId: 'default',
       pendingDayLimits: null,
       setHasSeenOnboarding: (value) => set({ hasSeenOnboarding: value }),
       setUsername: (name) => set({ username: name }),
-      setThemeId: (id) => set({ themeId: id }),
       setPendingDayLimits: (limits) => set({ pendingDayLimits: limits }),
       clearPendingDayLimits: () => set({ pendingDayLimits: null }),
     }),

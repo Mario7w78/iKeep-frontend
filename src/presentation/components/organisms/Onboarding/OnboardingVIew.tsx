@@ -283,6 +283,12 @@ export default function OnBoardingView() {
                           value={
                             startTime || new Date(new Date().setHours(4, 0, 0, 0))
                           }
+                          minimumDate={
+                            new Date(new Date().setHours(0, 0, 0, 0))
+                          }
+                          maximumDate={
+                            new Date(new Date().setHours(11, 59, 59, 999))
+                          }
                           mode="time"
                           display="spinner"
                           themeVariant="dark"
@@ -325,7 +331,13 @@ export default function OnBoardingView() {
                       <View style={styles.iosPickerCard}>
                         <DateTimePicker
                           value={
-                            endTime || new Date(new Date().setHours(22, 0, 0, 0))
+                            endTime || new Date(new Date().setHours(2, 0, 0, 0))
+                          }
+                          minimumDate={
+                            new Date(new Date().setHours(0, 0, 0, 0))
+                          }
+                          maximumDate={
+                            new Date(new Date().setHours(6, 59, 59, 999))
                           }
                           mode="time"
                           display="spinner"

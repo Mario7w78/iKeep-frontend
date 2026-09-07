@@ -27,6 +27,11 @@ export interface ActivityProps {
     dayTo?: number;
     isAnchor?: boolean;
     /**
+     * Nota libre de la persona ("para qué es esto"). No participa del solver:
+     * es texto que se muestra tal cual. null = sin descripción.
+     */
+    description?: string | null;
+    /**
      * Si está puesta, la actividad ocurre una sola vez ese día y los días de
      * la semana no aplican. Viaja como string local `YYYY-MM-DD`, nunca por
      * UTC. Es lo que permite representar un parcial.
@@ -53,6 +58,8 @@ export class Activity {
     readonly isAnchor?: boolean;
     /** Fecha puntual `YYYY-MM-DD`; null cuando la actividad se repite. */
     readonly fechaUnica: string | null;
+    /** Nota libre de la persona; null cuando la actividad no tiene descripción. */
+    readonly description: string | null;
 
     constructor(props: ActivityProps) {
         this.id = props.id;
@@ -76,6 +83,7 @@ export class Activity {
         this.dayTo = props.dayTo;
         this.isAnchor = props.isAnchor ?? false;
         this.fechaUnica = props.fechaUnica ?? null;
+        this.description = props.description ?? null;
     }
 
     isFixed(): boolean {

@@ -66,7 +66,7 @@ describe('CachedActivityRepository', () => {
     /** Esta es la razon de existir: el backend dormido no deja al usuario
      *  sin sus datos. */
     leer.mockResolvedValue(
-      JSON.stringify({ v: 1, data: [{ id: 'b', title: 'Vieja', type: 'fija' }] })
+      JSON.stringify({ v: 2, data: [{ id: 'b', title: 'Vieja', type: 'fija' }] })
     );
     interno.getAll.mockRejectedValue(new Error('timeout'));
 
@@ -86,7 +86,7 @@ describe('CachedActivityRepository', () => {
 
   it('leer en cache no evita ir al servidor', async () => {
     /** La cache adelanta la respuesta, no reemplaza la verdad. */
-    leer.mockResolvedValue(JSON.stringify({ v: 1, data: [] }));
+    leer.mockResolvedValue(JSON.stringify({ v: 2, data: [] }));
 
     await repo.getAll();
 

@@ -19,11 +19,12 @@ import { restoreDaysConfig } from './daysConfigMapper';
  * de Activity.
  */
 
-const VERSION = 1;
+const VERSION = 2;
 
 interface ActivitySnapshot {
   id: string;
   title: string;
+  description?: string | null;
   type: string;
   area?: string;
   identity?: string;
@@ -42,6 +43,7 @@ function aSnapshot(activity: Activity): ActivitySnapshot {
   return {
     id: String(activity.id),
     title: activity.title,
+    description: activity.description,
     type: activity.type,
     area: activity.area,
     identity: activity.identity,
@@ -75,6 +77,7 @@ function desdeSnapshot(snapshot: ActivitySnapshot): Activity {
     dayFrom: snapshot.dayFrom ?? undefined,
     dayTo: snapshot.dayTo ?? undefined,
     isAnchor: snapshot.isAnchor ?? false,
+    description: snapshot.description ?? null,
   });
 }
 

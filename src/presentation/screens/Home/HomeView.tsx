@@ -213,7 +213,11 @@ const isLight = esClaro;
   );
 
   // ── Empty states ──
-  if (cargandoActividades && !activities.length) {
+  // isLoading arranca en true en el store, asi que cubre el primer frame.
+  // Ademas hay que esperar a que el horario termine de hidratarse desde
+  // storage (isLoadedFromStorage), o el render principal mostraria
+  // "Sin bloques programados" un instante antes de saber si hay horario.
+  if ((cargandoActividades && !activities.length) || !isLoadedFromStorage) {
     return (
       <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
         <LoadingScreen />

@@ -60,9 +60,10 @@ export default function LoginView({ navigation }: Props) {
               tipoSapo={tipoSapo}
               style={styles.sapo}
             />
+            <Text style={styles.wordmark} testID="wordmark">Lotus</Text>
             <Text style={styles.title}>Iniciar sesión</Text>
             <Text style={styles.subtitle}>
-              Bienvenido de nuevo a Lotus
+              Qué bueno verte de nuevo. Sapo te estuvo esperando.
             </Text>
           </View>
 
@@ -125,21 +126,29 @@ const createStyles = (colors: ReturnType<typeof useTheme>['colors']) =>
     header: {
       alignItems: 'center',
       marginBottom: 8,
-      gap: 8,
+      gap: 6,
     },
     sapo: {
-      marginBottom: 4,
+      marginBottom: 8,
+    },
+    wordmark: {
+      fontSize: 18,
+      fontWeight: '900',
+      letterSpacing: 4,
+      textTransform: 'uppercase',
+      color: colors.accent,
     },
     title: {
-      fontSize: 28,
+      fontSize: 26,
       fontWeight: '900',
       color: colors.surface,
       textAlign: 'center',
     },
     subtitle: {
-      fontSize: 16,
+      fontSize: 15,
       color: colors.textSecondary,
       textAlign: 'center',
+      lineHeight: 21,
     },
     input: {
       backgroundColor: colors.cardBackground,

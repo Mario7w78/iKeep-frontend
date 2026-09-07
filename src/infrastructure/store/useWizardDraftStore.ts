@@ -22,7 +22,7 @@ import { restoreDaysConfig } from '../repositories/daysConfigMapper';
  */
 
 /** Sube cuando cambia la forma del borrador; lo guardado con otra se descarta. */
-const VERSION = 2;
+const VERSION = 3;
 
 export interface BorradorWizard {
   activityName: string;
@@ -35,6 +35,8 @@ export interface BorradorWizard {
   difficulty: 'baja' | 'media' | 'alta';
   priority: 'baja' | 'media' | 'alta';
   deadline: string | null;
+  /** Nota libre de la persona; cadena vacía = sin descripción. */
+  description: string;
   /** Momento en que se guardó, para poder caducarlo. */
   guardadoEn: number;
 }

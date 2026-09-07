@@ -2,7 +2,9 @@ import { ScheduledActivity, Schedule } from '../../domain/entities/Schedule';
 import { NotificationScheduler } from '../../application/ports/out/NotificationScheduler';
 import { dayOfWeekToExpoWeekday } from '../../presentation/utils/scheduleUtils';
 
-const DEFAULT_CAP = 60; // iOS descarta silenciosamente notificaciones locales más allá de 64 pendientes.
+// Cada actividad programa 2 notificaciones (10 min antes + inicio) e iOS
+// descarta silenciosamente locales pendientes más allá de 64: cap de 32.
+const DEFAULT_CAP = 32;
 
 export function selectNotifiableOccurrences(
   items: ScheduledActivity[],
@@ -22,8 +24,20 @@ export function selectNotifiableOccurrences(
   return { included, truncatedCount };
 }
 
-function buildIdentifier(item: ScheduledActivity): string {
-  return `schedule:${item.activity!.id}:${item.day}:${item.assignedStartTime}`;
+function buildIdentifier(item: ScheduledActivity, sufijo: string): string {
+  return `schedule:${item.activity!.id}:${item.day}:${item.assignedStartTime}:${sufijo}`;
+}
+
+/** Resta minutos al horario; devuelve null si cruza al día anterior (inicio
+ * 00:00-00:09 no puede tener aviso previo sin cambiar de día). */
+function timeMinusMinutes(
+  hour: number,
+  minute: number,
+  minutos: number
+): { hour: number; minute: number } | null {
+  const total = hour * 60 + minute - minutos;
+  if (total < 0) return null;
+  return { hour: Math.floor(total / 60), minute: total % 60 };
 }
 
 export async function syncActivityNotifications(
@@ -50,16 +64,36 @@ export async function syncActivityNotifications(
     }
 
     const results = await Promise.allSettled(
-      included.map((item) => {
+      included.flatMap((item) => {
         const [hour, minute] = item.assignedStartTime.split(':').map(Number);
-        return scheduler.scheduleWeekly({
-          identifier: buildIdentifier(item),
-          title: item.activity!.title,
+        const title = item.activity!.title;
+
+        // Aviso de "empieza en 10 minutos" (solo si no cruza de día).
+        const previo = timeMinusMinutes(hour, minute, 10);
+        const avisos = previo
+          ? [{
+              identifier: buildIdentifier(item, 'previo'),
+              title,
+              body: 'Empieza en 10 minutos',
+              weekday: dayOfWeekToExpoWeekday(item.day),
+              hour: previo.hour,
+              minute: previo.minute,
+            }]
+          : [];
+
+        // Aviso de la hora exacta.
+        avisos.push({
+          identifier: buildIdentifier(item, 'inicio'),
+          title,
           body: 'Empieza ahora',
           weekday: dayOfWeekToExpoWeekday(item.day),
           hour,
           minute,
         });
+
+        return avisos.map((aviso) =>
+          scheduler.scheduleWeekly(aviso)
+        );
       })
     );
 

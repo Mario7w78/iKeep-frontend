@@ -21,17 +21,13 @@ const RUTA_CONFIRMAR = 'confirmar-email';
  */
 export function useConfirmacionEmail() {
   const confirmarEmail = useAuthStore((s) => s.confirmarEmail);
+  const marcarRecienteConfirmado = useAuthStore((s) => s.marcarRecienteConfirmado);
 
   useEffect(() => {
     // middleware que decide si una URL es la de confirmación y, de ser así,
     // la confirma.
     const procesarUrl = async (url: string) => {
-      // LOG TEMPORAL: para diagnóstico del TODO #7. Captura la URL exacta que
-      // llega a la app por el deep link. Eliminar cuando se confirme el flujo.
-      console.log('[useConfirmacionEmail] URL recibida por deep link:', url);
-
       const { hostname, queryParams } = Linking.parse(url);
-      console.log('[useConfirmacionEmail] hostname:', hostname, 'queryParams:', JSON.stringify(queryParams));
       if (hostname !== RUTA_CONFIRMAR) return;
 
       // Supabase manda el credencial como `token` (flujo de confirmación de
@@ -42,13 +38,18 @@ export function useConfirmacionEmail() {
       const { error } = await confirmarEmail(credencial);
       // El resultado de la confirmación (sesión creada o error) ya lo maneja el
       // store de auth: onAuthStateChange actualiza `session` y la UI reacciona.
-      // En este hook solo nos interesa registrar que el flujo terminó.
       if (error) {
         // Si falla, no rompemos en silencio: se deja registro para debugging.
         // El usuario podría tener el email pendiente aún y reintentar.
         // TODO: exponer este error a la UI (banner/toast) cuando exista.
         console.warn('[useConfirmacionEmail] No se pudo confirmar el email:', error);
+        return;
       }
+
+      // Confirmado: se marca para que Login muestre el aviso de "correo
+      // confirmado, ya podés iniciar sesión". LimpiarRecienteConfirmado lo
+      // apaga cuando el usuario efectivamente entra.
+      marcarRecienteConfirmado();
     };
 
     // URL inicial: la app arrancó porque el usuario tocó el enlace.
@@ -63,5 +64,6 @@ export function useConfirmacionEmail() {
     });
 
     return () => sub.remove();
-  }, [confirmarEmail]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [confirmarEmail, marcarRecienteConfirmado]);
 }

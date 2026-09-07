@@ -96,27 +96,39 @@ jest.mock('../../../../infrastructure/persistence/EnergyHistoryService', () => (
 }));
 
 const mockSetSelectedDay = jest.fn();
-jest.mock('../../../../di/Dependencies', () => ({
-  useScheduleStore: (selector: any) => {
-    const state = {
-      activitiesForDay: () => [],
-      handleGenerateSchedule: jest.fn(),
-      isLoading: false,
-      schedule: { getAllItems: () => [{ id: 'x' }], getItemsByDay: () => [] },
-      selectedDay: 'Lunes',
-      setSelectedDay: mockSetSelectedDay,
-      startHour: 8,
-      endHour: 22,
-      perDayStartHours: null,
-      perDayEndHours: null,
-    };
-    return selector ? selector(state) : state;
-  },
-  useActivityStore: (selector: any) => {
+
+// Project's Jest config allows mock-prefixed vars in jest.mock factories.
+// Zustand's create() runs its initializer synchronously AT FACTORY TIME, which
+// happens during import hoisting — before mockSetSelectedDay is assigned. So
+// the store is created with placeholder setters and the real jest.fn()s are
+// injected in beforeEach via the store API.
+let mockScheduleStoreApi: { setState: (partial: Partial<any>) => void };
+jest.mock('../../../../di/Dependencies', () => {
+  const { create } = require('zustand');
+  const useScheduleStoreMock = create(() => ({
+    activitiesForDay: () => [],
+    handleGenerateSchedule: jest.fn(),
+    isLoading: false,
+    schedule: { getAllItems: () => [{ id: 'x' }], getItemsByDay: () => [] },
+    selectedDay: 'Lunes',
+    setSelectedDay: jest.fn(),
+    startHour: 8,
+    endHour: 22,
+    perDayStartHours: null,
+    perDayEndHours: null,
+    calendarViewMode: 'grid',
+    setCalendarViewMode: jest.fn(),
+  }));
+  mockScheduleStoreApi = useScheduleStoreMock;
+  const useActivityStoreMock = (selector: any) => {
     const state = { activities: [], loadActivities: mockLoadActivities, isLoading: false };
     return selector ? selector(state) : state;
-  },
-}));
+  };
+  return {
+    useScheduleStore: useScheduleStoreMock,
+    useActivityStore: useActivityStoreMock,
+  };
+});
 
 const mockLoadActivities = jest.fn();
 
@@ -157,6 +169,15 @@ describe('ScheduleView en modo mes', () => {
     mockNavigate.mockClear();
     mockSetSelectedDay.mockClear();
     mockLoadActivities.mockReset().mockResolvedValue(undefined);
+    // El store simulado vive fuera del mock factory (hoisting): se le
+    // reinyectan los jest.fn y los setters que mutan de verdad, para que
+    // irAMes (dos toques del toggle) cambie grid -> list -> mes.
+    mockScheduleStoreApi.setState({
+      setSelectedDay: mockSetSelectedDay,
+      calendarViewMode: 'grid',
+      setCalendarViewMode: (mode: any) =>
+        mockScheduleStoreApi.setState({ calendarViewMode: mode }),
+    });
     alertaEspia = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
     useCalendarStore.setState({
       mesVisible: new Date(2026, 8, 15),

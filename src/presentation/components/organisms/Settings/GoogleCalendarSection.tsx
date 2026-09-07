@@ -24,8 +24,12 @@ import { iniciarConexion } from '../../../../infrastructure/api/GoogleCalendarAp
  * NINGUNA otra parte de la app (D7).
  */
 
-/** El backend devuelve al usuario aca cuando termina el consentimiento (D6). */
-const REDIRECT_GOOGLE = 'https://ikeep-backend.onrender.com/api/v1/google/oauth/callback';
+/** El backend devuelve al usuario por este deep link cuando termina el
+ * consentimiento: primero Google manda el navegador al callback del backend
+ * (donde se cambia el code por tokens) y el backend reenvía un 302 hacia aca.
+ * Por eso el redirectUrl de la app es el deep link lotus://, no la URL https
+ * de ese callback (D6). */
+const REDIRECT_GOOGLE = 'lotus://google/callback';
 
 export const GoogleCalendarSection: React.FC = () => {
   const { colors, comfyColors } = useTheme();

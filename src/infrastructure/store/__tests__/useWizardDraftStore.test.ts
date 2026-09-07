@@ -26,6 +26,7 @@ const BASE: Omit<BorradorWizard, 'guardadoEn'> = {
   difficulty: 'media',
   priority: 'alta',
   deadline: null,
+  description: '',
 };
 
 beforeEach(() => {

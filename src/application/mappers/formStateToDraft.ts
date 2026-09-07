@@ -27,9 +27,10 @@ export function formStateToDraft(
     daysDict: estado.daysDict ?? {},
     difficulty: estado.difficulty ?? 'media',
     priority: estado.priority ?? 'media',
-    // El borrador viaja por AsyncStorage, así que las fechas van como texto:
-    // un Date no sobrevive la serialización y volvería como string igual,
-    // pero sin que nadie lo haya decidido.
+    // deadline: null — el borrador viaja por AsyncStorage, así que las fechas
+    // van como texto: un Date no sobrevive la serialización y volvería como
+    // string igual, pero sin que nadie lo haya decidido.
     deadline: null,
+    description: '',
   };
 }

@@ -15,6 +15,8 @@ import { useTheme } from '../../components/theme/colors';
 import { PrimaryButton } from '../../components/atoms/Common/PrimaryButton';
 import { useAuthStore } from '../../../infrastructure/store/useAuthStore';
 import { AuthStackParamList } from '../../navigation/AppNavigator';
+import { Sapo } from '../../components/atoms/Mascot/Sapo';
+import { useTipoSapo } from '../../screens/Home/hooks/useTipoSapo';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'SignUp'>;
 
@@ -22,6 +24,7 @@ export default function SignUpView({ navigation }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const signUp = useAuthStore((s) => s.signUp);
+  const { tipoSapo } = useTipoSapo();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -79,7 +82,19 @@ export default function SignUpView({ navigation }: Props) {
         </View>
 
         <View style={styles.content}>
-          <Text style={styles.title}>Crear cuenta</Text>
+          <View style={styles.header}>
+            <Sapo
+              estado="waving"
+              size={120}
+              tipoSapo={tipoSapo}
+              style={styles.sapo}
+            />
+            <Text style={styles.wordmark} testID="wordmark">Lotus</Text>
+            <Text style={styles.title}>Crear cuenta</Text>
+            <Text style={styles.subtitle}>
+              Bienvenido a Lotus. Decinos qué hacés y Sapo arma tu horario.
+            </Text>
+          </View>
 
           <TextInput
             style={styles.input}
@@ -157,12 +172,32 @@ const createStyles = (colors: ReturnType<typeof useTheme>['colors']) =>
       paddingHorizontal: 24,
       gap: 12,
     },
+    header: {
+      alignItems: 'center',
+      marginBottom: 16,
+      gap: 6,
+    },
+    sapo: {
+      marginBottom: 8,
+    },
+    wordmark: {
+      fontSize: 18,
+      fontWeight: '900',
+      letterSpacing: 4,
+      textTransform: 'uppercase',
+      color: colors.accent,
+    },
     title: {
-      fontSize: 28,
+      fontSize: 26,
       fontWeight: '900',
       color: colors.surface,
-      marginBottom: 16,
       textAlign: 'center',
+    },
+    subtitle: {
+      fontSize: 15,
+      color: colors.textSecondary,
+      textAlign: 'center',
+      lineHeight: 21,
     },
     input: {
       backgroundColor: colors.cardBackground,

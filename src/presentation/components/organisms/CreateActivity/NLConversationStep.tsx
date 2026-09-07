@@ -36,6 +36,11 @@ interface Props {
   onConfirmPending?: (messageId: string) => Promise<void>;
   onCancelPending?: (messageId: string) => void;
   onAdjustInWizard?: (messageId: string) => void;
+  /**
+   * Sugerencias de apertura. Si no llega, se usan los ejemplos estáticos:
+   * AIChatView se las pasa derivadas de los datos reales del usuario.
+   */
+  sugerencias?: string[];
 }
 
 export const NLConversationStep: React.FC<Props> = ({
@@ -49,6 +54,7 @@ export const NLConversationStep: React.FC<Props> = ({
   onConfirmPending,
   onCancelPending,
   onAdjustInWizard,
+  sugerencias,
 }) => {
   const { colors, comfyColors, comfyFontColors } = useTheme();
   const styles = useMemo(() => createStyles(colors, comfyColors, comfyFontColors), [colors]);
@@ -222,15 +228,9 @@ export const NLConversationStep: React.FC<Props> = ({
           crea, que es lo unico que hacia antes. Se ocultan apenas escribe o
           apenas empieza la conversacion, para no competir con lo que esta
           haciendo. */}
-      {/* Sugerencias
-          El asistente sabe consultar la agenda, eliminar y reorganizar, pero
-          nada en la pantalla lo dice: sin esto el usuario asume que solo
-          crea, que es lo unico que hacia antes. Se ocultan apenas escribe o
-          apenas empieza la conversacion, para no competir con lo que esta
-          haciendo. */}
       {mostrarSugerencias && (
         <View style={styles.sugerencias} testID="chat-suggestions">
-          {SUGERENCIAS.map((s: string) => (
+          {(sugerencias ?? SUGERENCIAS).map((s: string) => (
             <TouchableOpacity
               key={s}
               style={styles.chipSugerencia}
@@ -275,6 +275,9 @@ export const NLConversationStep: React.FC<Props> = ({
  * Ejemplos de lo que el asistente sabe hacer ademas de crear. Son tres a
  * proposito: mas se leen como un menu y menos no alcanzan para sugerir que
  * hay variedad.
+ *
+ * Sirve de fallback: AIChatView suele pasar sugerencias derivadas de los
+ * datos reales del usuario (ver useSugerenciasSapo).
  */
 const SUGERENCIAS = [
   '¿Qué tengo mañana?',

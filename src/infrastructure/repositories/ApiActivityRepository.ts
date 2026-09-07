@@ -21,6 +21,7 @@ export interface ActivityDto {
   id: string;
   user_id?: string;
   title: string;
+  description?: string | null;
   type: string;
   area?: string;
   identity?: string;
@@ -57,6 +58,7 @@ export function dtoToActivity(dto: ActivityDto): Activity {
     dayTo: dto.day_to ?? undefined,
     isAnchor: dto.is_anchor ?? false,
     fechaUnica: dto.fecha_unica ?? null,
+    description: dto.description ?? null,
   });
 }
 
@@ -67,6 +69,7 @@ export function activityToDto(activity: Activity): Omit<ActivityDto, 'user_id'> 
   return {
     id: String(activity.id),
     title: activity.title,
+    description: activity.description,
     type: activity.type,
     area: activity.area,
     identity: activity.identity,

@@ -157,7 +157,6 @@ function TabNavigator() {
 
 export default function AppNavigator() {
   const hasSeenOnboarding = useAppStore((s) => s.hasSeenOnboarding);
-  const themeId = useAppStore((s) => s.themeId);
   const pendingDayLimits = useAppStore((s) => s.pendingDayLimits);
   const clearPendingDayLimits = useAppStore((s) => s.clearPendingDayLimits);
   const loadDayLimits = useScheduleStore((s) => s.loadDayLimits);

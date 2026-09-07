@@ -22,6 +22,8 @@ export interface CreateActivityCommand {
   isAnchor?: boolean;
   /** Fecha puntual `YYYY-MM-DD` (evento de un solo día); null si se repite. */
   fechaUnica?: string | null;
+  /** Nota libre de la persona; null o ausente = sin descripción. */
+  description?: string | null;
 }
 
 export interface CreateActivityPort {

@@ -1,5 +1,6 @@
 import { create, StoreApi, UseBoundStore } from 'zustand';
 import { Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Schedule, ScheduleProps } from '../../domain/entities/Schedule';
 import { Activity, DayOfWeek } from '../../domain/entities/Activity';
 import { ActivityRepository } from '../../application/ports/out/ActivityRepository';
@@ -32,11 +33,21 @@ interface DayLimitPersistence {
   setPerDayEndHours: (val: number[] | null) => Promise<void>;
 }
 
+export type CalendarViewMode = 'grid' | 'list' | 'mes' | 'anual';
+
+const CALENDAR_VIEW_MODE_KEY = '@calendar_view_mode';
+
 interface ScheduleStoreState {
   schedule: Schedule | null;
   isLoading: boolean;
   isLoadedFromStorage: boolean;
   selectedDay: DayOfWeek;
+  /**
+   * La vista del calendario (dia/semana, lista, mes, anual). Vive en el store,
+   * no en el estado local de la pantalla, para que aterrice donde el usuario
+   * la dejo la ultima vez en lugar de siempre en la semana.
+   */
+  calendarViewMode: CalendarViewMode;
   startHour: number;
   endHour: number;
   activitiesForDay: () => ReturnType<Schedule['getItemsByDay']>;
@@ -46,6 +57,7 @@ interface ScheduleStoreState {
   /** Deja en memoria un horario que el servidor ya persistio. */
   hidratarHorario: (crudo: any) => void;
   setSelectedDay: (day: DayOfWeek) => void;
+  setCalendarViewMode: (mode: CalendarViewMode) => void;
   setStartHour: (hour: number) => void;
   setEndHour: (hour: number) => void;
   suggestions: SugerenciaTareaDto[];
@@ -172,13 +184,14 @@ export function createScheduleStore(
     }
   };
 
-  return create<ScheduleStoreState>((set, get) => ({
+  const store = create<ScheduleStoreState>((set, get) => ({
     schedule: null,
     isLoading: false,
     isLoadedFromStorage: false,
     startHour: 0,
     endHour: 1439,
     selectedDay: JS_DAY_TO_DAYOFWEEK[new Date().getDay()],
+    calendarViewMode: 'grid',
     suggestions: [],
     rollingWeekStartDay: 0,
     rollingWeekTotalDays: 7,
@@ -302,6 +315,11 @@ export function createScheduleStore(
     },
 
     setSelectedDay: (day) => set({ selectedDay: day }),
+
+    setCalendarViewMode: (mode) => {
+      set({ calendarViewMode: mode });
+      AsyncStorage.setItem(CALENDAR_VIEW_MODE_KEY, mode).catch(() => {});
+    },
 
     // El estado en memoria se actualiza antes de persistir, no despues: la
     // hora que el usuario acaba de elegir no deberia depender de que la red
@@ -429,6 +447,18 @@ export function createScheduleStore(
       }
     },
   }));
+
+  // La vista del calendario se recuerda sin sesion (es una preferencia local):
+  // se recupera al crear el store, cuando AsyncStorage ya respondio.
+  AsyncStorage.getItem(CALENDAR_VIEW_MODE_KEY)
+    .then((mode) => {
+      if (mode === 'grid' || mode === 'list' || mode === 'mes' || mode === 'anual') {
+        store.setState({ calendarViewMode: mode });
+      }
+    })
+    .catch(() => {});
+
+  return store;
 }
 
 export type { DayLimitPersistence };

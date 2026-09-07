@@ -32,6 +32,10 @@ export type saveActivityProps = {
     optionalDay?: boolean;
     silent?: boolean;
     /**
+     * Nota libre de la persona ("para qué es esto"). No participa del solver.
+     */
+    description?: string | null;
+    /**
      * Fecha puntual `YYYY-MM-DD` (modo solo-día desde el mes). Cuando viene,
      * el comando viaja con `days: []`: el backend expande por `fecha_unica` y
      * los días de la semana no aplican. `daysConfig` conserva el día

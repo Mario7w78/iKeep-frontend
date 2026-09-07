@@ -19,6 +19,7 @@ import {
 } from '../../../infrastructure/persistence/EnergyHistoryService';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LoadingScreen } from '../../components/atoms/Common/LoadingScreen';
+import { GoogleCalendarCta } from '../../components/atoms/Common/GoogleCalendarCta';
 import { MonthGrid } from '../../components/organisms/Schedule/MonthGrid';
 import { WeekGrid } from '../../components/organisms/Schedule/WeekGrid';
 import { useCalendarStore, rangoDelMes } from '../../../infrastructure/store/useCalendarStore';
@@ -172,6 +173,8 @@ export default function ScheduleView() {
     schedule,
     selectedDay,
     setSelectedDay,
+    calendarViewMode: viewMode,
+    setCalendarViewMode: setViewMode,
     startHour,
     endHour,
     perDayStartHours,
@@ -198,7 +201,6 @@ export default function ScheduleView() {
 
   const [showEnergyPicker, setShowEnergyPicker] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState<ScheduledActivity | null>(null);
-  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'mes' | 'anual'>('grid');
   const [diaElegido, setDiaElegido] = useState<string | null>(null);
   /** Fila esperando fecha destino para moverse. */
   const [moverPendiente, setMoverPendiente] = useState<{ activityId: string; desde: string } | null>(null);
@@ -555,8 +557,10 @@ export default function ScheduleView() {
             onSelectDay={changeSelectedDayProgrammatically}
             onRefresh={handleGeneratePress}
             viewMode={viewMode}
-            onToggleViewMode={() => setViewMode(prev => prev === 'grid' ? 'list' : prev === 'list' ? 'mes' : prev === 'mes' ? 'anual' : 'grid')}
+            onToggleViewMode={() => setViewMode(viewMode === 'grid' ? 'list' : viewMode === 'list' ? 'mes' : viewMode === 'mes' ? 'anual' : 'grid')}
           />
+
+          <GoogleCalendarCta />
           
           <ScrollView
             ref={horizontalScrollRef}

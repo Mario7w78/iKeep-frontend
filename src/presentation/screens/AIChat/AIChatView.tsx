@@ -6,6 +6,7 @@ import { warmUpBackend } from '../../../infrastructure/api/apiConfig';
 import { NLConversationStep } from '../../components/organisms/CreateActivity/NLConversationStep';
 import { useWizardDraftStore } from "../../../infrastructure/store/useWizardDraftStore";
 import { formStateToDraft } from "../../../application/mappers/formStateToDraft";
+import { useSugerenciasSapo } from "./useSugerenciasSapo";
 
 export default function AIChatView({ navigation }: any) {
   // The backend sleeps after ~15 min of inactivity and takes 20-50s to wake.
@@ -50,6 +51,7 @@ export default function AIChatView({ navigation }: any) {
   const createdActivityId = useChatStore((s) => s.createdActivityId);
   const confirmPendingActivity = useChatStore((s) => s.confirmPendingActivity);
   const cancelPendingActivity = useChatStore((s) => s.cancelPendingActivity);
+  const sugerencias = useSugerenciasSapo();
 
   const handleBack = () => {
     navigation.goBack();
@@ -78,6 +80,7 @@ export default function AIChatView({ navigation }: any) {
         onConfirmPending={confirmPendingActivity}
         onCancelPending={cancelPendingActivity}
         onAdjustInWizard={ajustarEnWizard}
+        sugerencias={sugerencias}
       />
     </SafeAreaView>
   );

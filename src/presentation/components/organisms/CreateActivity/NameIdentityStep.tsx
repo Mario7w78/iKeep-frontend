@@ -16,6 +16,9 @@ type NameIdentityStepProps = {
   priority: "baja" | "media" | "alta";
   deadline: Date | null;
   onSetActivityName: (name: string) => void;
+  /** Nota libre de la persona; cadena vacía = sin descripción. */
+  description?: string;
+  onSetDescription?: (texto: string) => void;
   area: AreaDeVida;
   onSetArea: (area: AreaDeVida) => void;
   onSetIsFixed: (fixed: boolean) => void;
@@ -177,6 +180,8 @@ export default function NameIdentityStep({
   difficulty,
   priority,
   deadline,
+  description,
+  onSetDescription,
   onSetActivityName,
   onSetIsFixed,
   errorNombre,
@@ -249,6 +254,26 @@ export default function NameIdentityStep({
       </View>
 
       <FieldError mensaje={errorNombre} testID="error-nombre" />
+
+      <Text style={styles.sectionTitle}>Descripción (opcional)</Text>
+      <Text style={styles.subtitle}>Para qué es o qué incluye — puede quedar vacía</Text>
+      <View style={styles.inputContainer}>
+        <Ionicons
+          name="create-outline"
+          size={24}
+          color={colors.iconPrimary}
+          style={styles.inputIcon}
+        />
+        <TextInput
+          value={description}
+          onChangeText={onSetDescription}
+          placeholder="Ej. Material: guía 3 y apuntes de la clase"
+          placeholderTextColor="rgba(255,255,255,0.4)"
+          style={styles.nameInput}
+          multiline={false}
+          autoCorrect={false}
+        />
+      </View>
 
       {/* Antes aca habia tres tarjetas —Clase, Trabajo, Tarea— y elegir
           "Clase" ademas ponia la actividad en fija y le reescribia la

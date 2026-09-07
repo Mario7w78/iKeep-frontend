@@ -25,6 +25,7 @@ function rowToActivity(row: any): Activity {
     dayFrom: row.day_from ?? undefined,
     dayTo: row.day_to ?? undefined,
     isAnchor: row.is_anchor ?? false,
+    description: row.description ?? null,
   });
 }
 
@@ -34,6 +35,7 @@ function activityToRow(activity: Activity, userId: string) {
     user_id: userId,
     title: activity.title,
     type: activity.type,
+    description: activity.description,
     area: activity.area,
     identity: activity.identity,
     priority: activity.priority,

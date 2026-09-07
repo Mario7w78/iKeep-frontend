@@ -37,6 +37,7 @@ export default function useTimeForm(
   const [priority, setPriority] = useState<"baja" | "media" | "alta">("media");
   const [difficulty, setDifficulty] = useState<"baja" | "media" | "alta">("media");
   const [deadline, setDeadline] = useState<Date | null>(null);
+  const [description, setDescription] = useState<string>("");
 
   const [preferredStartTime, setPreferredStartTime] = useState<number | null>(null);
   const [preferredEndTime, setPreferredEndTime] = useState<number | null>(null);
@@ -440,6 +441,10 @@ export default function useTimeForm(
     const finalIsAnchor = overrides.isAnchor !== undefined ? overrides.isAnchor : isAnchor;
     // Modo solo-día: la fecha viaja por override y no hay estado que leer.
     const finalFechaUnica = overrides.fechaUnica ?? null;
+    const finalDescription =
+      overrides.description !== undefined
+        ? overrides.description
+        : description.trim() || null;
 
     // Domain rule: una actividad flexible NO puede ser "clase" — clase siempre es fija.
     const sanitizedIdentity: 'clase' | 'trabajo' | 'tarea' =
@@ -543,6 +548,7 @@ export default function useTimeForm(
       dayTo: finalDayTo ?? undefined,
       isAnchor: finalIsAnchor || undefined,
       fechaUnica: finalFechaUnica,
+      description: finalDescription,
     });
 
     try {
@@ -580,6 +586,8 @@ export default function useTimeForm(
     priority,
     difficulty,
     deadline,
+    description,
+    setDescription,
     selectedTimeTypeDuration,
     selectedTimeTypeTravel,
     durationTimeValue,

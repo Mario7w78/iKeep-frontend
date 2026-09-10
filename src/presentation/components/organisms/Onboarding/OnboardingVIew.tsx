@@ -337,7 +337,7 @@ export default function OnBoardingView() {
                             new Date(new Date().setHours(0, 0, 0, 0))
                           }
                           maximumDate={
-                            new Date(new Date().setHours(6, 59, 59, 999))
+                            new Date(new Date().setHours(23, 59, 59, 999))
                           }
                           mode="time"
                           display="spinner"
@@ -345,11 +345,7 @@ export default function OnBoardingView() {
                           textColor={colors.surface}
                           onChange={(_, selectedDate) => {
                             if (selectedDate) {
-                              const hours = selectedDate.getHours();
-                              // Hora de fin: solo madrugada (0-6, es decir, medianoche a 6 AM)
-                              if (hours >= 0 && hours <= 6) {
-                                setEndTime(selectedDate);
-                              }
+                              setEndTime(selectedDate);
                             }
                             if (Platform.OS !== "ios") setShowEndPicker(false);
                           }}

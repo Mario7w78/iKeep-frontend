@@ -185,7 +185,12 @@ describe('ScheduleView en modo mes', () => {
       cargando: false,
       error: null,
       canceladasEnSesion: [],
+      ultimaCargaPorMes: {},
     });
+    // Los stores reales guardan la ultima carga por mes/rango por 30s; si un
+    // test anterior (mismo segundo) ya pidio septiembre/agosto-octubre, el
+    // siguiente no vuelve a la red y el mock nunca se llama.
+    useGoogleCalendarStore.setState({ ultimaCargaPorRango: {} });
   });
 
   afterEach(() => {
@@ -284,11 +289,11 @@ describe('ScheduleView en modo mes', () => {
     await act(async () => { fireEvent.press(vista.getByTestId('toggle-vista')); });
   }
 
-  it('en modo grid enfocar NO pide el mes', async () => {
+  it('en modo grid enfocar SI pide el mes: el grid del dia lo consume', async () => {
     const vista = await montar();
     await dispararFoco();
 
-    expect(mockVer).not.toHaveBeenCalled();
+    expect(mockVer).toHaveBeenCalled();
     await vista.unmount();
   });
 
@@ -423,5 +428,82 @@ describe('ScheduleView en modo mes', () => {
       await waitFor(() => expect(mockGuardar).toHaveBeenCalledTimes(2));
       await vista.unmount();
     });
+  });
+});
+
+describe('ScheduleView en el grid del dia', () => {
+  const BLOQUE_PLAN = (day: string) => ({
+    id: 'recurrente-1',
+    activity: { id: 'recurrente-1', title: 'Clases', identity: 'clase', priority: 4, difficulty: 'media' },
+    assignedStartTime: '09:00',
+    assignedEndTime: '10:00',
+    day,
+  });
+
+  beforeEach(() => {
+    mockVer.mockReset().mockResolvedValue([]);
+    mockLoadActivities.mockReset().mockResolvedValue(undefined);
+    // Los tests del modo mes dejan calendarViewMode en 'mes': el grid arranca
+    // en 'grid' o los bloques de hoy no se renderizan.
+    mockScheduleStoreApi.setState({
+      calendarViewMode: 'grid',
+      setCalendarViewMode: (mode: any) =>
+        mockScheduleStoreApi.setState({ calendarViewMode: mode }),
+      schedule: { getAllItems: () => [{ id: 'x' }], getItemsByDay: () => [] },
+    });
+    useCalendarStore.setState({
+      mesVisible: new Date(2026, 8, 15),
+      porDia: {},
+      cargando: false,
+      error: null,
+      canceladasEnSesion: [],
+      ultimaCargaPorMes: {},
+    });
+    useGoogleCalendarStore.setState({ ultimaCargaPorRango: {} });
+  });
+
+  function montarEnGrid() {
+    return render(<ScheduleView />);
+  }
+
+  it('muestra como bloque la ocurrencia del dia que el plan semanal no cubre', async () => {
+    mockVer.mockResolvedValue([
+      {
+        fecha: '2026-09-10',
+        actividad: { id: 'parcial-1', title: 'Parcial de Calculo', preferredStartTime: 9 * 60, preferredEndTime: 10 * 60 },
+        movidaDesde: null,
+        esUnica: true,
+      },
+    ]);
+
+    const vista = await montarEnGrid();
+
+    // El grid carga el mes al enfocar (también fuera del modo mes) y pinta la
+    // ocurrencia de la semana actual como bloque de agenda.
+    expect(await vista.findByText('Parcial de Calculo')).toBeTruthy();
+    await vista.unmount();
+  });
+
+  it('no duplica en el bloque de agenda las recurrentes que el plan ya trae', async () => {
+    mockScheduleStoreApi.setState({
+      schedule: {
+        getAllItems: () => [BLOQUE_PLAN('Jueves')],
+        getItemsByDay: (day: string) => (day === 'Jueves' ? [BLOQUE_PLAN(day)] : []),
+      },
+    });
+    mockVer.mockResolvedValue([
+      {
+        fecha: '2026-09-10',
+        actividad: { id: 'recurrente-1', title: 'Clases', identity: 'clase' },
+        movidaDesde: null,
+        esUnica: false,
+      },
+    ]);
+
+    const vista = await montarEnGrid();
+
+    // Sin dedupe habria dos 'Clases' en la pagina del jueves (plan + agenda).
+    expect(await vista.findAllByText('Clases')).toHaveLength(1);
+    await vista.unmount();
   });
 });

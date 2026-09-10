@@ -1,21 +1,20 @@
 /**
  * Qué avisos merecen una notificación, y cuáles no.
  *
- * Lo difícil de las notificaciones no es enviarlas: es no enviarlas. Una app
- * que avisa todos los días de lo mismo se silencia en una semana, y una
- * silenciada no avisa nunca más — el permiso se pierde una sola vez.
+ * La regla original era: **solo se avisa cuando hay algo que perder o algo
+ * que hacer**. Esa regla rige el matutino y la racha.
  *
- * La regla que gobierna todo esto: **solo se avisa cuando hay algo que
- * perder o algo que hacer**. Si no hay racha, no hay racha en riesgo. Si el
- * día ya está completo, no hay nada que recordar.
+ * La excepción a propósito es `AVISO_ANIMO`: es diario (siempre se agenda)
+ * y rota un texto distinto por día de semana. Se acepta el ruido de fondo
+ * porque el texto es positivo, breve, y el usuario lo pidió.
  *
- * Es lógica pura a propósito. Decidir qué avisar es una decisión de producto
- * y se prueba sin tocar el sistema de notificaciones; programarlas es un
- * detalle del adaptador.
+ * Decidir qué avisar es una decisión de producto y se prueba sin tocar el
+ * sistema de notificaciones; programarlas es un detalle del adaptador.
  */
 
 export const AVISO_MATUTINO = 'kerotime-resumen-matutino';
 export const AVISO_RACHA = 'kerotime-racha-en-riesgo';
+export const AVISO_ANIMO = 'kerotime-animo';
 
 /** Temprano, pero no tanto como para despertar a nadie. */
 const HORA_MATUTINA = 8;
@@ -27,6 +26,25 @@ const HORA_MATUTINA = 8;
  * es un recordatorio: es un reproche.
  */
 const HORA_RACHA = 19;
+
+/** Cierre del día, después del aviso de racha. */
+const HORA_ANIMO = 20;
+
+/**
+ * Pool de frases para el aviso de ánimo. La frase se elige por día de la
+ * semana (`hoy.getDay() % n`), lo que garantiza variedad diaria sin random.
+ * Se exporta para que los tests puedan verificar que una semana recorrida
+ * produce 7 textos distintos.
+ */
+export const FRASES_ANIMO: readonly string[] = [
+  'Cada día que organizas es uno que no tenías antes.',
+  'Pusiste tiempo en algo que importa.',
+  'No todo se mide por lo que faltó.',
+  'El esfuerzo de hoy construye el de mañana.',
+  'Incluso un día tranquilo cuenta.',
+  'Lo que lograste hoy ya está hecho.',
+  'Organizar tu tiempo es en sí un acto de cuidado.',
+] as const;
 
 export interface Aviso {
   identifier: string;
@@ -50,8 +68,13 @@ export interface EstadoParaAvisos {
  * Lo que no está en la lista se cancela. Devolver el conjunto completo en vez
  * de una serie de altas y bajas hace que el estado del sistema sea siempre
  * deducible de acá, sin memoria de lo que se programó antes.
+ *
+ * @param hoy Para testeo inyectable. En producción se usa `new Date()`.
  */
-export function avisosQueCorresponden(estado: EstadoParaAvisos): Aviso[] {
+export function avisosQueCorresponden(
+  estado: EstadoParaAvisos,
+  hoy: Date = new Date(),
+): Aviso[] {
   const avisos: Aviso[] = [];
 
   // Sin nada agendado no hay resumen que dar. Un "buenos días" a secas es
@@ -83,8 +106,18 @@ export function avisosQueCorresponden(estado: EstadoParaAvisos): Aviso[] {
     });
   }
 
+  // Ánimo diario: siempre se agenda, con texto rotado por día de semana.
+  // Excepción deliberada a la regla del ruido (decisión del usuario).
+  avisos.push({
+    identifier: AVISO_ANIMO,
+    title: 'Un recordatorio para ti',
+    body: FRASES_ANIMO[hoy.getDay() % FRASES_ANIMO.length],
+    hour: HORA_ANIMO,
+    minute: 0,
+  });
+
   return avisos;
 }
 
 /** Los identificadores que este módulo administra. */
-export const TODOS_LOS_AVISOS = [AVISO_MATUTINO, AVISO_RACHA];
+export const TODOS_LOS_AVISOS = [AVISO_MATUTINO, AVISO_RACHA, AVISO_ANIMO];

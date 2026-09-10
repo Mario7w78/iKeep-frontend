@@ -14,8 +14,7 @@ import { useTheme } from '../../components/theme/colors';
 import { PrimaryButton } from '../../components/atoms/Common/PrimaryButton';
 import { useAuthStore } from '../../../infrastructure/store/useAuthStore';
 import { AuthStackParamList } from '../../navigation/AppNavigator';
-import { Sapo } from '../../components/atoms/Mascot/Sapo';
-import { useTipoSapo } from '../../screens/Home/hooks/useTipoSapo';
+import { LotusFlower } from '../../components/atoms/Lotus/LotusFlower';
 import { Ionicons } from '@expo/vector-icons';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
@@ -24,7 +23,6 @@ export default function LoginView({ navigation }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const signInWithPassword = useAuthStore((s) => s.signInWithPassword);
-  const { tipoSapo } = useTipoSapo();
   const recienteConfirmadoEmail = useAuthStore((s) => s.recienteConfirmadoEmail);
   const limpiarRecienteConfirmado = useAuthStore((s) => s.limpiarRecienteConfirmado);
 
@@ -54,16 +52,11 @@ export default function LoginView({ navigation }: Props) {
       >
         <View style={styles.content}>
           <View style={styles.header}>
-            <Sapo
-              estado="waving"
-              size={120}
-              tipoSapo={tipoSapo}
-              style={styles.sapo}
-            />
+            <LotusFlower size={120} style={styles.flor} />
             <Text style={styles.wordmark} testID="wordmark">Lotus</Text>
             <Text style={styles.title}>Iniciar sesión</Text>
             <Text style={styles.subtitle}>
-              Qué bueno verte de nuevo. Sapo te estuvo esperando.
+              Qué bueno verte de nuevo. El loto siempre te espera.
             </Text>
           </View>
 
@@ -128,7 +121,7 @@ const createStyles = (colors: ReturnType<typeof useTheme>['colors']) =>
       marginBottom: 8,
       gap: 6,
     },
-    sapo: {
+    flor: {
       marginBottom: 8,
     },
     wordmark: {

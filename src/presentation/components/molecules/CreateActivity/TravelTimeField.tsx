@@ -23,7 +23,7 @@ interface Props {
  * viaje de ida y el de vuelta suelen durar lo mismo.
  *
  * Y en ninguna parte se veía qué hacía. Un número de minutos no dice nada; la
- * hora a la que tenés que salir de tu casa, sí. Eso es lo que se muestra, y
+ * hora a la que tienes que salir de tu casa, sí. Eso es lo que se muestra, y
  * es lo que hace que el campo se explique solo.
  */
 

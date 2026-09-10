@@ -2,6 +2,12 @@ import { create } from 'zustand';
 import { Session } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../supabase/client';
+// El singleton real de actividades vive en DI (createActivityStore se
+// instancia ahí); useAuthStore necesita su getState() para anular la cache
+// de sesión al cambiar de usuario. No hay ciclo: DI no importa useAuthStore.
+import { useActivityStore } from '../../di/Dependencies';
+import { useCalendarStore } from './useCalendarStore';
+import { useGoogleCalendarStore } from './useGoogleCalendarStore';
 
 /**
  * Adonde redirige el enlace de confirmación de email.
@@ -47,6 +53,19 @@ interface AuthState {
 }
 
 let initialized = false;
+/** El id del usuario cuya sesión llenó las stores; sirve para saber si cambió. */
+let ultimoUserId: string | null = null;
+
+/**
+ * Vacía el recuerdo que las stores guardan POR USUARIO (actividades, meses del
+ * calendario, rangos de Google). Sin esto, un logout + login con otra cuenta
+ * mostraría los datos de la cuenta anterior.
+ */
+function anularCacheDeSesion() {
+  useActivityStore.getState().reiniciarSesion();
+  useCalendarStore.getState().reiniciarSesion();
+  useGoogleCalendarStore.getState().reiniciarSesion();
+}
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   session: null,
@@ -59,6 +78,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     initialized = true;
 
     supabase.auth.getSession().then(({ data: { session } }) => {
+      ultimoUserId = session?.user.id ?? null;
       set({ session, isLoading: false });
     });
 
@@ -74,6 +94,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
 
     supabase.auth.onAuthStateChange((_event, session) => {
+      const userId = session?.user.id ?? null;
+      if (userId !== ultimoUserId) {
+        ultimoUserId = userId;
+        anularCacheDeSesion();
+      }
       set({ session, isLoading: false });
     });
   },

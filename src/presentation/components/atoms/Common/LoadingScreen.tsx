@@ -1,8 +1,10 @@
 import React, { useMemo } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
+import { useTipoSapo } from '../../../screens/Home/hooks/useTipoSapo';
 import { ThemeColors, useTheme } from '../../theme/colors';
 import { ESPACIO, PESO, TEXTO } from '../../theme/tokens';
+import { MascotLoading } from '../Mascot/MascotLoading';
 
 interface Props {
   mensaje?: string;
@@ -21,18 +23,25 @@ interface Props {
  */
 export const LoadingScreen: React.FC<Props> = ({ mensaje = 'Cargando tus actividades...' }) => {
   const { colors } = useTheme();
+  const { etapa } = useTipoSapo();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   return (
     <View style={styles.contenedor} testID="loading-screen">
-      <ActivityIndicator size="large" color={colors.secondaryAccent} />
+      <MascotLoading etapa={etapa} width={WIDTH_MASCOTA} />
       <Text style={styles.texto}>{mensaje}</Text>
+      {/* La mascota es estática: sin la rueda una carga larga parece app
+          congelada. Toma el acento de marca y no bloquea el mensaje. */}
+      <ActivityIndicator size="large" color={colors.accent} />
       {/* El aviso del arranque en frío es deliberadamente discreto: no es un
           error, pero sin él un minuto de espera parece que la app se colgó. */}
       <Text style={styles.nota}>La primera carga del día puede tardar un poco.</Text>
     </View>
   );
 };
+
+/** La mascota se ve junto al mensaje. */
+const WIDTH_MASCOTA = 200;
 
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({

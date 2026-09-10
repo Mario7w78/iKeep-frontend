@@ -35,6 +35,12 @@ interface Props {
   onMover?: (activityId: string, desde: string) => void;
   onCancelar?: (activityId: string, fecha: string) => void;
   onRestaurar?: (activityId: string, fecha: string) => void;
+  /**
+   * Modo mes a pantalla completa: la grilla se estira para ocupar el alto
+   * disponible y el detalle queda acotado (~45%). Sin esto (modo anual) se
+   * conservan las celdas cuadradas compactas dentro del scroll anual.
+   */
+  expandir?: boolean;
 }
 
 /**
@@ -91,6 +97,7 @@ export const MonthGrid: React.FC<Props> = ({
   onMover,
   onCancelar,
   onRestaurar,
+  expandir = false,
 }) => {
   const { colors, comfyColors } = useTheme();
   const styles = useMemo(() => createStyles(colors, comfyColors), [colors, comfyColors]);
@@ -149,7 +156,7 @@ export const MonthGrid: React.FC<Props> = ({
           </TouchableOpacity>
         </View>
       ) : (
-        <View style={styles.cuadricula}>
+        <View style={[styles.cuadricula, expandir && styles.cuadriculaExpandida]}>
           {celdas.map((d) => {
             const clave = aFechaLocal(d);
             const ocurrencias = porDia[clave] ?? [];
@@ -165,7 +172,7 @@ export const MonthGrid: React.FC<Props> = ({
               <TouchableOpacity
                 key={clave}
                 testID={`dia-${clave}`}
-                style={[styles.celda, elegido && styles.celdaElegida]}
+                style={[styles.celda, expandir ? styles.celdaExpandida : styles.celdaCompacta, elegido && styles.celdaElegida]}
                 onPress={() => onSeleccionarDia(clave)}
                 accessibilityLabel={`${d.getDate()} de ${MESES[d.getMonth()]}, ${ocurrencias.length} actividades${importados.length > 0 ? `, ${importados.length} de google` : ''}`}
               >
@@ -219,7 +226,10 @@ export const MonthGrid: React.FC<Props> = ({
       )}
 
       {diaSeleccionado && !error && (
-        <ScrollView style={styles.detalle} testID="dia-detalle">
+        <ScrollView
+          style={[styles.detalle, expandir && styles.detalleExpandido]}
+          testID="dia-detalle"
+        >
           <View style={styles.detalleEncabezado}>
             <Text style={styles.detalleTitulo}>
               {Number(diaSeleccionado.slice(8))} de {MESES[Number(diaSeleccionado.slice(5, 7)) - 1]}
@@ -382,13 +392,23 @@ const createStyles = (colors: ThemeColors, comfyColors: ReturnType<typeof useThe
       textTransform: 'uppercase',
     },
     cuadricula: { flexDirection: 'row', flexWrap: 'wrap' },
+    // Modo mes a pantalla completa: la grilla se estira con flexGrow para
+    // llenar el alto disponible; en modo anual se conserva el tamaño natural.
+    cuadriculaExpandida: { flex: 1, alignContent: 'stretch' },
     celda: {
       width: `${100 / 7}%`,
-      aspectRatio: 1,
       alignItems: 'center',
       justifyContent: 'center',
       gap: 3,
       borderRadius: RADIO.md,
+    },
+    // Celdas cuadradas, solo en el modo compacto (anual / sin expandir).
+    celdaCompacta: {
+      aspectRatio: 1,
+    },
+    // En modo expandido el alto lo reparte la grilla, no la celda.
+    celdaExpandida: {
+      flexGrow: 1,
     },
     celdaElegida: {
       backgroundColor: colors.cardBackground,
@@ -438,6 +458,11 @@ const createStyles = (colors: ThemeColors, comfyColors: ReturnType<typeof useThe
       paddingTop: ESPACIO.md,
       borderTopWidth: 1,
       borderTopColor: colors.cardBorder,
+    },
+    // En modo expandido el detalle no puede comerse la grilla: se acota.
+    detalleExpandido: {
+      flex: 0,
+      maxHeight: '45%',
     },
     detalleEncabezado: {
       flexDirection: 'row',

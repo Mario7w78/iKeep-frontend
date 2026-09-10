@@ -41,6 +41,15 @@ interface GoogleCalendarState {
    */
   verificado: boolean;
 
+  /**
+   * Última carga exitosa por rango (`desde|hasta` → timestamp ms).
+   *
+   * Evita que cada foco de la vista de calendario vuelva a golpear la red por
+   * un rango que ya tenemos. Si lo pedimos hace menos de 30 s se reutiliza.
+   * Se limpia al cambiar de usuario (reiniciarSesion).
+   */
+  ultimaCargaPorRango: Record<string, number>;
+
   /** Pregunta al backend si hay tokens vigentes. Devuelve el estado final. */
   verificarEstado: () => Promise<EstadoGoogle>;
   /**
@@ -48,11 +57,13 @@ interface GoogleCalendarState {
    * resuelve siempre y deja el resultado en `error`, para que nadie del
    * flujo del calendario principal tenga que aguantar una excepcion ajena.
    */
-  cargar: (desde: string, hasta: string) => Promise<void>;
+  cargar: (desde: string, hasta: string, forzar?: boolean) => Promise<void>;
   /** Confirma la conexion tras volver del navegador de consentimiento. */
   confirmarConexion: () => Promise<boolean>;
   /** Corta el vinculo y borra TODO lo importado, sin dejar rastro local. */
   desconectar: () => Promise<void>;
+  /** Vacía el recuerdo de la sesión previa (logout o cambio de usuario). */
+  reiniciarSesion: () => void;
 }
 
 /**
@@ -88,6 +99,7 @@ export const useGoogleCalendarStore = create<GoogleCalendarState>()((set, get) =
   cargando: false,
   error: null,
   verificado: false,
+  ultimaCargaPorRango: {},
 
   verificarEstado: async () => {
     try {
@@ -101,7 +113,10 @@ export const useGoogleCalendarStore = create<GoogleCalendarState>()((set, get) =
     return get().estado;
   },
 
-  cargar: async (desde, hasta) => {
+  cargar: async (desde, hasta, forzar = false) => {
+    const clave = `${desde}|${hasta}`;
+    if (!forzar && Date.now() - (get().ultimaCargaPorRango[clave] ?? 0) < 30_000) return;
+
     // Desconectado conocido: ni un byte sale hacia google (spec
     // external-events-ui). Solo la primera vez se pregunta de verdad.
     if (!get().verificado) await get().verificarEstado();
@@ -110,7 +125,7 @@ export const useGoogleCalendarStore = create<GoogleCalendarState>()((set, get) =
     set({ cargando: true, error: null });
     try {
       const ventana = await cargarEventos(desde, hasta);
-      set({ porDia: agrupar(ventana) });
+      set({ porDia: agrupar(ventana), ultimaCargaPorRango: { ...get().ultimaCargaPorRango, [clave]: Date.now() } });
     } catch (e) {
       if (e instanceof BackendError && e.isAuthError) {
         // Token revocado o vencido para siempre (invalid_grant -> 401):
@@ -147,9 +162,14 @@ export const useGoogleCalendarStore = create<GoogleCalendarState>()((set, get) =
       porDia: {},
       error: null,
       cargando: false,
+      ultimaCargaPorRango: {},
       // Sigue verificado: acabamos de saber que no hay conexion, y el
       // contrato pide cero llamadas google tras desconectar.
       verificado: true,
     });
+  },
+
+  reiniciarSesion: () => {
+    set({ porDia: {}, ultimaCargaPorRango: {} });
   },
 }));

@@ -47,7 +47,7 @@ export function useConfirmacionEmail() {
       }
 
       // Confirmado: se marca para que Login muestre el aviso de "correo
-      // confirmado, ya podés iniciar sesión". LimpiarRecienteConfirmado lo
+      // confirmado, ya puedes iniciar sesión". LimpiarRecienteConfirmado lo
       // apaga cuando el usuario efectivamente entra.
       marcarRecienteConfirmado();
     };

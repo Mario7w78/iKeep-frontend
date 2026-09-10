@@ -8,10 +8,21 @@ import { DeleteActivityPort } from '../../application/ports/in/DeleteActivityPor
 interface ActivityStoreState {
   activities: Activity[];
   isLoading: boolean;
-  loadActivities: () => Promise<void>;
+  /**
+   * Timestamp (ms) de la última carga exitosa del backend.
+   *
+   * Home y Schedule disparan loadActivities en cada foco; sin esta guarda,
+   * cada visita vuelve a pedir la red y el usuario ve un flash. Si la última
+   * carga fue hace menos de 30 s, se reutiliza (evita recargar tras volver
+   * del wizard o cambiar de pestaña). Se resetea al cambiar de usuario.
+   */
+  ultimaCargaMs: number;
+  loadActivities: (forzar?: boolean) => Promise<void>;
   handleCreateActivity: (cmd: CreateActivityCommand) => Promise<void>;
   handleDeleteActivity: (id: string) => Promise<void>;
   handleEditActivity: (id: string, title: string) => void;
+  /** Vacía el recuerdo de la sesión previa (logout o cambio de usuario). */
+  reiniciarSesion: () => void;
 }
 
 export type ActivityStore = UseBoundStore<StoreApi<ActivityStoreState>>;
@@ -30,12 +41,14 @@ export function createActivityStore(
     // respondió — el parpadeo de "vacío al inicio" que reportaban los usuarios
     // con datos creados. loadActivities siempre lo resetea en finally.
     isLoading: true,
+    ultimaCargaMs: 0,
 
-    loadActivities: async () => {
+    loadActivities: async (forzar = false) => {
+      if (!forzar && Date.now() - get().ultimaCargaMs < 30_000) return;
       set({ isLoading: true });
       try {
         const activities = await getActivityUseCase.execute();
-        set({ activities });
+        set({ activities, ultimaCargaMs: Date.now() });
       } catch (error) {
         console.error('Error al recuperar actividades:', error);
       } finally {
@@ -46,7 +59,7 @@ export function createActivityStore(
     handleCreateActivity: async (cmd) => {
       try {
         await createActivityUseCase.execute(cmd);
-        await get().loadActivities();
+        await get().loadActivities(true);
       } catch (error) {
         console.error('Error al crear la actividad:', error);
       }
@@ -55,7 +68,7 @@ export function createActivityStore(
     handleDeleteActivity: async (id) => {
       try {
         await deleteActivityUseCase.execute(id);
-        await get().loadActivities();
+        await get().loadActivities(true);
       } catch (error) {
         console.error('Error al eliminar:', error);
       }
@@ -63,6 +76,10 @@ export function createActivityStore(
 
     handleEditActivity: (id, title) => {
       console.log('Editando:', title);
+    },
+
+    reiniciarSesion: () => {
+      set({ activities: [], ultimaCargaMs: 0 });
     },
   }));
 }

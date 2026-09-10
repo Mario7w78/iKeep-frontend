@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { StyleSheet, useWindowDimensions, View, ActivityIndicator } from "react-native";
+import { StyleSheet, useWindowDimensions, View } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
@@ -21,6 +21,7 @@ import { useScheduleStore, notificationScheduler } from "../../di/Dependencies";
 import { useTheme, ThemeProvider } from "../components/theme/colors";
 import AIChatView from "../screens/AIChat/AIChatView";
 import { StatusBar } from "expo-status-bar";
+import { Logo } from "../components/atoms/Lotus/Logo";
 
 export type RootStackParamList = {
   MainTabs: undefined;
@@ -291,7 +292,7 @@ function Splash() {
     <View
       style={[styles.splash, { backgroundColor: colors.screenBackground }]}
     >
-      <ActivityIndicator size="large" color={colors.surface} />
+      <Logo width={160} />
     </View>
   );
 }

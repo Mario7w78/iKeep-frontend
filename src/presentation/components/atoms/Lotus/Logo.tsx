@@ -1,0 +1,75 @@
+import React from 'react';
+import { StyleProp, View, ViewStyle } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
+
+/**
+ * El logo de la app sin fondo, trazado en SVG.
+ *
+ * Misma arte que assets/logoWithoutBg.svg. No depende de ningun asset nativo:
+ * al ser vector, escala sin perder definicion y nunca tumba la pantalla por un
+ * recurso faltante. Se usa en el arranque (splash) y en las pantallas de carga.
+ */
+
+interface Props {
+  /** Ancho del logo en px. El alto se deriva del aspect ratio del original. */
+  width?: number;
+  style?: StyleProp<ViewStyle>;
+  testID?: string;
+}
+
+const VIEWBOX_WIDTH = 116;
+const VIEWBOX_HEIGHT = 55;
+const ASPECT = VIEWBOX_HEIGHT / VIEWBOX_WIDTH;
+
+export const Logo: React.FC<Props> = ({ width = 120, style, testID = 'logo' }) => (
+  <View
+    testID={testID}
+    style={[
+      { width, height: width * ASPECT, alignItems: 'center', justifyContent: 'center' },
+      style,
+    ]}
+  >
+    <Svg
+      width={width}
+      height={width * ASPECT}
+      viewBox={`0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`}
+      fill="none"
+    >
+      <Path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M86.244 53.3572C103.996 51.1345 116 46.8815 116 42C116 34.8203 90.0325 29 58 29C25.9675 29 0 34.8203 0 42C0 49.1797 25.9675 55 58 55C60.6652 55 63.2883 54.9597 65.8581 54.8817L61.1681 46.0625L86.244 53.3572Z"
+        fill="#9DE187"
+      />
+      <Path d="M73.7176 38.4116H42.2428L57.528 48.3574L73.7176 38.4116Z" fill="#FFB6EA" />
+      <Path d="M77.5163 32.2383L72.6323 39.0975L107.363 32.2383H77.5163Z" fill="#FFB6EA" />
+      <Path d="M37.3588 31.5524L42.2428 38.4116L7.51196 31.5524H37.3588Z" fill="#FFB6EA" />
+      <Path d="M72.6323 25.3791L78.2719 31.5524L100.521 19.8917L72.6323 25.3791Z" fill="#FFB6EA" />
+      <Path d="M41.9131 25.3791L36.2735 31.5524L14.024 19.8917L41.9131 25.3791Z" fill="#FFB6EA" />
+      <Path d="M72.0898 25.0361H43.3284L58.5231 17.834L72.0898 25.0361Z" fill="#FFB6EA" />
+      <Path d="M57.4377 0L72.4766 24.1787H42.3988L57.4377 0Z" fill="#FF9BC0" />
+      <Path d="M78.059 30.4743L73.7176 25.7221L101.936 8.23107L78.059 30.4743Z" fill="#FF9BC0" />
+      <Path d="M36.8162 30.4743L41.1575 25.7221L12.9387 8.23107L36.8162 30.4743Z" fill="#FF9BC0" />
+      <Path d="M75.8883 29.8376L61.2362 24.6932L79.687 8.91701L75.8883 29.8376Z" fill="#FF96BE" />
+      <Path d="M38.4441 29.8376L53.0962 24.6932L34.6454 8.91701L38.4441 29.8376Z" fill="#FF96BE" />
+      <Path d="M71.0042 28.4658L57.4375 26.408L70.4616 8.57406L71.0042 28.4658Z" fill="#FF83B2" />
+      <Path d="M43.328 28.4658L56.8948 26.408L43.8707 8.57406L43.328 28.4658Z" fill="#FF83B2" />
+      <Path d="M69.3763 31.2095L60.6936 27.094L71.547 11.6607L69.3763 31.2095Z" fill="#FF609C" />
+      <Path d="M46.5843 31.2095L55.267 27.094L44.4136 11.6607L46.5843 31.2095Z" fill="#FF609C" />
+      <Path d="M66 30H51L58.5 13L66 30Z" fill="#FF3F89" />
+      <Path d="M57.8491 45.0769L51.4067 21.4384C56.5964 20.4025 59.6006 20.2897 65.2539 21.5512L57.8491 45.0769Z" fill="#FFF79F" />
+      <Path d="M66 39H51L58.5 22L66 39Z" fill="#FF3F89" />
+      <Path d="M34.1028 31.8954L41.7002 37.7257L1 19.2058L34.1028 31.8954Z" fill="#FF9BC0" />
+      <Path d="M81.315 31.8954L73.7176 37.7257L114.418 19.2058L81.315 31.8954Z" fill="#FF9BC0" />
+      <Path d="M73.7177 38.4116H42.2429L57.5768 45.9567L73.7177 38.4116Z" fill="#FF9BC0" />
+      <Path d="M99.2233 32.2383L60.6937 38.4116L77.5165 32.2383H99.2233Z" fill="#FF96BE" />
+      <Path d="M16.1947 32.2383L54.7242 38.4116L37.9015 32.2383H16.1947Z" fill="#FF96BE" />
+      <Path d="M40.0722 34.2961V28.8087L9.68274 18.5199L40.0722 34.2961Z" fill="#FF96BE" />
+      <Path d="M74.803 34.2961V28.8087L105.193 18.5199L74.803 34.2961Z" fill="#FF96BE" />
+      <Path d="M57.9802 38.7546L43.3281 32.9243L47.1268 13.7185L57.9802 38.7546Z" fill="#FF609C" />
+      <Path d="M58.523 38.7546L73.175 32.9243L69.3764 13.7185L58.523 38.7546Z" fill="#FF609C" />
+      <Path d="M78.6017 18.5199L58.5229 38.7545C70.2078 39.9908 75.0864 39.4785 76.431 33.2672L78.6017 18.5199Z" fill="#FF83B2" />
+      <Path d="M37.9016 18.5199L57.9803 38.7546C44.267 39.9037 39.3752 39.1785 40.0723 33.2672L37.9016 18.5199Z" fill="#FF83B2" />
+    </Svg>
+  </View>
+);

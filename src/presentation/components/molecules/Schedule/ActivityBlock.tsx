@@ -18,6 +18,8 @@ const BLOCK_COLORS = [
 
 const TRAVEL_COLOR = { bg: '#1A1D22', border: '#5A6A7A', text: '#8A9AAA' };
 const VIAJE_COLOR = { bg: '#2D2416', border: '#C8963E', text: '#F5DEB3' };
+const GOOGLE_COLOR = { bg: '#123B32', border: '#84C49F', text: '#C9EFDC' };
+const AGENDA_COLOR = { bg: '#31213D', border: '#A87BC0', text: '#E8D9F5' };
 
 interface Props {
   item: ScheduledActivity;
@@ -74,6 +76,47 @@ export function ActivityBlock({
           </Text>
           {height > 36 && (
             <Text style={[s.time, { color: VIAJE_COLOR.text }]}>
+              {formatDisplayTime(item.assignedStartTime)} – {formatDisplayTime(item.assignedEndTime)}
+            </Text>
+          )}
+        </View>
+      </View>
+    );
+  }
+
+  // Vinculado (Google Calendar): de solo lectura, arrastra lo que Google
+  // manda y no se toca desde aca. Sin onPress.
+  if (item.tipo === 'google') {
+    return (
+      <View testID="activity-block" style={[s.block, { top, height, backgroundColor: GOOGLE_COLOR.bg, borderLeftColor: GOOGLE_COLOR.border, borderLeftWidth: 6, flexDirection: 'row', alignItems: 'center' }]}>
+        <Ionicons name="calendar-outline" size={16} color={GOOGLE_COLOR.border} style={{ marginRight: 6 }} />
+        <View style={{ flex: 1 }}>
+          <Text style={[s.title, { color: GOOGLE_COLOR.text }]} numberOfLines={1}>
+            {item.nombre ?? 'Google'}
+          </Text>
+          {height > 36 && (
+            <Text style={[s.time, { color: GOOGLE_COLOR.text }]}>
+              {formatDisplayTime(item.assignedStartTime)} – {formatDisplayTime(item.assignedEndTime)}
+            </Text>
+          )}
+        </View>
+      </View>
+    );
+  }
+
+  // Ocurrencia real del calendario (parcial con fecha unica, movida de dia):
+  // el mes la muestra y el plan semanal no. De solo lectura: su edicion vive
+  // en el panel del dia del modo mes.
+  if (item.tipo === 'agenda') {
+    return (
+      <View testID="activity-block" style={[s.block, { top, height, backgroundColor: AGENDA_COLOR.bg, borderLeftColor: AGENDA_COLOR.border, borderLeftWidth: 6, flexDirection: 'row', alignItems: 'center' }]}>
+        <Ionicons name="file-tray-full-outline" size={16} color={AGENDA_COLOR.border} style={{ marginRight: 6 }} />
+        <View style={{ flex: 1 }}>
+          <Text style={[s.title, { color: AGENDA_COLOR.text }]} numberOfLines={1}>
+            {item.nombre ?? 'Evento del día'}
+          </Text>
+          {height > 36 && (
+            <Text style={[s.time, { color: AGENDA_COLOR.text }]}>
               {formatDisplayTime(item.assignedStartTime)} – {formatDisplayTime(item.assignedEndTime)}
             </Text>
           )}

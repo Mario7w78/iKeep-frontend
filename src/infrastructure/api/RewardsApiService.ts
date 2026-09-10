@@ -41,6 +41,24 @@ export interface ResumenDeLogros {
   progreso: ProgresoDelDia;
   /** Días con al menos algo hecho, en formato `YYYY-MM-DD`. */
   diasCompletados: string[];
+  /**
+   * Lo que quedó sin decir en los días anteriores (dentro de la gracia).
+   * Alimenta el carry-over: al abrir la app al día siguiente, acá está lo que
+   * se puede responder o reprogramar. Nada se toca sin que el usuario elija.
+   */
+  pendientesPasados: PendientePasado[];
+}
+
+/** Un día anterior con ocurrencias que nadie respondió todavía. */
+export interface PendientePasado {
+  /** Formato `YYYY-MM-DD`. */
+  fecha: string;
+  items: PendientePasadoItem[];
+}
+
+export interface PendientePasadoItem {
+  activityId: string;
+  titulo: string;
 }
 
 /**
@@ -149,6 +167,13 @@ export async function obtenerResumen(fecha = fechaLocal()): Promise<ResumenDeLog
       noHechasIds: dto.progreso.no_hechas_ids ?? [],
     },
     diasCompletados: dto.dias_completados ?? [],
+    pendientesPasados: (dto.pendientes_pasados ?? []).map((p: any) => ({
+      fecha: p.fecha,
+      items: (p.items ?? []).map((i: any) => ({
+        activityId: i.activity_id,
+        titulo: i.titulo,
+      })),
+    })),
   };
 }
 

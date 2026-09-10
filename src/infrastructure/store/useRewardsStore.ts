@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import {
+  PendientePasado,
   ProgresoDelDia,
   Racha,
   RespuestaDeCierre,
@@ -41,6 +42,12 @@ interface RewardsState {
   progreso: ProgresoDelDia;
   /** Días con algo hecho, para el historial. */
   diasCompletados: string[];
+  /**
+   * Lo que quedó sin decir en los días anteriores (dentro de la gracia).
+   * Lo muestra el carry-over al abrir la app; la tarjeta siempre pregunta
+   * antes de actuar.
+   */
+  pendientesPasados: PendientePasado[];
   cargando: boolean;
   /** Sube cada vez que se termina el día. Lo escucha la celebración. */
   diasTerminados: number;
@@ -49,6 +56,12 @@ interface RewardsState {
   estaCompletada: (activityId: string) => boolean;
   /** Resuelve de una vez lo que quedó sin decir. Ver `cerrarDia`. */
   cerrar: (respuesta: RespuestaDeCierre, hechas?: string[], fecha?: string) => Promise<void>;
+  /**
+   * Marca un pendiente de un día anterior (hecha o no hecha) y refresca.
+   * Es la acción del carry-over: el usuario elige, la app cumple. Nunca se
+   * dispara sola.
+   */
+  marcarPasado: (activityId: string, fecha: string, hecha: boolean) => Promise<void>;
   /** Trae el equilibrio. Aparte de `cargar`: solo lo mira una pantalla. */
   cargarFlor: (fecha?: string) => Promise<void>;
 }
@@ -58,6 +71,7 @@ export const useRewardsStore = create<RewardsState>()((set, get) => ({
   flor: null,
   progreso: PROGRESO_VACIO,
   diasCompletados: [],
+  pendientesPasados: [],
   cargando: false,
   diasTerminados: 0,
 
@@ -83,6 +97,7 @@ export const useRewardsStore = create<RewardsState>()((set, get) => ({
         racha: resumen.racha,
         progreso: resumen.progreso,
         diasCompletados: resumen.diasCompletados,
+        pendientesPasados: resumen.pendientesPasados,
       });
 
       // Los avisos se resincronizan con cada lectura: es el unico momento en
@@ -150,6 +165,20 @@ export const useRewardsStore = create<RewardsState>()((set, get) => ({
   },
 
   estaCompletada: (activityId) => get().progreso.completadosIds.includes(activityId),
+
+  marcarPasado: async (activityId, fecha, hecha) => {
+    try {
+      if (hecha) {
+        await completarActividad(activityId, fecha, 'hecha', 'manual');
+      } else {
+        await completarActividad(activityId, fecha, 'no_hecha', 'manual');
+      }
+      // Refresca para que el pendiente salga del carry-over.
+      await get().cargar(fechaLocal());
+    } catch (error) {
+      console.error('No se pudo marcar un pendiente del día anterior:', error);
+    }
+  },
 
   /**
    * El equilibrio entre áreas.

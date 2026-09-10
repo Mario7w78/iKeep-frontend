@@ -19,6 +19,7 @@ import { LotusLandscape } from "../../components/atoms/Lotus/LotusLandscape";
 import { LoadingScreen } from "../../components/atoms/Common/LoadingScreen";
 import { useFocusSessionStore } from "../../../infrastructure/store/useFocusSessionStore";
 import { useRewardsStore } from "../../../infrastructure/store/useRewardsStore";
+import { useCalendarStore } from "../../../infrastructure/store/useCalendarStore";
 import { ActivityDetailModal } from "../../components/organisms/Schedule/ActivityDetailModal";
 import { useGoogleCalendarStore } from "../../../infrastructure/store/useGoogleCalendarStore";
 import { RespuestaDeCierre } from "../../../infrastructure/api/RewardsApiService";
@@ -53,6 +54,7 @@ import {
   FABs,
 } from "./components";
 import { Sapo } from "../../components/atoms/Mascot/Sapo";
+import { CarryOverCard } from "../../components/organisms/Rewards/CarryOverCard";
 
 export default function HomeView() {
   const navigation = useNavigation<any>();
@@ -79,6 +81,8 @@ const isLight = esClaro;
   const alternarCompletada = useRewardsStore((s) => s.alternar);
   const diasTerminados = useRewardsStore((s) => s.diasTerminados);
   const cerrar = useRewardsStore((s) => s.cerrar);
+  const pendientesPasados = useRewardsStore((s) => s.pendientesPasados);
+  const marcarPasado = useRewardsStore((s) => s.marcarPasado);
   const sesion = useFocusSessionStore((s) => s.sesion);
   const iniciarSesion = useFocusSessionStore((s) => s.iniciarSesion);
   const anotarSalida = useFocusSessionStore((s) => s.anotarSalida);
@@ -163,6 +167,13 @@ const isLight = esClaro;
   const googleCalendarConectado = googleCalendarEstado === 'conectado';
 
   const [selectedActivity, setSelectedActivity] = useState<ScheduledActivity | null>(null);
+
+  // El carry-over se puede descartar "por ahora" en esta sesión, pero vuelve
+  // a aparecer al reabrir la app mientras haya pendientes sin responder:
+  // la regla es que siempre pregunta antes de actuar.
+  const [carryOverDescartado, setCarryOverDescartado] = useState(false);
+  const carryOverVisible =
+    !carryOverDescartado && pendientesPasados.length > 0 && !ofrecerCierre;
 
   // ── Derived UI state ──
   const isCurrentTravel = currentActivity && (currentActivity.tipo === 'viaje' || !currentActivity.activity);
@@ -265,6 +276,18 @@ const isLight = esClaro;
         areaDelDia={areaDelDia}
         startHour={startHour}
         selectedEnergy={selectedEnergy}
+      />
+      <CarryOverCard
+        pendientes={pendientesPasados}
+        onMarcar={async (activityId, fecha, hecha) => {
+          await marcarPasado(activityId, fecha, hecha);
+          await cargarLogros();
+        }}
+        onReprogramar={async (activityId, fecha, nuevaFecha) => {
+          await useCalendarStore.getState().mover(activityId, fecha, nuevaFecha);
+          await cargarLogros();
+        }}
+        onDismiss={() => setCarryOverDescartado(true)}
       />
       <View style={styles.lotusContainer}>
         <LotusLandscape testID="lotus-card" style={StyleSheet.absoluteFill} />

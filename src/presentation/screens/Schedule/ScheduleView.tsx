@@ -24,10 +24,78 @@ import { MonthGrid } from '../../components/organisms/Schedule/MonthGrid';
 import { WeekGrid } from '../../components/organisms/Schedule/WeekGrid';
 import { useCalendarStore, rangoDelMes } from '../../../infrastructure/store/useCalendarStore';
 import { useGoogleCalendarStore } from '../../../infrastructure/store/useGoogleCalendarStore';
-import { aFechaLocal } from '../../../infrastructure/api/CalendarApiService';
+import { EventoImportado } from '../../../infrastructure/api/GoogleCalendarApiService';
+import { Ocurrencia, aFechaLocal } from '../../../infrastructure/api/CalendarApiService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const DAYS_ORDER = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo'];
+
+/**
+ * La semana que dibuja el grid es la que contiene HOY, anclada en Lunes (el
+ * mismo criterio que la linea "hoy" y que DAYS_ORDER). Con eso la pagina i
+ * de la semana se ancla a una fecha real y los eventos de Google —que viven
+ * por fecha, YYYY-MM-DD— caen en su dia correcto.
+ */
+function fechaISODeLaPage(i: number): string {
+  const hoy = new Date();
+  const diasDesdeLunes = (hoy.getDay() + 6) % 7;
+  const fecha = new Date(
+    hoy.getFullYear(),
+    hoy.getMonth(),
+    hoy.getDate() - diasDesdeLunes + i
+  );
+  return aFechaLocal(fecha);
+}
+
+function minutosA_hhmm(min: number): string {
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+/**
+ * De un evento importado a un bloque del horario, tipo 'google'.
+ *
+ * Los bloques 'google' se pintan de solo lectura (ActivityBlock los dibuja
+ * sin onPress): el origen es externo, los horarios no se mueven ni se editan
+ * aca. Los eventos de todo el dia no pasan por esta conversion: en un grid
+ * por horas un "todo el dia" no tiene una hora que pintar.
+ */
+function aBloqueGoogle(evento: EventoImportado, day: string): ScheduledActivity {
+  const inicio = new Date(evento.inicio);
+  const fin = new Date(evento.fin);
+  return {
+    activity: undefined,
+    assignedStartTime: minutosA_hhmm(inicio.getHours() * 60 + inicio.getMinutes()),
+    assignedEndTime: minutosA_hhmm(fin.getHours() * 60 + fin.getMinutes()),
+    day: day as any,
+    tipo: 'google',
+    nombre: evento.titulo,
+  };
+}
+
+/**
+ * De una ocurrencia real del calendario a un bloque del horario, tipo
+ * 'agenda'.
+ *
+ * Las ocurrencias que ya tiene el plan semanal (mismo id de actividad) no
+ * pasan por aqui: se dibujan con su bloque del plan. Lo que si llega son las
+ * que el mes muestra y el plan no: parciales con fecha unica, actividades
+ * movidas de dia. Es lo que hace que el grid del dia refleje el mes.
+ */
+function aBloqueAgenda(occ: Ocurrencia, day: string): ScheduledActivity {
+  const a = occ.actividad;
+  const inicioMin = a.preferredStartTime ?? 8 * 60;
+  const finMin = a.preferredEndTime ?? inicioMin + 45;
+  return {
+    activity: undefined,
+    assignedStartTime: minutosA_hhmm(inicioMin),
+    assignedEndTime: minutosA_hhmm(finMin),
+    day: day as any,
+    tipo: 'agenda',
+    nombre: a.title,
+  };
+}
 
 function ChronologicalAgendaList({
   activities,
@@ -238,9 +306,11 @@ export default function ScheduleView() {
   );
 
   // Solo al entrar al modo mes: pedirlo siempre gastaria un viaje de red que
-  // la mayoria de las aperturas no usa.
+  // la mayoria de las aperturas no usa. Tambien preseleccionamos hoy para que
+  // el detalle llene el espacio de abajo en lugar de dejar un hueco enorme.
   useEffect(() => {
     if (viewMode === 'mes') {
+      setDiaElegido(aFechaLocal(new Date()));
       cargarMes();
       sincronizarGoogleDelMes();
     }
@@ -277,13 +347,20 @@ export default function ScheduleView() {
       const today = JS_DAY_TO_DAYOFWEEK[new Date().getDay()];
       changeSelectedDayProgrammatically(today);
       loadActivities();
-      // Volver del wizard en modo mes: la actividad recién creada con fecha
-      // única solo existe para el calendario, así que hay que pedirlo de
-      // nuevo o el usuario no la vería sin refrescar a mano.
+      // El dia tambien consume esas llamadas: el grid muestra las ocurrencias
+      // reales del mes (porDia) y los eventos de Google de la semana actual.
+      // El mes de hoy cubre la semana entera, y la cache de 30s del store
+      // evita repetir el mismo rango sin sentido.
       if (viewMode === 'mes') {
+        // Volver del wizard en modo mes: la actividad recién creada con fecha
+        // única solo existe para el calendario, así que hay que pedirlo de
+        // nuevo o el usuario no la vería sin refrescar a mano. Forzado: la
+        // caché de 30s del store lo descartaría si el viaje al wizard fue corto.
+        cargarMes(undefined, true);
+      } else {
         cargarMes();
-        sincronizarGoogleDelMes();
       }
+      sincronizarGoogleDelMes();
     }, [changeSelectedDayProgrammatically, loadActivities, viewMode, cargarMes, sincronizarGoogleDelMes])
   );
 
@@ -328,7 +405,7 @@ export default function ScheduleView() {
     (activityId: string, fecha: string) => {
       Alert.alert(
         '¿Cancelar esta actividad?',
-        'Desaparece de este día. Podés restaurarla desde la sección Canceladas.',
+        'Desaparece de este día. Puedes restaurarla desde la sección Canceladas.',
         [
           { text: 'Conservar', style: 'cancel' },
           {
@@ -406,7 +483,7 @@ export default function ScheduleView() {
 
   if (viewMode === 'anual' && !showEmptyState) {
     return (
-      <View style={s.container}>
+      <View style={[s.container, { paddingTop: insets.top }]}>
         <ScrollView contentContainerStyle={s.yearGrid}>
           {Array.from({ length: 12 }, (_, i) => {
             const monthDate = new Date(mesVisible.getFullYear(), i, 1);
@@ -441,7 +518,7 @@ export default function ScheduleView() {
 
   if (viewMode === 'mes' && !showEmptyState) {
     return (
-      <View style={s.container}>
+      <View style={[s.container, { paddingTop: insets.top }]}>
         <MonthGrid
           mesVisible={mesVisible}
           porDia={porDia}
@@ -457,6 +534,7 @@ export default function ScheduleView() {
           onMover={pedirFechaDestino}
           onCancelar={cancelarOcurrencia}
           onRestaurar={restaurarOcurrencia}
+          expandir
         />
         <TouchableOpacity style={s.volverAlDia} onPress={() => setViewMode('grid')}>
           <Ionicons name="today-outline" size={18} color={comfyColors.green} />
@@ -574,13 +652,27 @@ export default function ScheduleView() {
           >
             {DAYS_ORDER.map((day) => {
               const loopDayIndex = DAYS_ORDER.indexOf(day);
+              const fechaDeLaPagina = fechaISODeLaPage(loopDayIndex);
               const loopDisplayStartHour = perDayStartHours?.[loopDayIndex] ?? startHour;
               const dayItems = schedule.getItemsByDay(day as any, loopDisplayStartHour);
+              // El plan semanal ya cubre las recurrentes: las ocurrencias con
+              // el mismo id no se repiten, solo entran las que el mes muestra
+              // y el plan no (fecha unica, movidas).
+              const idsDelPlan = new Set(
+                dayItems.map((b) => b.activity?.id).filter((id): id is string => Boolean(id))
+              );
+              const bloquesAgenda = (porDia[fechaDeLaPagina] ?? [])
+                .filter((occ) => occ.actividad?.id && !idsDelPlan.has(occ.actividad.id))
+                .map((occ) => aBloqueAgenda(occ, day));
+              const bloquesGoogle = (importadosPorDia[fechaDeLaPagina] ?? [])
+                .filter((ev) => !ev.todoElDia)
+                .map((ev) => aBloqueGoogle(ev, day));
+              const actividadesDelDia = [...dayItems, ...bloquesAgenda, ...bloquesGoogle];
               return (
                 <View key={day} style={{ width: SCREEN_WIDTH, flex: 1, paddingVertical: 8, paddingHorizontal: 4 }}>
                   {viewMode === 'grid' ? (
                     <ScheduleGrid 
-                      activities={dayItems} 
+                      activities={actividadesDelDia} 
                       isToday={day === JS_DAY_TO_DAYOFWEEK[new Date().getDay()]} 
                       onActivityPress={setSelectedActivity}
                       startHour={displayStartHour}

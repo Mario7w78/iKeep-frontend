@@ -30,7 +30,7 @@ export default function ManageActivitiesView({ navigation, route }: any) {
   const styles = useMemo(() => createStyles(colors, comfyColors, comfyFontColors), [colors, comfyColors, comfyFontColors]);
 
   useEffect(() => {
-    loadActivities();
+    loadActivities(true);
   }, []);
 
   useEffect(() => {

@@ -25,6 +25,16 @@ interface CalendarState {
   cargando: boolean;
   error: string | null;
   /**
+   * Última carga exitosa por mes (`YYYY-MM` → timestamp ms).
+   *
+   * El foco de la vista de calendario llama cargarMes en cada visita; sin
+   * esto cada navegación vuelve a golpear la red. Si ya pedimos ese mes hace
+   * menos de 30 s, se reutiliza (sigue permitiendo la recarga tras volver del
+   * wizard porque ese retorno cae fuera de la ventana). Se limpia al cambiar
+   * de usuario (reiniciarSesion).
+   */
+  ultimaCargaPorMes: Record<string, number>;
+  /**
    * Canceladas en esta sesión, para poder ofrecer "Restaurar".
    *
    * El servidor descarta las canceladas de la expansión: tras recargar, la
@@ -33,10 +43,12 @@ interface CalendarState {
   canceladasEnSesion: Ocurrencia[];
 
   irAlMes: (delta: number) => Promise<void>;
-  cargarMes: (referencia?: Date) => Promise<void>;
+  cargarMes: (referencia?: Date, forzar?: boolean) => Promise<void>;
   cancelar: (activityId: string, fecha: string) => Promise<void>;
   mover: (activityId: string, fecha: string, nuevaFecha: string) => Promise<void>;
   restaurar: (activityId: string, fecha: string) => Promise<void>;
+  /** Vacía el recuerdo de la sesión previa (logout o cambio de usuario). */
+  reiniciarSesion: () => void;
 }
 
 /**
@@ -75,13 +87,19 @@ export const useCalendarStore = create<CalendarState>()((set, get) => ({
   porDia: {},
   cargando: false,
   error: null,
+  ultimaCargaPorMes: {},
   canceladasEnSesion: [],
 
-  cargarMes: async (referencia = get().mesVisible) => {
+  cargarMes: async (referencia = get().mesVisible, forzar = false) => {
+    const clave = `${referencia.getFullYear()}-${String(referencia.getMonth() + 1).padStart(2, '0')}`;
+    if (!forzar && Date.now() - (get().ultimaCargaPorMes[clave] ?? 0) < 30_000) return;
     const { desde, hasta } = rangoDelMes(referencia);
     set({ cargando: true, error: null });
     try {
-      set({ porDia: agrupar(await verCalendario(desde, hasta)) });
+      set({
+        porDia: agrupar(await verCalendario(desde, hasta)),
+        ultimaCargaPorMes: { ...get().ultimaCargaPorMes, [clave]: Date.now() },
+      });
     } catch (e) {
       // El calendario es la pantalla entera, no un adorno: si falla hay que
       // decirlo y ofrecer reintentar, no dejar una cuadrícula vacía que se
@@ -116,7 +134,7 @@ export const useCalendarStore = create<CalendarState>()((set, get) => ({
     set({ canceladasEnSesion: [...get().canceladasEnSesion, registro] });
     try {
       await guardarExcepcion({ activityId, fecha, tipo: 'cancelada' });
-      await get().cargarMes();
+      await get().cargarMes(undefined, true);
     } catch (e) {
       // Si el servidor no se enteró, ofrecer "Restaurar" sería mentir: la
       // fila sale de la lista y el error sube para que la pantalla avise.
@@ -131,7 +149,7 @@ export const useCalendarStore = create<CalendarState>()((set, get) => ({
 
   mover: async (activityId, fecha, nuevaFecha) => {
     await guardarExcepcion({ activityId, fecha, tipo: 'movida', nuevaFecha });
-    await get().cargarMes();
+    await get().cargarMes(undefined, true);
   },
 
   restaurar: async (activityId, fecha) => {
@@ -141,6 +159,10 @@ export const useCalendarStore = create<CalendarState>()((set, get) => ({
         (o) => !(o.actividad.id === activityId && o.fecha === fecha)
       ),
     });
-    await get().cargarMes();
+    await get().cargarMes(undefined, true);
+  },
+
+  reiniciarSesion: () => {
+    set({ porDia: {}, ultimaCargaPorMes: {}, canceladasEnSesion: [] });
   },
 }));

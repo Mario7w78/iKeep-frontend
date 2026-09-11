@@ -13,6 +13,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { useTheme } from '../../theme/colors';
 import { RADIO } from '../../theme/tokens';
 import { useGoogleCalendarStore } from '../../../../infrastructure/store/useGoogleCalendarStore';
+import { rangoDelMes } from '../../../../infrastructure/store/useCalendarStore';
 import { iniciarConexion } from '../../../../infrastructure/api/GoogleCalendarApiService';
 
 /**
@@ -38,8 +39,10 @@ export const GoogleCalendarSection: React.FC = () => {
   const estado = useGoogleCalendarStore((s) => s.estado);
   const cargando = useGoogleCalendarStore((s) => s.cargando);
   const errorDeSincronizacion = useGoogleCalendarStore((s) => s.error);
+  const ultimoConteo = useGoogleCalendarStore((s) => s.ultimoConteo);
   const verificarEstado = useGoogleCalendarStore((s) => s.verificarEstado);
   const confirmarConexion = useGoogleCalendarStore((s) => s.confirmarConexion);
+  const cargar = useGoogleCalendarStore((s) => s.cargar);
   const desconectar = useGoogleCalendarStore((s) => s.desconectar);
 
   /** Error propio del flujo de conexion; distinto del de sincronizacion. */
@@ -63,7 +66,15 @@ export const GoogleCalendarSection: React.FC = () => {
       // pierde, openAuthSessionAsync resuelve igual al cerrar el browser y
       // /estado confirma la verdad — nunca confiamos solo en el redirect.
       await WebBrowser.openAuthSessionAsync(url, REDIRECT_GOOGLE);
-      await confirmarConexion();
+      const seConecto = await confirmarConexion();
+      if (seConecto) {
+        // La primera sincronización se dispara aca, no solo cuando se abre
+        // la vista del mes: así el usuario VEE que el botón hizo algo (los
+        // eventos ya están en el servidor) y el banner con el conteo llena
+        // el vacío de "no pasó nada".
+        const hoy = rangoDelMes(new Date());
+        await cargar(hoy.desde, hoy.hasta, true);
+      }
     } catch (e: any) {
       // 503 = credenciales de Google sin configurar (o cuota): mensaje
       // accionable, no un crash ni un "algo salio mal" generico.
@@ -75,7 +86,7 @@ export const GoogleCalendarSection: React.FC = () => {
     } finally {
       setConectando(false);
     }
-  }, [iniciarConexion, confirmarConexion]);
+  }, [iniciarConexion, confirmarConexion, cargar]);
 
   const pedirConfirmacionDesconectar = useCallback(() => {
     Alert.alert(
@@ -108,6 +119,14 @@ export const GoogleCalendarSection: React.FC = () => {
       {(errorDeSincronizacion || errorDeConexion) && (
         <Text style={styles.error} testID="google-error">
           {errorDeConexion ?? errorDeSincronizacion}
+        </Text>
+      )}
+
+      {conectado && ultimoConteo !== null && (
+        <Text style={styles.nota} testID="google-banner-conteo">
+          {ultimoConteo === 0
+            ? 'Sincronizado: no hay eventos en los próximos días.'
+            : `Se sincronizaron ${ultimoConteo} ${ultimoConteo === 1 ? 'evento' : 'eventos'} del mes.`}
         </Text>
       )}
 

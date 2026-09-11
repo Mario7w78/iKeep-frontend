@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import * as Linking from 'expo-linking';
 import { useAuthStore } from '../../infrastructure/store/useAuthStore';
+import { navigationRef } from '../navigation/navigationRef';
 
 /**
  * El path del deep link de confirmación (la parte después del scheme `lotus://`).
@@ -50,6 +51,17 @@ export function useConfirmacionEmail() {
       // confirmado, ya puedes iniciar sesión". LimpiarRecienteConfirmado lo
       // apaga cuando el usuario efectivamente entra.
       marcarRecienteConfirmado();
+
+      // Y se lleva al usuario a Login (ojalá con el aviso recién marcado).
+      // Sin esto, la confirmación puesta al pie de la pantalla quedaba en el
+      // olvido si la app se abría sobre SignUp: el enlace solo marcaba el
+      // flag y nadie navegaba a verlo. `isReady` cubre la carrera del deep
+      // link inicial, que puede llegar antes de que exista pantalla alguna;
+      // en ese caso AppNavigator ya arranca mostrando Login. Si verifyOtp
+      // creó sesión, el usuario ya está dentro: no tiene sentido ir a Login.
+      if (navigationRef.isReady() && !useAuthStore.getState().session) {
+        navigationRef.navigate('Login');
+      }
     };
 
     // URL inicial: la app arrancó porque el usuario tocó el enlace.

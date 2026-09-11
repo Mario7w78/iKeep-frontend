@@ -32,6 +32,15 @@ interface GoogleCalendarState {
   error: string | null;
 
   /**
+   * Cuántos eventos importados dejó la última sincronización exitosa.
+   *
+   * Cero es un resultado válido ("tu mes está vacío"), null es "todavía no
+   * sincronizamos". Es lo que el banner de Settings muestra para que conectar
+   * Google no parezca un botón que no hizo nada (item 4).
+   */
+  ultimoConteo: number | null;
+
+  /**
    * Ya preguntamos /estado en esta sesion.
    *
    * Sin esto, cada navegacion de mes re-preguntaria por siempre jamas: el
@@ -98,6 +107,7 @@ export const useGoogleCalendarStore = create<GoogleCalendarState>()((set, get) =
   porDia: {},
   cargando: false,
   error: null,
+  ultimoConteo: null,
   verificado: false,
   ultimaCargaPorRango: {},
 
@@ -125,12 +135,18 @@ export const useGoogleCalendarStore = create<GoogleCalendarState>()((set, get) =
     set({ cargando: true, error: null });
     try {
       const ventana = await cargarEventos(desde, hasta);
-      set({ porDia: agrupar(ventana), ultimaCargaPorRango: { ...get().ultimaCargaPorRango, [clave]: Date.now() } });
+      // Eventos que tocan el rango, sin paginar por dia: es el tamaño de la
+      // sincronización que el banner le va a mostrar al usuario.
+      set({
+        porDia: agrupar(ventana),
+        ultimoConteo: ventana.conectado ? ventana.eventos.length : null,
+        ultimaCargaPorRango: { ...get().ultimaCargaPorRango, [clave]: Date.now() },
+      });
     } catch (e) {
       if (e instanceof BackendError && e.isAuthError) {
         // Token revocado o vencido para siempre (invalid_grant -> 401):
         // los datos viejos ya no son verdad, fuera, y Settings ofrece reconectar.
-        set({ estado: 'reconexion', porDia: {} });
+        set({ estado: 'reconexion', porDia: {}, ultimoConteo: null });
       } else {
         // Fallo transitorio: lo decimos en la seccion, pero lo ya mostrado
         // se queda — mejor datos viejos que una seccion vacia que miente.
@@ -162,6 +178,7 @@ export const useGoogleCalendarStore = create<GoogleCalendarState>()((set, get) =
       porDia: {},
       error: null,
       cargando: false,
+      ultimoConteo: null,
       ultimaCargaPorRango: {},
       // Sigue verificado: acabamos de saber que no hay conexion, y el
       // contrato pide cero llamadas google tras desconectar.

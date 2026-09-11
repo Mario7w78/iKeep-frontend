@@ -12,6 +12,7 @@ import { Nunito_800ExtraBold } from '@expo-google-fonts/nunito/800ExtraBold';
 import { Nunito_900Black } from '@expo-google-fonts/nunito/900Black';
 
 import AppNavigator from './src/presentation/navigation/AppNavigator';
+import { navigationRef } from './src/presentation/navigation/navigationRef';
 import { useBackendWarmUp } from './src/presentation/hooks/useBackendWarmUp';
 import { useConfirmacionEmail } from './src/presentation/hooks/useConfirmacionEmail';
 import { aplicarTipografiaGlobal } from './src/presentation/theme/typography';
@@ -46,7 +47,7 @@ export default function App() {
   return (
     <View style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <NavigationContainer>
+        <NavigationContainer ref={navigationRef}>
           <AppNavigator />
         </NavigationContainer>
       </SafeAreaProvider>

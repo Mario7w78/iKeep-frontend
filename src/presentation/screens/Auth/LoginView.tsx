@@ -7,6 +7,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableOpacity,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -50,57 +52,59 @@ export default function LoginView({ navigation }: Props) {
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <View style={styles.content}>
-          <View style={styles.header}>
-            <LotusFlower size={120} style={styles.flor} />
-            <Text style={styles.wordmark} testID="wordmark">Lotus</Text>
-            <Text style={styles.title}>Iniciar sesión</Text>
-            <Text style={styles.subtitle}>
-              Qué bueno verte de nuevo. El loto siempre te espera.
-            </Text>
-          </View>
-
-          {recienteConfirmadoEmail && (
-            <View style={styles.confirmadoCard} testID="correo-confirmado">
-              <Ionicons name="checkmark-circle" size={24} color={colors.accentText} />
-              <Text style={styles.confirmadoCardText}>
-                ¡Correo confirmado! Ya puedes iniciar sesión.
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.content}>
+            <View style={styles.header}>
+              <LotusFlower size={120} style={styles.flor} />
+              <Text style={styles.wordmark} testID="wordmark">Lotus</Text>
+              <Text style={styles.title}>Iniciar sesión</Text>
+              <Text style={styles.subtitle}>
+                Qué bueno verte de nuevo. El loto siempre te espera.
               </Text>
             </View>
-          )}
 
-          <TextInput
-            style={styles.input}
-            placeholder="Email"
-            placeholderTextColor={colors.textTertiary}
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            autoComplete="email"
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Contraseña"
-            placeholderTextColor={colors.textTertiary}
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            autoComplete="password"
-          />
+            {recienteConfirmadoEmail && (
+              <View style={styles.confirmadoCard} testID="correo-confirmado">
+                <Ionicons name="checkmark-circle" size={24} color={colors.accentText} />
+                <Text style={styles.confirmadoCardText}>
+                  ¡Correo confirmado! Ya puedes iniciar sesión.
+                </Text>
+              </View>
+            )}
 
-          {error && <Text style={styles.error}>{error}</Text>}
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              placeholderTextColor={colors.textTertiary}
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              autoComplete="email"
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Contraseña"
+              placeholderTextColor={colors.textTertiary}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              autoComplete="password"
+            />
 
-          <PrimaryButton
-            title={isSubmitting ? 'Ingresando...' : 'Ingresar'}
-            onPress={handleSubmit}
-            style={styles.button}
-          />
+            {error && <Text style={styles.error}>{error}</Text>}
 
-          <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
-            <Text style={styles.link}>¿No tienes cuenta? Regístrate</Text>
-          </TouchableOpacity>
-        </View>
+            <PrimaryButton
+              title={isSubmitting ? 'Ingresando...' : 'Ingresar'}
+              onPress={handleSubmit}
+              style={styles.button}
+            />
+
+            <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
+              <Text style={styles.link}>¿No tienes cuenta? Regístrate</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

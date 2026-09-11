@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { Session } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../supabase/client';
+import { traducirErrorLogin } from '../supabase/authErrorMessages';
 // El singleton real de actividades vive en DI (createActivityStore se
 // instancia ahí); useAuthStore necesita su getState() para anular la cache
 // de sesión al cambiar de usuario. No hay ciclo: DI no importa useAuthStore.
@@ -109,7 +110,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   signInWithPassword: async (email, password) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error: error?.message ?? null };
+    return { error: traducirErrorLogin(error ?? null) };
   },
 
   signUp: async (email, password) => {

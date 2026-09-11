@@ -41,6 +41,7 @@ function resetStore(overrides: Record<string, unknown> = {}) {
     porDia: {},
     cargando: false,
     error: null,
+    ultimoConteo: null,
     verificado: false,
     ...overrides,
   });
@@ -95,6 +96,11 @@ describe('GoogleCalendarSection', () => {
     it('abre el navegador con la url del backend y el redirect lotus://', async () => {
       // Al abrir: desconectado; tras volver del navegador: conectado.
       mockConsultarEstado.mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+      mockCargarEventos.mockResolvedValue({
+        conectado: true,
+        eventos: [{ id: 'e1', titulo: 'Clase', inicio: '', fin: '', todoElDia: false }],
+        diasPorEvento: {},
+      });
       const vista = await render(<GoogleCalendarSection />);
       const boton = await waitFor(() => vista.getByTestId('google-conectar'));
 
@@ -109,6 +115,48 @@ describe('GoogleCalendarSection', () => {
       await waitFor(() =>
         expect(useGoogleCalendarStore.getState().estado).toBe('conectado')
       );
+    });
+
+    it('tras conectar, la primera sincronización llena un banner con el conteo', async () => {
+      // El item 4: conectar no puede parecer un botón que no hizo nada. Al
+      // volver del navegador se sincroniza el mes y el resultado se muestra.
+      mockConsultarEstado.mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+      mockCargarEventos.mockResolvedValue({
+        conectado: true,
+        eventos: [
+          { id: 'e1', titulo: 'Clase', inicio: '', fin: '', todoElDia: false },
+          { id: 'e2', titulo: 'Parcial', inicio: '', fin: '', todoElDia: false },
+        ],
+        diasPorEvento: {},
+      });
+      const vista = await render(<GoogleCalendarSection />);
+      const boton = await waitFor(() => vista.getByTestId('google-conectar'));
+
+      await act(async () => { fireEvent.press(boton); });
+
+      expect(mockCargarEventos).toHaveBeenCalledTimes(1);
+      await waitFor(() => expect(vista.getByTestId('google-banner-conteo')).toBeTruthy());
+      expect(
+        vista.getByText('Se sincronizaron 2 eventos del mes.')
+      ).toBeTruthy();
+    });
+
+    it('cero eventos en el mes lo dice, en vez de fingir silencio', async () => {
+      mockConsultarEstado.mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+      mockCargarEventos.mockResolvedValue({
+        conectado: true,
+        eventos: [],
+        diasPorEvento: {},
+      });
+      const vista = await render(<GoogleCalendarSection />);
+      const boton = await waitFor(() => vista.getByTestId('google-conectar'));
+
+      await act(async () => { fireEvent.press(boton); });
+
+      await waitFor(() => expect(vista.getByTestId('google-banner-conteo')).toBeTruthy());
+      expect(
+        vista.getByText('Sincronizado: no hay eventos en los próximos días.')
+      ).toBeTruthy();
     });
 
     it('un 503 dice que falta configuracion, en vez de un error generico', async () => {

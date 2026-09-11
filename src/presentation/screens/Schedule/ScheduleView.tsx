@@ -472,7 +472,14 @@ export default function ScheduleView() {
     setShowEnergyPicker(true);
   }, [activities.length]);
 
-  const showEmptyState = !schedule || schedule.getAllItems().length === 0;
+  // El plan semanal puede estar vacio (p.ej. solo actividades importadas de
+  // Google, que viven por fecha y no entran al flattener semanal). El vacio
+  // no es una afirmacion sobre la BD sino sobre el plan: si el calendario o
+  // los importados ya muestran contenido, se dibuja la red igual.
+  const hayBloquesDelPlan = schedule != null && schedule.getAllItems().length > 0;
+  const hayContenidoCalendario =
+    Object.keys(porDia).length > 0 || Object.keys(importadosPorDia).length > 0;
+  const showEmptyState = !hayBloquesDelPlan && !hayContenidoCalendario;
 
   // El mismo problema que en Home: "sin horario generado aun" durante la
   // carga se lee como que se perdio el horario. Es una afirmacion sobre los
@@ -589,7 +596,7 @@ export default function ScheduleView() {
 
   // Girar el telefono ya ocultaba la barra de tabs para ganar alto; lo que
   // faltaba era usarlo. La semana entera se ve de una y sirve para la foto.
-  if (esApaisado && !showEmptyState) {
+  if (esApaisado && schedule && !showEmptyState) {
     return (
       <WeekGrid
         schedule={schedule}
@@ -654,7 +661,7 @@ export default function ScheduleView() {
               const loopDayIndex = DAYS_ORDER.indexOf(day);
               const fechaDeLaPagina = fechaISODeLaPage(loopDayIndex);
               const loopDisplayStartHour = perDayStartHours?.[loopDayIndex] ?? startHour;
-              const dayItems = schedule.getItemsByDay(day as any, loopDisplayStartHour);
+              const dayItems = schedule ? schedule.getItemsByDay(day as any, loopDisplayStartHour) : [];
               // El plan semanal ya cubre las recurrentes: las ocurrencias con
               // el mismo id no se repiten, solo entran las que el mes muestra
               // y el plan no (fecha unica, movidas).

@@ -108,7 +108,7 @@ export const MonthGrid: React.FC<Props> = ({
 
   const delDia = diaSeleccionado ? porDia[diaSeleccionado] ?? [] : [];
   const importadosDelDia = diaSeleccionado
-    ? importadosPorDia?.[diaSeleccionado] ?? []
+    ? (importadosPorDia?.[diaSeleccionado] ?? []).filter((e) => e.todoElDia)
     : [];
   const canceladasDelDia = diaSeleccionado
     ? canceladasEnSesion.filter((o) => o.fecha === diaSeleccionado)
@@ -160,9 +160,10 @@ export const MonthGrid: React.FC<Props> = ({
           {celdas.map((d) => {
             const clave = aFechaLocal(d);
             const ocurrencias = porDia[clave] ?? [];
-            // Los importados usan lo que queda de la fila de puntos: nunca
-            // le roban lugar a una actividad propia.
-            const importados = importadosPorDia?.[clave] ?? [];
+            // Los importados con hora ya se materializaron como actividades:
+            // salen por `porDia` y son interactivas. Aqui solo queda lo de
+            // todo-el-dia, que marca el dia como importante.
+            const importados = (importadosPorDia?.[clave] ?? []).filter((e) => e.todoElDia);
             const cupoImportados = Math.max(0, MAXIMO_PUNTOS - Math.min(ocurrencias.length, MAXIMO_PUNTOS));
             const esDeOtroMes = d.getMonth() !== mesActual;
             const esHoy = clave === hoy;
@@ -186,33 +187,29 @@ export const MonthGrid: React.FC<Props> = ({
                   {d.getDate()}
                 </Text>
 
-                {/* Puntos y no números: a esta escala la cantidad exacta no
-                    se lee, y lo que importa es si el día está cargado. */}
-                <View style={styles.puntos}>
-                  {ocurrencias.slice(0, MAXIMO_PUNTOS).map((o, i) => (
-                    <View
-                      key={i}
-                      style={[
-                        styles.punto,
-                        o.esUnica && styles.puntoUnico,
-                        esDeOtroMes && styles.puntoOtroMes,
-                      ]}
-                    />
-                  ))}
-                  {/* Punto distinto para lo importado: mismo tamaño, otro
-                      color. Que se note que NO es una actividad propia. */}
-                  {importados.slice(0, cupoImportados).map((e) => (
-                    <View
-                      key={e.id}
-                      testID={`punto-importado-${e.id}-${clave}`}
-                      style={[
-                        styles.punto,
-                        styles.puntoImportado,
-                        esDeOtroMes && styles.puntoOtroMes,
-                      ]}
-                    />
-                  ))}
-                </View>
+                  {/* Puntos y no números: a esta escala la cantidad exacta no
+                      se lee, y lo que importa es si el día está cargado. */}
+                  <View style={styles.puntos}>
+                    {ocurrencias.slice(0, MAXIMO_PUNTOS).map((o, i) => (
+                      <View
+                        key={i}
+                        style={[
+                          styles.punto,
+                          o.esUnica && styles.puntoUnico,
+                          esDeOtroMes && styles.puntoOtroMes,
+                        ]}
+                      />
+                    ))}
+                    {/* Día importante: un evento de todo-el-día (feriado,
+                        cumpleaños). No es una actividad que planificar, pero
+                        el día merece señalarse con un glifo propio. */}
+                    {importados.length > 0 && (
+                      <View
+                        testID={`dia-importante-${clave}`}
+                        style={styles.diaImportante}
+                      />
+                    )}
+                  </View>
               </TouchableOpacity>
             );
           })}
@@ -306,23 +303,15 @@ export const MonthGrid: React.FC<Props> = ({
 
           {importadosDelDia.length > 0 && (
             <View style={styles.seccionImportados} testID="seccion-importados">
-              <Text style={styles.tituloImportados}>De Google Calendar</Text>
-              {/* Filas planas, sin TouchableOpacity y sin acciones: lo
-                  importado se LEE, nunca se edita (spec external-events-ui).
-                  El titulo va tal cual llegó de Google. */}
+              <Text style={styles.tituloImportados}>Día importante</Text>
+              {/* Solo los de todo-el-día llegan por acá: los importados con
+                  hora ya son actividades reales e interactivas arriba. Esto
+                  es feriado/cumpleaños: se LEE, no se planea ni se mueve. */}
               {importadosDelDia.map((e) => (
                 <View key={e.id} testID={`importado-${e.id}`} style={styles.item}>
                   <View style={[styles.itemPunto, styles.puntoImportado]} />
                   <View style={{ flex: 1 }}>
                     <Text style={styles.itemTitulo}>{e.titulo}</Text>
-                    {!e.todoElDia && (
-                      <Text style={styles.itemNota}>
-                        {new Date(e.inicio).toLocaleTimeString('es', {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </Text>
-                    )}
                   </View>
                 </View>
               ))}
@@ -432,6 +421,17 @@ const createStyles = (colors: ThemeColors, comfyColors: ReturnType<typeof useThe
     // Lo importado viste de celeste: mismo tamaño que un punto propio pero
     // IMPOSIBLE de confundir con uno. El color viene del tema (skyBlue).
     puntoImportado: { backgroundColor: comfyColors.skyBlue },
+    // Glifo del "día importante": un evento de todo-el-día (feriado,
+    // cumpleaños) que no es una actividad por planificar, pero el día
+    // merece señalarse distinto a un punto de actividad.
+    diaImportante: {
+      width: 5,
+      height: 5,
+      borderRadius: 2,
+      backgroundColor: comfyColors.skyBlue,
+      borderWidth: 1,
+      borderColor: comfyColors.skyBlue,
+    },
     cargando: {
       textAlign: 'center',
       paddingVertical: ESPACIO.sm,

@@ -225,18 +225,29 @@ describe('ScheduleView en modo mes', () => {
       await vista.unmount();
     });
 
-    it('los importados llegan al grid con su punto propio', async () => {
-      mockVer.mockResolvedValue([]);
-      mockGoogleCargarEventos.mockResolvedValue({
-        conectado: true,
-        eventos: [{ id: 'g-1', titulo: 'Dentista', inicio: '2026-09-10T13:00:00Z', fin: '2026-09-10T14:00:00Z', todoElDia: false }],
-        diasPorEvento: { 'g-1': ['2026-09-10'] },
-      });
+    it('un importado con hora ya es actividad real: sale por `porDia`, sin punto google', async () => {
+      // external-events-ui: los imports timed se materializaron como
+      // ocurrencias del calendario propio (backend) y la UI los trata como
+      // cualquier actividad real e interactiva. El overlay read-only de google
+      // —punto-importado— ya no existe: google queda para lo todo-el-dia.
+      mockVer.mockResolvedValue([
+        {
+          fecha: '2026-09-10',
+          actividad: { id: 'g-1', title: 'Dentista', preferredStartTime: 13 * 60, preferredEndTime: 14 * 60 },
+          movidaDesde: null,
+          esUnica: false,
+        },
+      ]);
 
       const vista = await montar();
       await irAMes(vista);
 
-      expect(await vista.findByTestId('punto-importado-g-1-2026-09-10')).toBeTruthy();
+      // La ocurrencia llega como fila de actividad normal e interactiva...
+      await act(async () => { fireEvent.press(vista.getByTestId('dia-2026-09-10')); });
+      expect(await vista.findByText('Dentista')).toBeTruthy();
+      expect(vista.getByTestId('mover-g-1')).toBeTruthy();
+      // ...y la celda no se pinta con ningun punto de importacion read-only.
+      expect(vista.queryByTestId('punto-importado-g-1-2026-09-10')).toBeNull();
       await vista.unmount();
     });
 

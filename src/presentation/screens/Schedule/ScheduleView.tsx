@@ -680,10 +680,7 @@ export default function ScheduleView() {
               const bloquesAgenda = (porDia[fechaDeLaPagina] ?? [])
                 .filter((occ) => occ.actividad?.id && !idsDelPlan.has(occ.actividad.id))
                 .map((occ) => aBloqueAgenda(occ, day));
-              const bloquesGoogle = (importadosPorDia[fechaDeLaPagina] ?? [])
-                .filter((ev) => !ev.todoElDia)
-                .map((ev) => aBloqueGoogle(ev, day));
-              const actividadesDelDia = [...dayItems, ...bloquesAgenda, ...bloquesGoogle];
+              const actividadesDelDia = [...dayItems, ...bloquesAgenda];
               return (
                 <View key={day} style={{ width: SCREEN_WIDTH, flex: 1, paddingVertical: 8, paddingHorizontal: 4 }}>
                   {viewMode === 'grid' ? (

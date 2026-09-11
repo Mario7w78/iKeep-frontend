@@ -24,7 +24,7 @@ import {
 
 export default function ManageActivitiesView({ navigation, route }: any) {
   const { colors, comfyColors, comfyFontColors } = useTheme();
-  const { activities, loadActivities, handleDeleteActivity } = useActivityStore();
+  const { activities, loadActivities, handleDeleteActivity, handleDeleteAllActivities } = useActivityStore();
   const { handleGenerateSchedule } = useScheduleStore();
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
 
@@ -70,6 +70,29 @@ export default function ManageActivitiesView({ navigation, route }: any) {
     );
   };
 
+  const onDeleteAll = () => {
+    if (activities.length === 0) return;
+    Alert.alert(
+      "Eliminar todas las actividades",
+      `¿Estás seguro de que quieres eliminar las ${activities.length} actividades? Esto borrará tu horario actual y lo recalculará. Esta acción no se puede deshacer.`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Eliminar todas",
+          style: "destructive",
+          onPress: async () => {
+            await handleDeleteAllActivities();
+            try {
+              await handleGenerateSchedule();
+            } catch (e) {
+              console.error("Error generating schedule after delete all:", e);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   // Acciones ocultas del card: se revelan al deslizar hacia la izquierda.
   // `SwipeableActivityCard` se encarga de cerrar el swipe al presionar.
   const getSwipeActions = (item: Activity): SwipeAction[] => [
@@ -99,7 +122,19 @@ export default function ManageActivitiesView({ navigation, route }: any) {
           </TouchableOpacity>
         )}
         <Text style={styles.title}>Mis Actividades</Text>
-        <View style={{ width: 40 }} />
+        {activities.length > 0 ? (
+          <TouchableOpacity
+            testID="eliminar-todas"
+            style={styles.deleteAllButton}
+            onPress={onDeleteAll}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityLabel="Eliminar todas las actividades"
+          >
+            <Ionicons name="trash-outline" size={22} color={colors.error} />
+          </TouchableOpacity>
+        ) : (
+          <View style={{ width: 40 }} />
+        )}
       </View>
 
       <FlatList
@@ -207,6 +242,14 @@ const createStyles = (
     borderBottomColor: colors.cardBorder,
   },
   backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.cardBackground,
+  },
+  deleteAllButton: {
     width: 40,
     height: 40,
     borderRadius: 20,

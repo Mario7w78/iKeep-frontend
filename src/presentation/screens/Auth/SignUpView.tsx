@@ -7,6 +7,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableOpacity,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -67,75 +69,79 @@ export default function SignUpView({ navigation }: Props) {
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <View style={styles.topBar}>
-          <TouchableOpacity
-            testID="back-to-login"
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            accessibilityLabel="Volver a iniciar sesión"
-          >
-            <Ionicons name="arrow-back" size={24} color={colors.surface} />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.content}>
-          <View style={styles.header}>
-            <LotusFlower size={120} style={styles.flor} />
-            <Text style={styles.wordmark} testID="wordmark">Lotus</Text>
-            <Text style={styles.title}>Crear cuenta</Text>
-            <Text style={styles.subtitle}>
-              Bienvenido a Lotus. Dinos qué haces y armamos tu horario.
-            </Text>
-          </View>
-
-          <TextInput
-            style={styles.input}
-            placeholder="Email"
-            placeholderTextColor={colors.textTertiary}
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            autoComplete="email"
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Contraseña (mínimo 6 caracteres)"
-            placeholderTextColor={colors.textTertiary}
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            autoComplete="password-new"
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Repetir contraseña"
-            placeholderTextColor={colors.textTertiary}
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            secureTextEntry
-            autoComplete="password-new"
-          />
-
-          {error && <Text style={styles.error}>{error}</Text>}
-          {info && (
-            <View style={styles.infoCard} testID="aviso-confirmacion">
-              <Ionicons name="mail" size={26} color={colors.accentText} />
-              <Text style={styles.infoCardText}>{info}</Text>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.pressArea}>
+            <View style={styles.topBar}>
+              <TouchableOpacity
+                testID="back-to-login"
+                style={styles.backButton}
+                onPress={() => navigation.goBack()}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                accessibilityLabel="Volver a iniciar sesión"
+              >
+                <Ionicons name="arrow-back" size={24} color={colors.surface} />
+              </TouchableOpacity>
             </View>
-          )}
 
-          <PrimaryButton
-            title={isSubmitting ? 'Creando cuenta...' : 'Crear cuenta'}
-            onPress={handleSubmit}
-            style={styles.button}
-          />
+            <View style={styles.content}>
+              <View style={styles.header}>
+                <LotusFlower size={120} style={styles.flor} />
+                <Text style={styles.wordmark} testID="wordmark">Lotus</Text>
+                <Text style={styles.title}>Crear cuenta</Text>
+                <Text style={styles.subtitle}>
+                  Bienvenido a Lotus. Dinos qué haces y armamos tu horario.
+                </Text>
+              </View>
 
-          <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-            <Text style={styles.link}>¿Ya tienes cuenta? Inicia sesión</Text>
-          </TouchableOpacity>
-        </View>
+              <TextInput
+                style={styles.input}
+                placeholder="Email"
+                placeholderTextColor={colors.textTertiary}
+                value={email}
+                onChangeText={setEmail}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                autoComplete="email"
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Contraseña (mínimo 6 caracteres)"
+                placeholderTextColor={colors.textTertiary}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                autoComplete="password-new"
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Repetir contraseña"
+                placeholderTextColor={colors.textTertiary}
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                secureTextEntry
+                autoComplete="password-new"
+              />
+
+              {error && <Text style={styles.error}>{error}</Text>}
+              {info && (
+                <View style={styles.infoCard} testID="aviso-confirmacion">
+                  <Ionicons name="mail" size={26} color={colors.accentText} />
+                  <Text style={styles.infoCardText}>{info}</Text>
+                </View>
+              )}
+
+              <PrimaryButton
+                title={isSubmitting ? 'Creando cuenta...' : 'Crear cuenta'}
+                onPress={handleSubmit}
+                style={styles.button}
+              />
+
+              <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+                <Text style={styles.link}>¿Ya tienes cuenta? Inicia sesión</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -145,6 +151,9 @@ const createStyles = (colors: ReturnType<typeof useTheme>['colors']) =>
   StyleSheet.create({
     safe: { flex: 1, backgroundColor: colors.screenBackground },
     flex: { flex: 1 },
+    pressArea: {
+      flex: 1,
+    },
     topBar: {
       position: 'absolute',
       top: 8,

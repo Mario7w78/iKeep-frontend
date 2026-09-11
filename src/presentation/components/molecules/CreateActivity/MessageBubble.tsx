@@ -65,11 +65,7 @@ export const MessageBubble: React.FC<Props> = ({
   return (
     <View style={[styles.row, isUser ? styles.rowUser : styles.rowAI]}>
       {!isUser && (
-        <View style={styles.avatarContainer}>
-          {/* El size va menor que el circulo (avatarContainer) para que el
-              sapo se vea centrado dentro de el y no recortado. */}
-          <Sapo testID="sapo-avatar" estado="idle" size={24} />
-        </View>
+        <Sapo testID="sapo-avatar" estado="idle" size={40} style={styles.avatarSapo} />
       )}
       <View
         style={[

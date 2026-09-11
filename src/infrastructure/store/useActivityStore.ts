@@ -20,6 +20,7 @@ interface ActivityStoreState {
   loadActivities: (forzar?: boolean) => Promise<void>;
   handleCreateActivity: (cmd: CreateActivityCommand) => Promise<void>;
   handleDeleteActivity: (id: string) => Promise<void>;
+  handleDeleteAllActivities: () => Promise<void>;
   handleEditActivity: (id: string, title: string) => void;
   /** Vacía el recuerdo de la sesión previa (logout o cambio de usuario). */
   reiniciarSesion: () => void;
@@ -71,6 +72,17 @@ export function createActivityStore(
         await get().loadActivities(true);
       } catch (error) {
         console.error('Error al eliminar:', error);
+      }
+    },
+
+    handleDeleteAllActivities: async () => {
+      const ids = get().activities.map((a) => a.id);
+      if (ids.length === 0) return;
+      try {
+        await Promise.all(ids.map((id) => deleteActivityUseCase.execute(id)));
+        await get().loadActivities(true);
+      } catch (error) {
+        console.error('Error al eliminar todas las actividades:', error);
       }
     },
 

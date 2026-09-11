@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { StyleProp, View, ViewStyle } from 'react-native';
 import { 
+  Fit,
   RiveView, 
   useRiveFile, 
   useViewModelInstance 
@@ -55,12 +56,12 @@ export const Sapo: React.FC<Props> = ({
   }
 
   return (
-    <View testID={testID} style={[{ width: size, height: size, overflow: "hidden" }, style]}>
-      <RiveView
-        file={riveFile}
-        dataBind={instance}
-        style={{ flex: 1 }}
-      />
-    </View>
+    <RiveView
+      testID={testID}
+      file={riveFile}
+      dataBind={instance}
+      fit={Fit.Contain}
+      style={[{ width: size, height: size, overflow: 'hidden' }, style]}
+    />
   );
 };

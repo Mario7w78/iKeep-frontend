@@ -250,55 +250,76 @@ describe('la seccion de canceladas', () => {
 });
 
 describe('los eventos importados de google', () => {
-  // external-events-ui: lo importado se distingue y se LEE, nunca se edita.
-  it('el dia con importados muestra su punto con estilo propio', async () => {
+  // external-events-ui: lo importado que sigue siendo externo es SOLO lo de
+  // todo-el-dia (feriado/cumpleaños): marca el dia como "dia importante", se
+  // LEE, nunca se edita. Los imports con hora ya se materializaron como
+  // actividades reales e interactivas: salen por `porDia`, sin glifo propio.
+  const DIA_IMPORTANTE = { ...EVENTO_GOOGLE, todoElDia: true };
+
+  it('un dia con un importado todo-el-dia muestra el glifo del dia importante', async () => {
     const vista = await pintar({
+      importadosPorDia: { '2026-08-11': [DIA_IMPORTANTE] },
+    });
+
+    const glifo = vista.getByTestId('dia-importante-2026-08-11');
+    expect(glifo).toBeTruthy();
+    // Estilo propio del dia importante (celeste con borde): distinto del
+    // punto de actividad (secondaryAccent) y del unico (warning).
+    expect(glifo.props.style).toEqual(
+      expect.objectContaining({ backgroundColor: '#a5b2eb', borderColor: '#a5b2eb' })
+    );
+  });
+
+  it('un importado con hora ya NO pinta punto-importado en la celda', async () => {
+    // El timed se materializo como actividad real: la celda lo cuenta por
+    // `porDia`, y la capa de imports ni siquiera asoma.
+    const vista = await pintar({
+      porDia: { '2026-08-11': [OCURRENCIA] },
       importadosPorDia: { '2026-08-11': [EVENTO_GOOGLE] },
     });
 
-    const punto = vista.getByTestId('punto-importado-g-ev-1-2026-08-11');
-    expect(punto).toBeTruthy();
-    // Distinto del punto de actividad (secondaryAccent) y del unico (warning).
-    expect(punto.props.style).toEqual(
-      expect.arrayContaining([expect.objectContaining({ backgroundColor: '#a5b2eb' })])
-    );
+    expect(vista.getByTestId('dia-2026-08-11')).toBeTruthy();
+    expect(vista.queryByTestId('punto-importado-g-ev-1-2026-08-11')).toBeNull();
+    expect(vista.queryByTestId('dia-importante-2026-08-11')).toBeNull();
   });
 
   it('sin la prop no hay ningun cambio: aditivo', async () => {
     const vista = await pintar();
 
-    expect(vista.queryByTestId('punto-importado-g-ev-1-2026-08-11')).toBeNull();
+    expect(vista.queryByTestId('dia-importante-2026-08-11')).toBeNull();
     expect(vista.queryByTestId('seccion-importados')).toBeNull();
   });
 
-  it('un evento multi-dia aparece en cada dia que ocupa', async () => {
-    const viaje = { ...EVENTO_GOOGLE, id: 'g-viaje', titulo: 'Viaje' };
+  it('un evento multi-dia todo-el-dia marca cada dia que ocupa', async () => {
+    const feriado = { ...EVENTO_GOOGLE, id: 'g-feriado', titulo: 'Feriado', todoElDia: true };
     const vista = await pintar({
-      importadosPorDia: { '2026-08-14': [viaje], '2026-08-15': [viaje], '2026-08-16': [viaje] },
+      importadosPorDia: { '2026-08-14': [feriado], '2026-08-15': [feriado], '2026-08-16': [feriado] },
     });
 
-    expect(vista.getByTestId('punto-importado-g-viaje-2026-08-14')).toBeTruthy();
-    expect(vista.getByTestId('punto-importado-g-viaje-2026-08-15')).toBeTruthy();
-    expect(vista.getByTestId('punto-importado-g-viaje-2026-08-16')).toBeTruthy();
+    expect(vista.getByTestId('dia-importante-2026-08-14')).toBeTruthy();
+    expect(vista.getByTestId('dia-importante-2026-08-15')).toBeTruthy();
+    expect(vista.getByTestId('dia-importante-2026-08-16')).toBeTruthy();
   });
 
   describe('en el detalle del dia', () => {
-    const pintarConImportado = (props: any = {}) =>
+    const pintarConDiaImportante = (props: any = {}) =>
       pintar({
         diaSeleccionado: '2026-08-11',
-        importadosPorDia: { '2026-08-11': [EVENTO_GOOGLE] },
+        porDia: {},
+        importadosPorDia: { '2026-08-11': [DIA_IMPORTANTE] },
         ...props,
       });
 
-    it('lista el titulo tal cual vino de google, sin prefijos ni adornos', async () => {
-      const vista = await pintarConImportado();
+    it('muestra la seccion "Día importante" con el titulo tal cual, sin adornos', async () => {
+      const vista = await pintarConDiaImportante();
 
       expect(vista.getByTestId('seccion-importados')).toBeTruthy();
+      expect(vista.getByText('Día importante')).toBeTruthy();
       expect(vista.getByText('Dentista')).toBeTruthy();   // exacto, no regex
     });
 
     it('la seccion esta separada y no mezcla con las actividades propias', async () => {
-      const vista = await pintarConImportado({
+      const vista = await pintarConDiaImportante({
         porDia: { '2026-08-11': [OCURRENCIA] },
       });
 
@@ -306,27 +327,29 @@ describe('los eventos importados de google', () => {
       expect(vista.getByTestId('seccion-importados')).toBeTruthy();
     });
 
-    it('es SOLO lectura: sin Mover, sin Cancelar, sin Restaurar', async () => {
-      const vista = await pintarConImportado({
+    it('es SOLO lectura: la real ofrece Mover, la importada no ofrece nada', async () => {
+      const vista = await pintarConDiaImportante({
+        porDia: { '2026-08-11': [OCURRENCIA] },
         onMover: jest.fn(),
         onCancelar: jest.fn(),
         onRestaurar: jest.fn(),
       });
 
+      expect(vista.getByTestId('mover-1')).toBeTruthy();
       expect(vista.queryByTestId('mover-g-ev-1')).toBeNull();
       expect(vista.queryByTestId('cancelar-g-ev-1')).toBeNull();
       expect(vista.queryByTestId('restaurar-g-ev-1')).toBeNull();
     });
 
-    it('una fila importada no es tocable: View plano, no TouchableOpacity', async () => {
-      const vista = await pintarConImportado();
+    it('la fila importada no es tocable: View plano, no TouchableOpacity', async () => {
+      const vista = await pintarConDiaImportante();
 
       const fila = vista.getByTestId('importado-g-ev-1');
       expect(fila.props.onPress).toBeUndefined();
     });
 
     it('un dia solo con importados no dice "dia libre"', async () => {
-      const vista = await pintarConImportado();
+      const vista = await pintarConDiaImportante();
 
       expect(vista.queryByText('Nada agendado. Día libre.')).toBeNull();
       expect(vista.getByText('Dentista')).toBeTruthy();

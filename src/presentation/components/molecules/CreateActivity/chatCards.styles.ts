@@ -48,15 +48,8 @@ export const createStyles = (colors: ThemeColors) => StyleSheet.create({
   rowAI: {
     justifyContent: 'flex-start',
   },
-  avatarContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    alignItems: 'center',
-    justifyContent: 'center',
+  avatarSapo: {
     marginRight: 8,
-    overflow: 'hidden',
   },
   avatar: {
     width: 28,

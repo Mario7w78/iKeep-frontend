@@ -205,16 +205,15 @@ export const NLConversationStep: React.FC<Props> = ({
         ))}
         {showTyping && (
           <View style={styles.typingRow}>
-            <View style={styles.avatarContainer}>
-              {/* El sapo espera junto al indicador. Cuando exista la
-                  animacion de 'thinking' se ve sola: hoy cae a reposo, que
-                  sigue leyendose como que esta ahi esperando. */}
-              <Sapo
-                testID="sapo-avatar-typing"
-                estado="thinking"
-                size={24}
-              />
-            </View>
+            {/* El sapo espera junto al indicador. Cuando exista la
+                animacion de 'thinking' se ve sola: hoy cae a reposo, que
+                sigue leyendose como que esta ahi esperando. */}
+            <Sapo
+              testID="sapo-avatar-typing"
+              estado="thinking"
+              size={40}
+              style={styles.avatarSapo}
+            />
             <View style={styles.typingBubble}>
               <TypingIndicator />
             </View>
@@ -368,15 +367,8 @@ function createStyles(colors: ThemeColors, _comfyColors: Record<string, string>,
       height: 30,
       resizeMode: 'contain',
     },
-    avatarContainer: {
-      width: 32,
-      height: 32,
-      borderRadius: 16,
-      backgroundColor: 'rgba(255,255,255,0.05)',
-      alignItems: 'center',
-      justifyContent: 'center',
+    avatarSapo: {
       marginRight: 8,
-      overflow: 'hidden',
     },
     inputBar: {
       flexDirection: 'row',

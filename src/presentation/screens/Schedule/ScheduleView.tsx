@@ -12,6 +12,7 @@ import { useTheme } from '../../components/theme/colors';
 import { useScheduleStore, useActivityStore } from '../../../di/Dependencies';
 import { JS_DAY_TO_DAYOFWEEK } from '../../utils/scheduleUtils';
 import { ScheduledActivity } from '../../../domain/entities/Schedule';
+import { DayOfWeek } from '../../../domain/entities/Activity';
 import {
   saveEnergyRecord,
   makeEnergyRecord,
@@ -85,8 +86,16 @@ function aBloqueGoogle(evento: EventoImportado, day: string): ScheduledActivity 
  */
 function aBloqueAgenda(occ: Ocurrencia, day: string): ScheduledActivity {
   const a = occ.actividad;
-  const inicioMin = a.preferredStartTime ?? 8 * 60;
-  const finMin = a.preferredEndTime ?? inicioMin + 45;
+  // Las importadas de Google y las de fecha unica no viajan con
+  // preferredStartTime; su hora real vive en la particion de ese dia.
+  const configDelDia = a.daysConfig?.[day as DayOfWeek];
+  const particion = configDelDia?.partitions?.[0];
+  const inicioMin = particion?.startHour
+    ? particion.startHour.getHours() * 60 + particion.startHour.getMinutes()
+    : a.preferredStartTime ?? 8 * 60;
+  const finMin = particion?.endHour
+    ? particion.endHour.getHours() * 60 + particion.endHour.getMinutes()
+    : a.preferredEndTime ?? inicioMin + 45;
   return {
     activity: undefined,
     assignedStartTime: minutosA_hhmm(inicioMin),

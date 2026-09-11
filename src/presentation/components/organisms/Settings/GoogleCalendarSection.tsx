@@ -152,7 +152,18 @@ export const GoogleCalendarSection: React.FC = () => {
         }
       >
         {conectando || cargando ? (
-          <ActivityIndicator size="small" color={colors.iconPrimary} />
+          <>
+            <ActivityIndicator size="small" color={colors.iconPrimary} />
+            <Text
+              style={[
+                styles.botonTexto,
+                conectado && styles.botonTextoPeligro,
+                !conectado && styles.botonTextoOk,
+              ]}
+            >
+              {cargando ? 'Sincronizando...' : 'Conectando...'}
+            </Text>
+          </>
         ) : (
           <>
             <Ionicons

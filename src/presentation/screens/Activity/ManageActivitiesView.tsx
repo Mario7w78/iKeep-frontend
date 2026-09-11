@@ -16,49 +16,19 @@ import { Activity } from "../../../domain/entities/Activity";
 import { ActivityConfigDetailModal } from "../../components/organisms/Activity/ActivityConfigDetailModal";
 import { AreaIcon, areaColorMap } from "./areaIcon";
 import { areaTituloDe } from "../Home/HomeView.utils";
-import { agruparPorCurso, formatearFechaUnica } from "./ManageActivitiesView.utils";
+import { formatearFechaUnica } from "./ManageActivitiesView.utils";
 import {
   SwipeableActivityCard,
   SwipeAction,
 } from "../../components/atoms/SwipeableActivityCard";
-
-type FilaGrupo = { tipo: "cabecera"; titulo: string; items: Activity[] };
-type FilaItem = { tipo: "actividad"; actividad: Activity };
-type Fila = FilaGrupo | FilaItem;
 
 export default function ManageActivitiesView({ navigation, route }: any) {
   const { colors, comfyColors, comfyFontColors } = useTheme();
   const { activities, loadActivities, handleDeleteActivity } = useActivityStore();
   const { handleGenerateSchedule } = useScheduleStore();
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
-  const [expandidos, setExpandidos] = useState<Record<string, boolean>>({});
 
   const styles = useMemo(() => createStyles(colors, comfyColors, comfyFontColors), [colors, comfyColors, comfyFontColors]);
-
-  const grupos = useMemo(() => agruparPorCurso(activities), [activities]);
-
-  const filas = useMemo<Fila[]>(() => {
-    const out: Fila[] = [];
-    for (const g of grupos) {
-      if (g.items.length === 1) {
-        out.push({ tipo: "actividad", actividad: g.items[0] });
-      } else {
-        out.push({ tipo: "cabecera", titulo: g.titulo, items: g.items });
-        if (expandidos[g.titulo]) {
-          for (const a of g.items) out.push({ tipo: "actividad", actividad: a });
-        }
-      }
-    }
-    return out;
-  }, [grupos, expandidos]);
-
-  const alternarGrupo = (titulo: string) =>
-    setExpandidos((prev) => {
-      const next = { ...prev };
-      if (next[titulo]) delete next[titulo];
-      else next[titulo] = true;
-      return next;
-    });
 
   useEffect(() => {
     loadActivities(true);
@@ -133,59 +103,11 @@ export default function ManageActivitiesView({ navigation, route }: any) {
       </View>
 
       <FlatList
-        data={filas}
-        keyExtractor={(item) =>
-          item.tipo === "cabecera"
-            ? `cabecera-${item.titulo}`
-            : item.actividad.id
-        }
+        data={activities}
+        keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         renderItem={({ item }) => {
-          if (item.tipo === "cabecera") {
-            const expandido = !!expandidos[item.titulo];
-            return (
-              <TouchableOpacity
-                style={styles.groupHeader}
-                activeOpacity={0.7}
-                onPress={() => alternarGrupo(item.titulo)}
-              >
-                <View style={styles.cardInfoRow}>
-                  <View
-                    style={[
-                      styles.cardIcon,
-                      { backgroundColor: areaColorMap[item.items[0].area] },
-                    ]}
-                  >
-                    <AreaIcon area={item.items[0].area} size={20} />
-                  </View>
-                  <View style={styles.cardInfoText}>
-                    <Text
-                      style={styles.activityTitle}
-                      numberOfLines={1}
-                      ellipsizeMode="tail"
-                    >
-                      {item.titulo}
-                    </Text>
-                    <View style={styles.badgeRow}>
-                      <View style={styles.badge}>
-                        <Text style={styles.badgeText}>
-                          {item.items.length}{" "}
-                          {item.items.length === 1 ? "sesión" : "sesiones"}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-                  <Ionicons
-                    name={expandido ? "chevron-up" : "chevron-down"}
-                    size={22}
-                    color={colors.textSecondary}
-                  />
-                </View>
-              </TouchableOpacity>
-            );
-          }
-
-          const actividad = item.actividad;
+          const actividad = item;
           return (
             <SwipeableActivityCard
               actions={getSwipeActions(actividad)}
@@ -300,13 +222,6 @@ const createStyles = (
   listContent: {
     padding: 16,
     gap: 12,
-  },
-  groupHeader: {
-    backgroundColor: colors.cardBackground,
-    borderColor: colors.cardBorder,
-    borderWidth: 1,
-    borderRadius: 14,
-    padding: 16,
   },
   dateBadge: {},
   cardInfoRow: {

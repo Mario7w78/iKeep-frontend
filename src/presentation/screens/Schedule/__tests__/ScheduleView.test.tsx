@@ -7,13 +7,14 @@
  */
 
 import React from 'react';
-import { Alert } from 'react-native';
+import { Alert, Dimensions } from 'react-native';
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 
 // El callback de foco se captura para poder dispararlo cuando queramos,
 // simulando la vuelta del wizard sin un navegador completo.
 const mockNavigate = jest.fn();
 let mockFocusCb: (() => void) | undefined;
+let mockFocusCleanup: (() => void) | undefined;
 async function dispararFoco() {
   // Async y esperado: el act sincronico mezcla scopes y contamina el
   // siguiente render en RNTL v14.
@@ -24,14 +25,17 @@ jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({ navigate: mockNavigate }),
   // El foco real dispara una vez por enfocado, no en cada cambio de estado:
   // corremos el callback al montar y `dispararFoco` ejecuta siempre el mas
-  // reciente (el del render vigente).
+  // reciente (el del render vigente). El cleanup (blur) queda expuesto para
+  // poderlo disparar a mano en la prueba de orientacion; correrlo dentro del
+  // unmount de React embebia promesas nativas en act y agregaba AggregateError.
   useFocusEffect: (cb: () => void) => {
     const { useEffect, useRef } = require('react');
     const ultimo = useRef(cb);
     ultimo.current = cb;
     useEffect(() => {
       mockFocusCb = () => ultimo.current();
-      ultimo.current();
+      const cleanup = ultimo.current();
+      if (typeof cleanup === 'function') mockFocusCleanup = cleanup;
     }, []);
   },
 }));
@@ -50,6 +54,29 @@ jest.mock('@expo/vector-icons', () => ({ Ionicons: () => null }));
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(), getItem: jest.fn().mockResolvedValue(null),
   removeItem: jest.fn(), clear: jest.fn(),
+}));
+
+// La foto del horario: se captura la copia semana-entera y se abre el sheet.
+const mockCaptureRef = jest.fn();
+jest.mock('react-native-view-shot', () => ({
+  captureRef: (...args: any[]) => mockCaptureRef(...args),
+}));
+const mockSharingDisponible = jest.fn();
+const mockShareAsync = jest.fn();
+jest.mock('expo-sharing', () => ({
+  isAvailableAsync: () => mockSharingDisponible(),
+  shareAsync: (...args: any[]) => mockShareAsync(...args),
+}));
+
+// El desbloqueo de orientación de esta pantalla: todo se traga sin llamar a
+// la API nativa; sólo se registra qué llamadas se pidieron. Devuelven
+// promesas resueltas como el módulo real para no desbalancear `act`.
+const mockUnlock = jest.fn();
+const mockLock = jest.fn();
+jest.mock('expo-screen-orientation', () => ({
+  unlockAsync: () => mockUnlock() ?? Promise.resolve(),
+  lockAsync: (...args: any[]) => mockLock(...args) ?? Promise.resolve(),
+  OrientationLock: { PORTRAIT_UP: 3 },
 }));
 
 const mockVer = jest.fn();
@@ -515,6 +542,104 @@ describe('ScheduleView en el grid del dia', () => {
 
     // Sin dedupe habria dos 'Clases' en la pagina del jueves (plan + agenda).
     expect(await vista.findAllByText('Clases')).toHaveLength(1);
+    await vista.unmount();
+  });
+});
+
+describe('ScheduleView en apaisado: compartir el horario', () => {
+  const APAI = {
+    window: { width: 900, height: 500, scale: 2, fontScale: 1 },
+    screen: { width: 900, height: 500, scale: 2, fontScale: 1 },
+  };
+  const PORTRAIT = {
+    window: { width: 750, height: 1334, scale: 2, fontScale: 1 },
+    screen: { width: 750, height: 1334, scale: 2, fontScale: 1 },
+  };
+
+  let alertaEspia: jest.SpyInstance;
+
+  beforeEach(() => {
+    Dimensions.set(APAI);
+    mockVer.mockReset().mockResolvedValue([]);
+    mockLoadActivities.mockReset().mockResolvedValue(undefined);
+    mockCaptureRef.mockReset().mockResolvedValue('file:///tmp/horario-semana.png');
+    mockSharingDisponible.mockReset().mockResolvedValue(true);
+    mockShareAsync.mockReset().mockResolvedValue(undefined);
+    mockScheduleStoreApi.setState({
+      schedule: { getAllItems: () => [{ id: 'x' }], getItemsByDay: () => [] },
+      calendarViewMode: 'grid',
+      setCalendarViewMode: (mode: any) =>
+        mockScheduleStoreApi.setState({ calendarViewMode: mode }),
+      startHour: 8,
+      endHour: 22,
+    });
+    useCalendarStore.setState({
+      mesVisible: new Date(2026, 8, 15),
+      porDia: {},
+      cargando: false,
+      error: null,
+      canceladasEnSesion: [],
+      ultimaCargaPorMes: {},
+    });
+    useGoogleCalendarStore.setState({ ultimaCargaPorRango: {} });
+    alertaEspia = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    Dimensions.set(PORTRAIT);
+    alertaEspia.mockRestore();
+  });
+
+  it('exporta la semana como imagen PNG y abre el share sheet', async () => {
+    const vista = await render(<ScheduleView />);
+    expect(await vista.findByTestId('compartir-horario')).toBeTruthy();
+
+    await act(async () => { fireEvent.press(vista.getByTestId('compartir-horario')); });
+
+    await waitFor(() => expect(mockCaptureRef).toHaveBeenCalled());
+    expect(mockCaptureRef).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ format: 'png', result: 'tmpfile' })
+    );
+    await waitFor(() =>
+      expect(mockShareAsync).toHaveBeenCalledWith(
+        'file:///tmp/horario-semana.png',
+        expect.objectContaining({ mimeType: 'image/png' })
+      )
+    );
+    await vista.unmount();
+  });
+
+  it('cuando no hay app de compartir avisa sin llamar al sheet', async () => {
+    mockSharingDisponible.mockResolvedValue(false);
+    const vista = await render(<ScheduleView />);
+
+    await act(async () => { fireEvent.press(vista.getByTestId('compartir-horario')); });
+
+    await waitFor(() => expect(mockCaptureRef).toHaveBeenCalled());
+    expect(mockShareAsync).not.toHaveBeenCalled();
+    expect(alertaEspia).toHaveBeenCalledWith('Compartir no disponible', expect.any(String));
+    await vista.unmount();
+  });
+
+  it('la copia para la foto es solo el horario: sin nada personal encima', async () => {
+    const vista = await render(<ScheduleView />);
+
+    expect(await vista.findByTestId('week-grid-foto')).toBeTruthy();
+    expect(vista.queryByTestId('streak-badge')).toBeNull();
+    await vista.unmount();
+  });
+
+  it('desbloquea la orientación al enfocar y la relockea al salir', async () => {
+    const vista = await render(<ScheduleView />);
+
+    await waitFor(() => expect(mockUnlock).toHaveBeenCalled());
+    expect(mockLock).not.toHaveBeenCalled();
+
+    // El "blur": el cleanup del focus effect relockea portrait.
+    await act(async () => { mockFocusCleanup?.(); });
+
+    expect(mockLock).toHaveBeenCalledWith(3);
     await vista.unmount();
   });
 });

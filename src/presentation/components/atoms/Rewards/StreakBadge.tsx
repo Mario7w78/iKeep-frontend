@@ -25,20 +25,19 @@ export const StreakBadge: React.FC<Props> = ({ dias, enRiesgo }) => {
   return (
     <View
       testID="streak-badge"
-      style={[styles.contenedor, enRiesgo && styles.enRiesgo]}
+      style={styles.contenedor}
       accessibilityRole="text"
       accessibilityLabel={
         enRiesgo ? `Racha de ${dias} días, en riesgo` : `Racha de ${dias} días`
       }
     >
-      <Ionicons
-        name="flame"
-        size={16}
-        // Apagado cuando está en riesgo: la llama encendida es la recompensa,
-        // y verla gris dice más que cualquier texto de advertencia.
-        color={enRiesgo ? colors.textSecondary : colors.warning}
-      />
-      <Text style={[styles.numero, enRiesgo && styles.numeroEnRiesgo]}>{dias}</Text>
+      {/* La llama nunca se apaga: encendida es la recompensa. En riesgo el
+          reloj al lado dice que todavía se puede salvar. */}
+      <Ionicons name="flame" size={16} color={colors.warning} />
+      <Text style={styles.numero}>{dias}</Text>
+      {enRiesgo && (
+        <Ionicons name="time-outline" size={12} color={colors.warning} />
+      )}
     </View>
   );
 };
@@ -56,15 +55,9 @@ const createStyles = (colors: ThemeColors) =>
       borderWidth: 1,
       borderColor: colors.warning,
     },
-    enRiesgo: {
-      borderColor: colors.cardBorder,
-    },
     numero: {
       fontSize: TEXTO.pie + 1,
       fontWeight: PESO.fuerte,
       color: colors.warning,
-    },
-    numeroEnRiesgo: {
-      color: colors.textSecondary,
     },
   });

@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 import { Schedule, ScheduledActivity } from '../../../../domain/entities/Schedule';
 import { ThemeColors, useTheme } from '../../theme/colors';
@@ -10,6 +11,18 @@ interface Props {
   schedule: Schedule | null;
   startHour: number;
   endHour: number;
+  /**
+   * Bloques que no viven en el plan semanal pero se dibujan igual (agenda del
+   * mes, importados de Google): como viven por fecha, la pantalla los junta
+   * anclando la semana a HOY y acá solo los colocamos en su día y hora.
+   */
+  itemsExtraPorDia?: Record<string, ScheduledActivity[]>;
+  /**
+   * Variante para la captura: sin ScrollView y con altura intrínseca, así
+   * `captureRef` obtiene la semana COMPLETA —cabecera incluida— y no solo el
+   * tramo que entra en la pantalla.
+   */
+  paraCaptura?: boolean;
 }
 
 /**
@@ -37,6 +50,9 @@ const COLORES = [
   { fondo: '#2A1D34', borde: '#915EB5', texto: '#E4CEF7' },
 ];
 
+/** El traslado no compite con las actividades: gris apagado y borde punteado. */
+const VIAJE = { fondo: '#26282F', borde: '#5A5F6E', texto: '#9AA0AE' };
+
 /** El color sale del nombre, no del orden: así una actividad no cambia de color al reordenarse. */
 function colorDe(nombre: string) {
   let suma = 0;
@@ -44,7 +60,7 @@ function colorDe(nombre: string) {
   return COLORES[suma % COLORES.length];
 }
 
-export const WeekGrid: React.FC<Props> = ({ schedule, startHour, endHour }) => {
+export const WeekGrid: React.FC<Props> = ({ schedule, startHour, endHour, itemsExtraPorDia, paraCaptura = false }) => {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -61,74 +77,123 @@ export const WeekGrid: React.FC<Props> = ({ schedule, startHour, endHour }) => {
     () =>
       DAYS_ORDER.map((dia) => ({
         dia,
-        items: schedule?.getItemsByDay(dia, startHour) ?? [],
+        items: [
+          ...(schedule?.getItemsByDay(dia, startHour) ?? []),
+          ...(itemsExtraPorDia?.[dia] ?? []),
+        ],
       })),
-    [schedule, startHour]
+    [schedule, startHour, itemsExtraPorDia]
   );
 
-  return (
-    <View style={styles.contenedor} testID="week-grid">
-      <View style={styles.encabezado}>
-        <View style={{ width: ANCHO_HORAS }} />
-        {porDia.map(({ dia }) => (
-          <View key={dia} style={styles.columnaEncabezado}>
-            <Text style={styles.diaTexto}>{DAYS_SHORT[dia]}</Text>
+  const encabezado = (
+    <View style={styles.encabezado}>
+      <View style={{ width: ANCHO_HORAS }} />
+      {porDia.map(({ dia }) => (
+        <View key={dia} style={styles.columnaEncabezado}>
+          <Text style={styles.diaTexto}>{DAYS_SHORT[dia]}</Text>
+        </View>
+      ))}
+    </View>
+  );
+
+  const cuerpo = (
+    <View style={[styles.cuerpo, { height: alto }]}>
+      <View style={{ width: ANCHO_HORAS }}>
+        {horas.map((hora) => (
+          <View key={hora} style={[styles.celdaHora, { height: ALTO_HORA }]}>
+            <Text style={styles.horaTexto}>{String(hora % 24).padStart(2, '0')}</Text>
           </View>
         ))}
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <View style={[styles.cuerpo, { height: alto }]}>
-          <View style={{ width: ANCHO_HORAS }}>
-            {horas.map((hora) => (
-              <View key={hora} style={[styles.celdaHora, { height: ALTO_HORA }]}>
-                <Text style={styles.horaTexto}>{String(hora % 24).padStart(2, '0')}</Text>
-              </View>
-            ))}
-          </View>
+      {porDia.map(({ dia, items }) => (
+        <View key={dia} style={styles.columna}>
+          {horas.map((hora) => (
+            <View key={hora} style={[styles.lineaHora, { height: ALTO_HORA }]} />
+          ))}
 
-          {porDia.map(({ dia, items }) => (
-            <View key={dia} style={styles.columna}>
-              {horas.map((hora) => (
-                <View key={hora} style={[styles.lineaHora, { height: ALTO_HORA }]} />
-              ))}
+          {items.map((item: ScheduledActivity, indice: number) => {
+            const nombre = item.activity?.title ?? item.nombre ?? 'Actividad';
+            const esViaje = item.tipo === 'viaje';
+            const desde = hhmmToMinutes(item.assignedStartTime);
+            const hasta = hhmmToMinutes(item.assignedEndTime);
+            const normalizado =
+              cruzaMedianoche && desde < startHour ? desde + 1440 : desde;
+            const corta = !esViaje && hasta - desde < 15;
+            const color = esViaje ? VIAJE : colorDe(nombre);
 
-              {items.map((item: ScheduledActivity, indice: number) => {
-                const nombre = item.activity?.title ?? item.nombre ?? 'Actividad';
-                const desde = hhmmToMinutes(item.assignedStartTime);
-                const hasta = hhmmToMinutes(item.assignedEndTime);
-                const normalizado =
-                  cruzaMedianoche && desde < startHour ? desde + 1440 : desde;
-                const largo = Math.max(hasta - desde, 15);
-                const color = colorDe(nombre);
-
-                return (
-                  <View
-                    key={`${item.activity?.id ?? nombre}-${indice}`}
-                    testID="week-grid-block"
-                    style={[
-                      styles.bloque,
-                      {
-                        top: ((normalizado - startHour) / 60) * ALTO_HORA,
-                        height: (largo / 60) * ALTO_HORA,
-                        backgroundColor: color.fondo,
-                        borderColor: color.borde,
-                      },
-                    ]}
-                  >
+            return (
+              <View
+                key={`${item.activity?.id ?? nombre}-${indice}`}
+                testID="week-grid-block"
+                style={[
+                  styles.bloque,
+                  esViaje && styles.bloqueViaje,
+                  corta && styles.bloqueCorto,
+                  {
+                    top: ((normalizado - startHour) / 60) * ALTO_HORA,
+                    height: corta ? 20 : ((Math.max(hasta - desde, 15)) / 60) * ALTO_HORA,
+                    backgroundColor: color.fondo,
+                    borderColor: color.borde,
+                  },
+                ]}
+              >
+                {corta ? (
+                  <View style={styles.bloqueCortoFila}>
+                    <Ionicons name="time-outline" size={11} color={color.texto} />
                     <Text
                       style={[styles.bloqueTexto, { color: color.texto }]}
-                      numberOfLines={2}
+                      numberOfLines={1}
+                    >
+                      {nombre}
+                    </Text>
+                    <Text style={[styles.bloqueMin, { color: color.texto }]}>
+                      {Math.max(1, hasta - desde)} m
+                    </Text>
+                  </View>
+                ) : esViaje ? (
+                  <View style={styles.bloqueViajeFila}>
+                    <Ionicons name="walk" size={10} color={color.texto} />
+                    <Text
+                      style={[styles.bloqueTexto, { color: color.texto }]}
+                      numberOfLines={1}
                     >
                       {nombre}
                     </Text>
                   </View>
-                );
-              })}
-            </View>
-          ))}
+                ) : (
+                  <Text
+                    style={[styles.bloqueTexto, { color: color.texto }]}
+                    numberOfLines={2}
+                  >
+                    {nombre}
+                  </Text>
+                )}
+              </View>
+            );
+          })}
         </View>
-      </ScrollView>
+      ))}
+    </View>
+  );
+
+  if (paraCaptura) {
+    return (
+      <View
+        style={styles.contenedorCaptura}
+        testID="week-grid-foto"
+        collapsable={false}
+      >
+        {encabezado}
+        {cuerpo}
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.contenedor} testID="week-grid">
+      {encabezado}
+      <ScrollView showsVerticalScrollIndicator={false}>{cuerpo}</ScrollView>
     </View>
   );
 };
@@ -137,6 +202,11 @@ const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     contenedor: {
       flex: 1,
+      backgroundColor: colors.screenBackground,
+      paddingHorizontal: ESPACIO.sm,
+      paddingTop: ESPACIO.sm,
+    },
+    contenedorCaptura: {
       backgroundColor: colors.screenBackground,
       paddingHorizontal: ESPACIO.sm,
       paddingTop: ESPACIO.sm,
@@ -187,6 +257,32 @@ const createStyles = (colors: ThemeColors) =>
       paddingHorizontal: 3,
       paddingVertical: 1,
       overflow: 'hidden',
+    },
+    bloqueViaje: {
+      borderWidth: 1,
+      borderLeftWidth: 1,
+      borderStyle: 'dashed',
+      opacity: 0.92,
+    },
+    bloqueViajeFila: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 3,
+    },
+    bloqueCorto: {
+      justifyContent: 'center',
+      borderRadius: RADIO.sm,
+    },
+    bloqueCortoFila: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 3,
+    },
+    bloqueMin: {
+      fontSize: TEXTO.micro - 2,
+      lineHeight: 11,
+      opacity: 0.85,
     },
     bloqueTexto: {
       fontSize: TEXTO.micro - 2,

@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemeColors, useTheme } from '../../theme/colors';
@@ -25,6 +25,14 @@ interface Props {
  * Y en ninguna parte se veía qué hacía. Un número de minutos no dice nada; la
  * hora a la que tienes que salir de tu casa, sí. Eso es lo que se muestra, y
  * es lo que hace que el campo se explique solo.
+ *
+ * Tres ajustes para que el campo no sea una lista cerrada:
+ *  - La fila compartida se etiqueta "Ida y vuelta": el chip que eliges se
+ *    aplica a los dos sentidos, y ahora eso se dice, no se adivina.
+ *  - Hay un chip "Sin" (0 min) en cada fila: apaga un solo sentido sin tener
+ *    que borrar todo el viaje.
+ *  - "Personalizar..." abre el mismo editor horas/minutos de la duración, para
+ *    que 25 min o 1 h 45 existan sin inflar la fila de chips.
  */
 
 /** Los tiempos que la gente realmente responde, no una escala uniforme. */
@@ -61,8 +69,11 @@ export const TravelTimeField: React.FC<Props> = ({
   const [separados, setSeparados] = useState(
     viaja && vuelta !== null && vuelta !== ida
   );
+  const [personalizando, setPersonalizando] = useState<
+    null | 'ida' | 'vuelta'
+  >(null);
 
-  const elegir = (minutos: number) => {
+  const aplicar = (minutos: number) => {
     onCambiarIda(minutos);
     // Mientras no se separen, la vuelta sigue a la ida. Es el caso normal, y
     // pedir el mismo número dos veces es pedirlo de más.
@@ -76,7 +87,7 @@ export const TravelTimeField: React.FC<Props> = ({
         <TouchableOpacity
           testID="travel-enable"
           style={styles.botonSi}
-          onPress={() => elegir(15)}
+          onPress={() => aplicar(15)}
           activeOpacity={0.8}
         >
           <Ionicons name="walk-outline" size={18} color={colors.secondaryAccent} />
@@ -96,6 +107,7 @@ export const TravelTimeField: React.FC<Props> = ({
             onCambiarIda(0);
             onCambiarVuelta(0);
             setSeparados(false);
+            setPersonalizando(null);
           }}
           hitSlop={10}
         >
@@ -104,9 +116,14 @@ export const TravelTimeField: React.FC<Props> = ({
       </View>
 
       <Selector
-        etiqueta={separados ? 'Ida' : undefined}
+        etiqueta={separados ? 'Ida' : 'Ida y vuelta'}
+        caption={separados ? undefined : 'Se aplica a la ida y a la vuelta'}
+        hint={separados ? 'Solo la ida' : 'Se aplica a la ida y a la vuelta'}
         valor={ida ?? 0}
-        onElegir={elegir}
+        onElegir={aplicar}
+        personalizando={personalizando === 'ida'}
+        onPersonalizar={() => setPersonalizando('ida')}
+        onCerrar={() => setPersonalizando(null)}
         styles={styles}
         testID="travel-ida"
       />
@@ -114,8 +131,12 @@ export const TravelTimeField: React.FC<Props> = ({
       {separados && (
         <Selector
           etiqueta="Vuelta"
+          hint="Solo la vuelta"
           valor={vuelta ?? 0}
           onElegir={onCambiarVuelta}
+          personalizando={personalizando === 'vuelta'}
+          onPersonalizar={() => setPersonalizando('vuelta')}
+          onCerrar={() => setPersonalizando(null)}
           styles={styles}
           testID="travel-vuelta"
         />
@@ -127,8 +148,11 @@ export const TravelTimeField: React.FC<Props> = ({
       <View style={styles.resumen} testID="travel-summary">
         <Ionicons name="time-outline" size={16} color={colors.textSecondary} />
         <Text style={styles.resumenTexto}>
-          Sales {conDesfase(inicio, -(ida ?? 0))} · Llegas de vuelta{' '}
+          Sales {conDesfase(inicio, -(ida ?? 0))} · Vuelves{' '}
           {conDesfase(fin, vuelta ?? 0)}
+          {!separados && (ida ?? 0) > 0
+            ? ` · ${ida} min a cada lado`
+            : ''}
         </Text>
       </View>
 
@@ -147,39 +171,164 @@ export const TravelTimeField: React.FC<Props> = ({
 
 const Selector: React.FC<{
   etiqueta?: string;
+  caption?: string;
+  hint?: string;
   valor: number;
   onElegir: (minutos: number) => void;
+  personalizando: boolean;
+  onPersonalizar: () => void;
+  onCerrar: () => void;
   styles: ReturnType<typeof createStyles>;
   testID: string;
-}> = ({ etiqueta, valor, onElegir, styles, testID }) => (
-  <View style={styles.bloque}>
-    {etiqueta && <Text style={styles.etiqueta}>{etiqueta}</Text>}
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.fila}
-      testID={testID}
-    >
-      {OPCIONES.map((opcion) => {
-        const elegida = valor === opcion.valor;
-        return (
-          <TouchableOpacity
-            key={opcion.valor}
-            testID={`${testID}-${opcion.valor}`}
-            style={[styles.chip, elegida && styles.chipElegido]}
-            onPress={() => onElegir(opcion.valor)}
-            accessibilityRole="radio"
-            accessibilityState={{ selected: elegida }}
-          >
-            <Text style={[styles.chipTexto, elegida && styles.chipTextoElegido]}>
-              {opcion.etiqueta}
-            </Text>
+}> = ({
+  etiqueta,
+  caption,
+  hint,
+  valor,
+  onElegir,
+  personalizando,
+  onPersonalizar,
+  onCerrar,
+  styles,
+  testID,
+}) => {
+  const esPersonalizado = valor > 0 && !OPCIONES.some((o) => o.valor === valor);
+
+  if (personalizando) {
+    return (
+      <View style={styles.bloque}>
+        <View style={styles.editorCabecera}>
+          {etiqueta && <Text style={styles.etiqueta}>{etiqueta}</Text>}
+          <TouchableOpacity onPress={onCerrar} hitSlop={10}>
+            <Text style={styles.quitar}>Listo</Text>
           </TouchableOpacity>
-        );
-      })}
-    </ScrollView>
-  </View>
-);
+        </View>
+        <EditorPersonalizado
+          valor={valor}
+          onConfirmar={onElegir}
+          hint={hint}
+          styles={styles}
+          testID={testID}
+        />
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.bloque}>
+      {etiqueta && <Text style={styles.etiqueta}>{etiqueta}</Text>}
+      {caption && <Text style={styles.caption}>{caption}</Text>}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.fila}
+        testID={testID}
+      >
+        <TouchableOpacity
+          testID={`${testID}-sin`}
+          style={[styles.chip, valor === 0 && styles.chipElegido]}
+          onPress={() => onElegir(0)}
+          accessibilityRole="radio"
+          accessibilityState={{ selected: valor === 0 }}
+        >
+          <Text style={[styles.chipTexto, valor === 0 && styles.chipTextoElegido]}>
+            Sin
+          </Text>
+        </TouchableOpacity>
+
+        {OPCIONES.map((opcion) => {
+          const elegida = valor === opcion.valor;
+          return (
+            <TouchableOpacity
+              key={opcion.valor}
+              testID={`${testID}-${opcion.valor}`}
+              style={[styles.chip, elegida && styles.chipElegido]}
+              onPress={() => onElegir(opcion.valor)}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: elegida }}
+            >
+              <Text
+                style={[styles.chipTexto, elegida && styles.chipTextoElegido]}
+              >
+                {opcion.etiqueta}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+
+        <TouchableOpacity
+          testID={`${testID}-custom`}
+          style={[styles.chip, esPersonalizado && styles.chipElegido]}
+          onPress={onPersonalizar}
+          accessibilityRole="radio"
+          accessibilityState={{ selected: esPersonalizado }}
+        >
+          <Text
+            style={[
+              styles.chipTexto,
+              esPersonalizado && styles.chipTextoElegido,
+            ]}
+          >
+            {esPersonalizado ? `${valor} min` : 'Personalizar…'}
+          </Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </View>
+  );
+};
+
+const EditorPersonalizado: React.FC<{
+  valor: number;
+  hint?: string;
+  styles: ReturnType<typeof createStyles>;
+  testID: string;
+  onConfirmar: (minutos: number) => void;
+}> = ({ valor, hint, styles, testID, onConfirmar }) => {
+  const [horas, setHoras] = useState(String(Math.floor(valor / 60)));
+  const [minutos, setMinutos] = useState(String(valor % 60));
+
+  const commit = (h: string, m: string) => {
+    onConfirmar((Number(h) || 0) * 60 + (Number(m) || 0));
+  };
+
+  return (
+    <View style={styles.editor}>
+      <View style={styles.editorFila}>
+        <TextInput
+          testID={`${testID}-horas`}
+          style={styles.editorInput}
+          keyboardType="number-pad"
+          placeholder="0"
+          placeholderTextColor="#a8a9bb"
+          value={horas}
+          onChangeText={(text) => {
+            const limpio = text.replace(/[^0-9]/g, '');
+            setHoras(limpio);
+            commit(limpio, minutos);
+          }}
+          autoCorrect={false}
+        />
+        <Text style={styles.editorLabel}>horas</Text>
+        <TextInput
+          testID={`${testID}-minutos`}
+          style={styles.editorInput}
+          keyboardType="number-pad"
+          placeholder="0"
+          placeholderTextColor="#a8a9bb"
+          value={minutos}
+          onChangeText={(text) => {
+            const limpio = text.replace(/[^0-9]/g, '');
+            setMinutos(limpio);
+            commit(horas, limpio);
+          }}
+          autoCorrect={false}
+        />
+        <Text style={styles.editorLabel}>min</Text>
+      </View>
+      {hint && <Text style={styles.caption}>{hint}</Text>}
+    </View>
+  );
+};
 
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
@@ -229,11 +378,18 @@ const createStyles = (colors: ThemeColors) =>
       color: colors.textSecondary,
       textTransform: 'uppercase',
     },
+    caption: {
+      fontSize: TEXTO.micro,
+      color: colors.textSecondary,
+    },
     fila: {
       gap: ESPACIO.sm,
       paddingRight: ESPACIO.lg,
     },
     chip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: ESPACIO.xs,
       paddingVertical: ESPACIO.sm,
       paddingHorizontal: ESPACIO.md,
       borderRadius: RADIO.pill,
@@ -273,5 +429,33 @@ const createStyles = (colors: ThemeColors) =>
       fontSize: TEXTO.pie,
       color: colors.textSecondary,
       textDecorationLine: 'underline',
+    },
+    editorCabecera: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    editor: {
+      gap: ESPACIO.sm,
+    },
+    editorFila: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: ESPACIO.sm,
+    },
+    editorInput: {
+      width: 72,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      borderRadius: RADIO.md,
+      paddingVertical: ESPACIO.sm,
+      paddingHorizontal: ESPACIO.md,
+      fontSize: TEXTO.cuerpo,
+      fontWeight: PESO.medio,
+      color: colors.surface,
+    },
+    editorLabel: {
+      fontSize: TEXTO.pie,
+      color: colors.textSecondary,
     },
   });

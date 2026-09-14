@@ -19,6 +19,7 @@ import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Sapo } from "../../../components/atoms/Mascot/Sapo";
+import { Celebration } from "../../../components/atoms/Rewards/Celebration";
 
 import { DayOfWeek } from "../../../../domain/entities/Activity";
 import { calculateEndTime, nextRoundHour } from "../../../utils/timeUtils";
@@ -1039,7 +1040,17 @@ export default function CreateActivityView({ navigation, route }: any) {
             // El sapo celebra el guardado. Es el unico momento del wizard con
             // algo que celebrar, y la Fase 0 ya habia puesto aca el check y la
             // haptica: la animacion completa ese gesto en vez de agregar otro.
-            <Sapo estado="happy" size={TAMANO_CELEBRACION} />
+            // El confeti es del Celebration (sin cartel: la app ya dice que se
+            // guardo debajo), y cae por encima de la mascota como el del dia
+            // terminado.
+            <>
+              <Celebration
+                key="crear"
+                disparo={1}
+                mensaje={null}
+              />
+              <Sapo estado="celebrating" size={TAMANO_CELEBRACION} />
+            </>
           ) : (
             <ActivityIndicator size="large" color={colors.secondaryAccent} />
           )}

@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   SesionEnfocada,
@@ -16,6 +17,8 @@ import {
   transcurrido,
 } from '../../../../domain/services/focusSession';
 import { ThemeColors, useTheme } from '../../theme/colors';
+import { LotusLandscape } from '../../atoms/Lotus/LotusLandscape';
+import { Sapo } from '../../atoms/Mascot/Sapo';
 import { ESPACIO, PESO, RADIO, TEXTO } from '../../theme/tokens';
 
 /**
@@ -27,11 +30,14 @@ import { ESPACIO, PESO, RADIO, TEXTO } from '../../theme/tokens';
  * salida es castigar el azar — y castigaría sobre todo a quien deja el
  * teléfono de lado para estudiar de verdad, que es la conducta correcta.
  *
+ * Tampoco es un muro. El caso común es olvidarse de marcarla: si la vista
+ * enfocada bloqueara la app hasta responder, estaría castigando el olvido
+ * con un peaje. Por eso se puede cerrar (X) y la sesión queda en una píldora
+ * discreta que recuerda que sigue corriendo; tocarla vuelve a abrir la vista.
+ *
  * El reloj se refresca cada segundo solo para dibujar. El tiempo real sale
  * de la marca de inicio, así que un `setInterval` que se duerma no cuenta de
  * menos: al volver, el número ya está bien.
- *
- * PROVISIONAL: un anillo hecho con bordes y un hueco reservado para el sapo.
  */
 
 interface Props {
@@ -57,9 +63,16 @@ export const FocusSession: React.FC<Props> = ({
   onDescartar,
   onSalir,
 }) => {
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const { colors, comfyColors } = useTheme();
+  const insets = useSafeAreaInsets();
+  const styles = useMemo(() => createStyles(colors, comfyColors), [colors, comfyColors]);
   const [ahora, setAhora] = useState(new Date());
+  const [minimizado, setMinimizado] = useState(false);
+
+  // Nueva sesión → vuelve a abrirse completa (la píldora era de la anterior).
+  useEffect(() => {
+    setMinimizado(false);
+  }, [sesion?.iniciadaEn]);
 
   useEffect(() => {
     if (!sesion) return;
@@ -85,106 +98,152 @@ export const FocusSession: React.FC<Props> = ({
   const estado = estadoDe(sesion, ahora);
   const minutos = transcurrido(sesion, ahora);
   const fraccion = progreso(sesion, ahora);
+  // Caducada solo puede cerrarse: no hay vista enfocada que retomar, y
+  // tampoco una píldora que lo recuerde.
+  const minimizable = estado !== 'caducada';
 
   return (
-    <Modal visible transparent animationType="fade">
-      <View style={styles.fondo} testID="sesion-enfocada">
-        {estado === 'caducada' ? (
-          <>
-            <Text style={styles.titulo}>Esta sesión quedó abierta</Text>
-            {/* No se afirma nada por el usuario: pasó demasiado tiempo para
-                saber qué ocurrió, y escribir una suposición envenena el
-                único dato que esta app puede producir. */}
-            <Text style={styles.bajada}>
-              Pasó mucho desde que la empezaste, así que no vamos a suponer
-              qué pasó. Puedes marcarla desde tu día si la hiciste.
-            </Text>
-            <TouchableOpacity
-              testID="sesion-cerrar-caducada"
-              style={[styles.boton, styles.botonPrincipal]}
-              onPress={onDescartar}
-            >
-              <Text style={[styles.botonTexto, styles.botonTextoPrincipal]}>
-                Entendido
+    <>
+      <Modal
+        visible={!minimizable || !minimizado}
+        transparent
+        animationType="fade"
+      >
+        <View style={styles.fondo} testID="sesion-enfocada">
+          {!minimizable ? (
+            <>
+              <Text style={styles.titulo}>Esta sesión quedó abierta</Text>
+              {/* No se afirma nada por el usuario: pasó demasiado tiempo para
+                  saber qué ocurrió, y escribir una suposición envenena el
+                  único dato que esta app puede producir. */}
+              <Text style={styles.bajada}>
+                Pasó mucho desde que la empezaste, así que no vamos a suponer
+                qué pasó. Puedes marcarla desde tu día si la hiciste.
               </Text>
-            </TouchableOpacity>
-          </>
-        ) : (
-          <>
-            <Text style={styles.encabezado}>{titulo}</Text>
-
-            {/* Hueco reservado para el sapo acompañando. Va vacío: la
-                ilustración llega después y el tamaño ya está tomado. */}
-            <View style={styles.huecoSapo} testID="hueco-sapo-sesion" />
-
-            <View
-              style={[
-                styles.anillo,
-                { borderColor: fraccion >= 1 ? colors.secondaryAccent : colors.cardBorder },
-              ]}
-              testID="sesion-anillo"
-            >
-              <Text style={styles.reloj}>{comoReloj(minutos)}</Text>
-              <Text style={styles.meta}>de {sesion.metaMinutos} min</Text>
-            </View>
-
-            {/* Se dice en voz alta. Si el usuario cree que mirar el teléfono
-                le cuesta la sesión, va a mirarlo igual y encima con culpa. */}
-            <Text style={styles.promesa} testID="sesion-promesa">
-              Puedes salir de la app. La sesión sigue acá.
-            </Text>
-
-            {sesion.salidas > 0 && (
-              <Text style={styles.salidas} testID="sesion-salidas">
-                {sesion.salidas === 1
-                  ? 'Saliste 1 vez.'
-                  : `Saliste ${sesion.salidas} veces.`}
-              </Text>
-            )}
-
-            <TouchableOpacity
-              testID="sesion-terminar"
-              style={[
-                styles.boton,
-                estado === 'lista' ? styles.botonPrincipal : styles.botonSecundario,
-              ]}
-              onPress={onTerminar}
-              disabled={guardando}
-            >
-              <Ionicons
-                name="checkmark-circle-outline"
-                size={20}
-                color={estado === 'lista' ? colors.screenBackground : colors.surface}
-              />
-              <Text
-                style={[
-                  styles.botonTexto,
-                  estado === 'lista' && styles.botonTextoPrincipal,
-                ]}
+              <TouchableOpacity
+                testID="sesion-cerrar-caducada"
+                style={[styles.boton, styles.botonPrincipal]}
+                onPress={onDescartar}
               >
-                {estado === 'lista' ? 'Listo, la hice' : 'Terminé antes'}
-              </Text>
-            </TouchableOpacity>
+                <Text style={[styles.botonTexto, styles.botonTextoPrincipal]}>
+                  Entendido
+                </Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <TouchableOpacity
+                testID="sesion-minimizar"
+                style={[styles.cerrar, { top: insets.top + ESPACIO.sm }]}
+                activeOpacity={0.7}
+                accessibilityLabel="Ocultar la sesión por ahora"
+                onPress={() => setMinimizado(true)}
+              >
+                <Ionicons name="close" size={22} color={colors.textSecondary} />
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              testID="sesion-descartar"
-              style={styles.salir}
-              onPress={onDescartar}
-              disabled={guardando}
-            >
-              {/* No dice "abandonar" ni "rendirse": cerrar sin afirmar nada
-                  deja la actividad sin resolver, que no suma pero tampoco
-                  resta. No es un fracaso, es no haber dicho nada. */}
-              <Text style={styles.salirTexto}>Cerrar sin marcar</Text>
-            </TouchableOpacity>
-          </>
-        )}
-      </View>
-    </Modal>
+              <Text style={styles.encabezado}>{titulo}</Text>
+
+              {/* El mismo paisaje que el inicio: el loto cambia con la hora
+                  del día y el sapo acompaña la sesión. */}
+              <View style={styles.lotusContainer}>
+                <LotusLandscape
+                  testID="lotus-sesion"
+                  style={StyleSheet.absoluteFill}
+                />
+                <Sapo
+                  estado="idle"
+                  size={110}
+                  style={styles.sapoOverlay}
+                />
+              </View>
+
+              <View
+                style={[
+                  styles.anillo,
+                  { borderColor: fraccion >= 1 ? colors.secondaryAccent : colors.cardBorder },
+                ]}
+                testID="sesion-anillo"
+              >
+                <Text style={styles.reloj}>{comoReloj(minutos)}</Text>
+                <Text style={styles.meta}>de {sesion.metaMinutos} min</Text>
+              </View>
+
+              {/* Se dice en voz alta. Si el usuario cree que mirar el teléfono
+                  le cuesta la sesión, va a mirarlo igual y encima con culpa. */}
+              <Text style={styles.promesa} testID="sesion-promesa">
+                Puedes salir de la app. La sesión sigue acá.
+              </Text>
+
+              {sesion.salidas > 0 && (
+                <Text style={styles.salidas} testID="sesion-salidas">
+                  {sesion.salidas === 1
+                    ? 'Saliste 1 vez.'
+                    : `Saliste ${sesion.salidas} veces.`}
+                </Text>
+              )}
+
+              <TouchableOpacity
+                testID="sesion-terminar"
+                style={[
+                  styles.boton,
+                  estado === 'lista' ? styles.botonPrincipal : styles.botonSecundario,
+                ]}
+                onPress={onTerminar}
+                disabled={guardando}
+              >
+                <Ionicons
+                  name="checkmark-circle-outline"
+                  size={20}
+                  color={estado === 'lista' ? colors.screenBackground : colors.surface}
+                />
+                <Text
+                  style={[
+                    styles.botonTexto,
+                    estado === 'lista' && styles.botonTextoPrincipal,
+                  ]}
+                >
+                  {estado === 'lista' ? 'Listo, la hice' : 'Terminé antes'}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                testID="sesion-descartar"
+                style={styles.salir}
+                onPress={onDescartar}
+                disabled={guardando}
+              >
+                {/* No dice "abandonar" ni "rendirse": cerrar sin afirmar nada
+                    deja la actividad sin resolver, que no suma pero tampoco
+                    resta. No es un fracaso, es no haber dicho nada. */}
+                <Text style={styles.salirTexto}>Cerrar sin marcar</Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+      </Modal>
+
+      {/* La píldora: la sesión sigue, pero sin ocupar la pantalla. Tocarla
+          vuelve a abrir la vista enfocada. */}
+      {minimizable && minimizado && (
+        <TouchableOpacity
+          testID="sesion-mini"
+          style={[styles.pildora, { top: insets.top + ESPACIO.sm }]}
+          activeOpacity={0.85}
+          accessibilityLabel="Volver a tu sesión"
+          onPress={() => setMinimizado(false)}
+        >
+          <Ionicons name="timer-outline" size={16} color={comfyColors.green} />
+          <Text style={[styles.pildoraTexto, { color: comfyColors.green }]}>
+            {comoReloj(minutos)} · en curso
+          </Text>
+        </TouchableOpacity>
+      )}
+    </>
   );
 };
 
-const createStyles = (colors: ThemeColors) =>
+const createStyles = (colors: ThemeColors, comfyColors: Record<string, string>) =>
   StyleSheet.create({
     fondo: {
       flex: 1,
@@ -193,6 +252,23 @@ const createStyles = (colors: ThemeColors) =>
       justifyContent: 'center',
       paddingHorizontal: ESPACIO.xxl,
       gap: ESPACIO.md,
+    },
+    cerrar: {
+      position: 'absolute',
+      right: ESPACIO.lg,
+      padding: ESPACIO.sm,
+      zIndex: 2,
+    },
+    lotusContainer: {
+      width: '100%',
+      height: 180,
+      borderRadius: RADIO.xl,
+      overflow: 'hidden',
+    },
+    sapoOverlay: {
+      position: 'absolute',
+      bottom: 8,
+      alignSelf: 'center',
     },
     encabezado: {
       fontSize: TEXTO.destacado,
@@ -211,14 +287,6 @@ const createStyles = (colors: ThemeColors) =>
       color: colors.textSecondary,
       textAlign: 'center',
       lineHeight: 20,
-    },
-    huecoSapo: {
-      width: 96,
-      height: 96,
-      borderRadius: 48,
-      borderWidth: 1,
-      borderStyle: 'dashed',
-      borderColor: colors.cardBorder,
     },
     anillo: {
       width: 180,
@@ -265,4 +333,27 @@ const createStyles = (colors: ThemeColors) =>
     botonTextoPrincipal: { color: colors.screenBackground },
     salir: { paddingVertical: ESPACIO.sm },
     salirTexto: { fontSize: TEXTO.pie, color: colors.textSecondary },
+    pildora: {
+      position: 'absolute',
+      alignSelf: 'center',
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: ESPACIO.sm,
+      paddingHorizontal: ESPACIO.lg,
+      paddingVertical: 10,
+      borderRadius: RADIO.pill,
+      backgroundColor: 'rgba(16, 17, 26, 0.92)',
+      borderWidth: 1,
+      borderColor: 'rgba(52, 199, 123, 0.5)',
+      shadowColor: '#000',
+      shadowOpacity: 0.35,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 8,
+      zIndex: 10,
+    },
+    pildoraTexto: {
+      fontSize: TEXTO.pie,
+      fontWeight: PESO.fuerte,
+    },
   });

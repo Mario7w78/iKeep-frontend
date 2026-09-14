@@ -16,10 +16,7 @@ const BLOCK_COLORS = [
   { bg: '#1E2233', border: '#6674CC', text: '#D5DBF5' },
 ];
 
-const TRAVEL_COLOR = { bg: '#1A1D22', border: '#5A6A7A', text: '#8A9AAA' };
-const VIAJE_COLOR = { bg: '#2D2416', border: '#C8963E', text: '#F5DEB3' };
-const GOOGLE_COLOR = { bg: '#123B32', border: '#84C49F', text: '#C9EFDC' };
-const AGENDA_COLOR = { bg: '#31213D', border: '#A87BC0', text: '#E8D9F5' };
+const VIAJE_COLOR = { bg: '#26282F', border: '#5A5F6E', text: '#9AA0AE' };
 
 interface Props {
   item: ScheduledActivity;
@@ -65,13 +62,24 @@ export function ActivityBlock({
   const top = Math.max(((normalizedStart - displayStart * 60) / 60) * hourHeight, 0);
   const height = Math.max(((normalizedEnd - normalizedStart) / 60) * hourHeight - 4, 28);
 
-  // VIAJE blocks — gray, non-interactive, no onPress
+  // VIAJE blocks — gray, dashed, non-interactive, no onPress.
+  //
+  // Gris apagado y sin acento a la izquierda: el traslado existe para sostener
+  // al bloque del lado, y no debe competir con él. El borde punteado dice
+  // "esto no es una actividad, es el viaje para llegar a una".
   if (item.tipo === 'viaje') {
     return (
-      <View testID="activity-block" style={[s.block, { top, height, backgroundColor: VIAJE_COLOR.bg, borderLeftColor: VIAJE_COLOR.border, borderLeftWidth: 6, flexDirection: 'row', alignItems: 'center' }]}>
-        <Ionicons name="car" size={16} color={VIAJE_COLOR.border} style={{ marginRight: 6 }} />
+      <View
+        testID="activity-block"
+        style={[
+          s.block,
+          s.viaje,
+          { top, height, backgroundColor: VIAJE_COLOR.bg, borderColor: VIAJE_COLOR.border },
+        ]}
+      >
+        <Ionicons name="walk" size={14} color={VIAJE_COLOR.border} style={{ marginRight: 6 }} />
         <View style={{ flex: 1 }}>
-          <Text style={[s.title, { color: VIAJE_COLOR.text }]} numberOfLines={2}>
+          <Text style={[s.titleViaje, { color: VIAJE_COLOR.text }]} numberOfLines={1}>
             {item.nombre ?? 'Traslado'}
           </Text>
           {height > 36 && (
@@ -84,89 +92,54 @@ export function ActivityBlock({
     );
   }
 
-  // Vinculado (Google Calendar): de solo lectura, arrastra lo que Google
-  // manda y no se toca desde aca. Sin onPress.
-  if (item.tipo === 'google') {
-    return (
-      <View testID="activity-block" style={[s.block, { top, height, backgroundColor: GOOGLE_COLOR.bg, borderLeftColor: GOOGLE_COLOR.border, borderLeftWidth: 6, flexDirection: 'row', alignItems: 'center' }]}>
-        <Ionicons name="calendar-outline" size={16} color={GOOGLE_COLOR.border} style={{ marginRight: 6 }} />
-        <View style={{ flex: 1 }}>
-          <Text style={[s.title, { color: GOOGLE_COLOR.text }]} numberOfLines={1}>
-            {item.nombre ?? 'Google'}
-          </Text>
-          {height > 36 && (
-            <Text style={[s.time, { color: GOOGLE_COLOR.text }]}>
-              {formatDisplayTime(item.assignedStartTime)} – {formatDisplayTime(item.assignedEndTime)}
-            </Text>
-          )}
-        </View>
-      </View>
-    );
+  // TODO lo demas es el MISMO bloque interactivo: color estable por actividad
+  // (o nombre si no hay id) e interactivo. Las ocurrencias 'agenda' y los
+  // importados 'google' antes eran una variante de solo lectura pintada
+  // siempre del mismo color; ahora se comportan igual que los del plan.
+  const origen = item.activity?.id ?? item.nombre ?? item.tipo ?? '';
+  let hash = 0;
+  for (let i = 0; i < origen.length; i++) {
+    hash = (hash * 31 + origen.charCodeAt(i)) >>> 0;
   }
+  const color = BLOCK_COLORS[hash % BLOCK_COLORS.length];
+  const titulo = item.activity?.title ?? item.nombre ?? 'Bloque';
 
-  // Ocurrencia real del calendario (parcial con fecha unica, movida de dia):
-  // el mes la muestra y el plan semanal no. De solo lectura: su edicion vive
-  // en el panel del dia del modo mes.
-  if (item.tipo === 'agenda') {
-    return (
-      <View testID="activity-block" style={[s.block, { top, height, backgroundColor: AGENDA_COLOR.bg, borderLeftColor: AGENDA_COLOR.border, borderLeftWidth: 6, flexDirection: 'row', alignItems: 'center' }]}>
-        <Ionicons name="file-tray-full-outline" size={16} color={AGENDA_COLOR.border} style={{ marginRight: 6 }} />
-        <View style={{ flex: 1 }}>
-          <Text style={[s.title, { color: AGENDA_COLOR.text }]} numberOfLines={1}>
-            {item.nombre ?? 'Evento del día'}
-          </Text>
-          {height > 36 && (
-            <Text style={[s.time, { color: AGENDA_COLOR.text }]}>
-              {formatDisplayTime(item.assignedStartTime)} – {formatDisplayTime(item.assignedEndTime)}
-            </Text>
-          )}
-        </View>
-      </View>
-    );
-  }
-
-  // Location-based travel blocks (existing behavior)
-  if (!item.activity) {
-    return (
-      <TouchableOpacity
-        activeOpacity={0.85}
-        onPress={() => onPress?.(item)}
-        testID="activity-block"
-        style={[s.block, { top, height, backgroundColor: TRAVEL_COLOR.bg, borderLeftColor: TRAVEL_COLOR.border, borderLeftWidth: 6, flexDirection: 'row', alignItems: 'center' }]}
-      >
-        <Ionicons name="car-outline" size={16} color={TRAVEL_COLOR.border} style={{ marginRight: 6 }} />
-        <View style={{ flex: 1 }}>
-          <Text style={[s.title, { color: TRAVEL_COLOR.text }]} numberOfLines={1}>
-            {item.nombre ?? 'Viaje (ubicación)'}
-          </Text>
-          {height > 36 && (
-            <Text style={[s.time, { color: TRAVEL_COLOR.text }]}>
-              {formatDisplayTime(item.assignedStartTime)} – {formatDisplayTime(item.assignedEndTime)}
-            </Text>
-          )}
-        </View>
-      </TouchableOpacity>
-    );
-  }
-
-  // Use a hash of the activity ID to ensure consistent color across different days
-  const idNum = parseInt(item.activity.id.slice(-6), 10) || 0;
-  const color = BLOCK_COLORS[idNum % BLOCK_COLORS.length];
+  // Menos de 15 minutos no se merece un bloque de horas: se comprime a una
+  // píldora con su duración. Un lunes lleno de tarjetas de 5 minutos lee como
+  // un día lleno, y no lo está.
+  const duracion = normalizedEnd - normalizedStart;
+  const esCorta = duracion < 15;
 
   return (
-    <TouchableOpacity 
+    <TouchableOpacity
       activeOpacity={0.85}
       onPress={() => onPress?.(item)}
       testID="activity-block"
-      style={[s.block, { top, height, backgroundColor: color.bg, borderLeftColor: color.border }]}
+      style={[
+        s.block,
+        esCorta && s.chip,
+        { top, height: esCorta ? 24 : height, backgroundColor: color.bg, borderLeftColor: color.border },
+      ]}
     >
-      <Text style={[s.title, { color: color.text }]} numberOfLines={1}>
-        {item.activity.title}
-      </Text>
-      {height > 36 && (
-        <Text style={[s.time, { color: color.text }]}>
-          {formatDisplayTime(item.assignedStartTime)} – {formatDisplayTime(item.assignedEndTime)}
-        </Text>
+      {esCorta ? (
+        <View style={s.chipFila}>
+          <Ionicons name="time-outline" size={12} color={color.text} />
+          <Text style={[s.title, s.chipTitulo, { color: color.text }]} numberOfLines={1}>
+            {titulo}
+          </Text>
+          <Text style={[s.time, { color: color.text }]}>{duracion} m</Text>
+        </View>
+      ) : (
+        <>
+          <Text style={[s.title, { color: color.text }]} numberOfLines={1}>
+            {titulo}
+          </Text>
+          {height > 36 && (
+            <Text style={[s.time, { color: color.text }]}>
+              {formatDisplayTime(item.assignedStartTime)} – {formatDisplayTime(item.assignedEndTime)}
+            </Text>
+          )}
+        </>
       )}
     </TouchableOpacity>
   );
@@ -178,6 +151,19 @@ const s = StyleSheet.create({
     borderRadius: 8, borderLeftWidth: 3,
     paddingHorizontal: 8, paddingVertical: 4, overflow: 'hidden',
   },
+  viaje: {
+    borderWidth: 1,
+    borderLeftWidth: 1,
+    borderStyle: 'dashed',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    opacity: 0.92,
+  },
   title: { fontSize: 13, fontWeight: '500' },
+  titleViaje: { fontSize: 12, fontWeight: '500', opacity: 0.85 },
   time:  { fontSize: 11, marginTop: 2, opacity: 0.75 },
+  chip: { height: 24, justifyContent: 'center', paddingVertical: 0, borderRadius: 12 },
+  chipFila: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  chipTitulo: { flex: 1 },
 });

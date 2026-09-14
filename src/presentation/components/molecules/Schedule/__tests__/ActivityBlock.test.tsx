@@ -7,7 +7,7 @@
  */
 
 import React from 'react';
-import { render } from '@testing-library/react-native';
+import { render, fireEvent } from '@testing-library/react-native';
 
 jest.mock('@expo/vector-icons', () => ({ Ionicons: () => null }));
 jest.mock('@react-native-async-storage/async-storage', () => ({
@@ -25,6 +25,11 @@ function topDe(vista: any, testID = 'activity-block') {
   const estilos = vista.getByTestId(testID).props.style;
   const plano = Array.isArray(estilos) ? Object.assign({}, ...estilos.filter(Boolean)) : estilos;
   return plano.top;
+}
+
+function estilosDe(vista: any, testID = 'activity-block') {
+  const estilos = vista.getByTestId(testID).props.style;
+  return Array.isArray(estilos) ? Object.assign({}, ...estilos.filter(Boolean)) : estilos;
 }
 
 function bloque(over: any = {}) {
@@ -88,5 +93,89 @@ describe('dia que SI cruza medianoche', () => {
 
     // (01:00 + 1440 - 22:00) / 60 * 56 = 3 horas → 168 px.
     expect(topDe(vista)).toBe(3 * ALTO_HORA);
+  });
+});
+
+describe('agenda (ocurrencias del calendario) = bloque normal', () => {
+  function agenda(nombre: string, activityId: string) {
+    return {
+      activity: { id: activityId, title: nombre } as any,
+      assignedStartTime: '09:00',
+      assignedEndTime: '11:00',
+      day: 'Martes',
+      tipo: 'agenda',
+      nombre,
+    };
+  }
+
+  function colorDe(vista: any) {
+    const estilos = vista.getByTestId('activity-block').props.style;
+    const plano = Array.isArray(estilos) ? Object.assign({}, ...estilos.filter(Boolean)) : estilos;
+    return plano.backgroundColor;
+  }
+
+  it('INTERACTUA igual que un bloque del plan (onPress abre el detalle)', async () => {
+    const onPress = jest.fn();
+    const vista = await render(
+      <ActivityBlock item={agenda('Parcial', 'a1') as any} displayStart={8} hourHeight={ALTO_HORA} onPress={onPress} />
+    );
+
+    fireEvent.press(vista.getByTestId('activity-block'));
+
+    expect(onPress).toHaveBeenCalledWith(expect.objectContaining({ tipo: 'agenda', nombre: 'Parcial' }));
+  });
+
+  it('tiene COLOR variado: distintas actividades, distinto color', async () => {
+    const a = await render(<ActivityBlock item={agenda('Parcial', 'a1') as any} displayStart={8} hourHeight={ALTO_HORA} />);
+    const b = await render(<ActivityBlock item={agenda('Laboratorio', 'a2') as any} displayStart={8} hourHeight={ALTO_HORA} />);
+
+    expect(colorDe(a)).not.toBe(colorDe(b));
+  });
+
+  it('el color es ESTABLE por actividad (misma actividad, mismo color)', async () => {
+    const a = await render(<ActivityBlock item={agenda('Parcial', 'a1') as any} displayStart={8} hourHeight={ALTO_HORA} />);
+    const b = await render(<ActivityBlock item={agenda('Parcial', 'a1') as any} displayStart={8} hourHeight={ALTO_HORA} />);
+
+    expect(colorDe(a)).toBe(colorDe(b));
+  });
+});
+
+describe('actividades cortas y traslados', () => {
+  it('menos de 15 minutos = píldora con su duración, no un bloque de horas', async () => {
+    const vista = await render(
+      <ActivityBlock
+        item={bloque({ assignedStartTime: '09:00', assignedEndTime: '09:05' }) as any}
+        displayStart={8}
+        hourHeight={ALTO_HORA}
+      />
+    );
+
+    const plano = estilosDe(vista);
+    expect(plano.height).toBe(24);
+    expect(plano.borderRadius).toBe(12);
+    expect(vista.getByText('5 m')).toBeTruthy();
+  });
+
+  it('una actividad de una hora NO se comprime', async () => {
+    const vista = await render(
+      <ActivityBlock item={bloque() as any} displayStart={8} hourHeight={ALTO_HORA} />
+    );
+
+    expect(estilosDe(vista).height).toBe(2 * ALTO_HORA - 4);
+  });
+
+  it('el traslado es gris apagado con borde punteado, sin acento de actividad', async () => {
+    const vista = await render(
+      <ActivityBlock
+        item={bloque({ tipo: 'viaje', activity: undefined, nombre: 'Traslado', assignedStartTime: '07:30', assignedEndTime: '08:00' }) as any}
+        displayStart={8}
+        hourHeight={ALTO_HORA}
+      />
+    );
+
+    const plano = estilosDe(vista);
+    expect(plano.backgroundColor).toBe('#26282F');
+    expect(plano.borderStyle).toBe('dashed');
+    expect(plano.borderLeftWidth).toBe(1);
   });
 });

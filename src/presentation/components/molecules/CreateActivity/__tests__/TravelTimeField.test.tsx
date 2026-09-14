@@ -67,6 +67,95 @@ describe('sin viaje', () => {
   });
 });
 
+describe('el valor compartido es de ida y vuelta', () => {
+  it('se etiqueta explicito, no hay que adivinarlo', async () => {
+    const vista = await pintar({ ida: 15, vuelta: 15 });
+
+    expect(vista.getByText('Ida y vuelta')).toBeTruthy();
+    expect(vista.getByText('Se aplica a la ida y a la vuelta')).toBeTruthy();
+  });
+
+  it('el resumen lo dice en horas de reloj y, cuando es compartido, en ambos sentidos', async () => {
+    const vista = await pintar({ ida: 20, vuelta: 20 });
+
+    // Empieza 20:00 y termina 22:00; con 20 minutos de viaje.
+    expect(vista.getByText(/Sales 19:40.*22:20/)).toBeTruthy();
+    expect(vista.getByText(/20 min a cada lado/)).toBeTruthy();
+  });
+});
+
+describe('se puede poner cero', () => {
+  it('el chip Sin tiene un valor seleccionable, no un borrado de todo', async () => {
+    const vista = await pintar({ ida: 15, vuelta: 15 });
+
+    expect(vista.getByTestId('travel-ida-sin')).toBeTruthy();
+  });
+
+  it('en modo compartido, elegir Sin apaga la ida y la vuelta', async () => {
+    const ida = jest.fn();
+    const vuelta = jest.fn();
+    const vista = await pintar({ ida: 15, vuelta: 15, onCambiarIda: ida, onCambiarVuelta: vuelta });
+
+    await tocar(vista, 'travel-ida-sin');
+
+    expect(ida).toHaveBeenCalledWith(0);
+    expect(vuelta).toHaveBeenCalledWith(0);
+  });
+
+  it('separado, poner Sin en la vuelta no toca la ida', async () => {
+    const vuelta = jest.fn();
+    const vista = await pintar({ ida: 15, vuelta: 45, onCambiarVuelta: vuelta });
+
+    await tocar(vista, 'travel-vuelta-sin');
+
+    expect(vuelta).toHaveBeenCalledWith(0);
+  });
+});
+
+describe('Personalizar', () => {
+  it('permite un valor que no esta en los chips', async () => {
+    const ida = jest.fn();
+    const vuelta = jest.fn();
+    const vista = await pintar({ ida: 15, vuelta: 15, onCambiarIda: ida, onCambiarVuelta: vuelta });
+
+    await tocar(vista, 'travel-ida-custom');
+
+    // Cada cambio por separado: el segundo act re-renderiza con la hora nueva,
+    // como pasa cuando el usuario tipea de verdad.
+    await act(async () => {
+      fireEvent.changeText(vista.getByTestId('travel-ida-horas'), '1');
+    });
+    await act(async () => {
+      fireEvent.changeText(vista.getByTestId('travel-ida-minutos'), '25');
+    });
+
+    // 1 h 25 = 85 min, aplicado a los dos sentidos (estamos en modo compartido).
+    expect(ida).toHaveBeenCalledWith(85);
+    expect(vuelta).toHaveBeenCalledWith(85);
+  });
+
+  it('en modo separado, Personalizar de la vuelta solo toca la vuelta', async () => {
+    const vuelta = jest.fn();
+    const vista = await pintar({ ida: 15, vuelta: 15, onCambiarVuelta: vuelta });
+
+    await tocar(vista, 'travel-split');
+    await tocar(vista, 'travel-vuelta-custom');
+
+    const minutos = vista.getByTestId('travel-vuelta-minutos');
+    await act(async () => {
+      fireEvent.changeText(minutos, '45');
+    });
+
+    expect(vuelta).toHaveBeenCalledWith(45);
+  });
+
+  it('un valor fuera de lista vuelve a verse como Personalizar seleccionado', async () => {
+    const vista = await pintar({ ida: 25, vuelta: 25 });
+
+    expect(vista.getByText('25 min')).toBeTruthy();
+  });
+});
+
 describe('con viaje', () => {
   it('la vuelta sigue a la ida sin preguntarla dos veces', async () => {
     const vuelta = jest.fn();

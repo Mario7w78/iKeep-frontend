@@ -13,12 +13,12 @@ import { useScheduleStore, useActivityStore } from '../../../di/Dependencies';
 import { JS_DAY_TO_DAYOFWEEK } from '../../utils/scheduleUtils';
 import { ScheduledActivity } from '../../../domain/entities/Schedule';
 import { DayOfWeek } from '../../../domain/entities/Activity';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   saveEnergyRecord,
   makeEnergyRecord,
   getEnergyHistory,
 } from '../../../infrastructure/persistence/EnergyHistoryService';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LoadingScreen } from '../../components/atoms/Common/LoadingScreen';
 import { GoogleCalendarCta } from '../../components/atoms/Common/GoogleCalendarCta';
 import { MonthGrid } from '../../components/organisms/Schedule/MonthGrid';
@@ -27,6 +27,7 @@ import { useCalendarStore, rangoDelMes } from '../../../infrastructure/store/use
 import { useGoogleCalendarStore } from '../../../infrastructure/store/useGoogleCalendarStore';
 import { EventoImportado } from '../../../infrastructure/api/GoogleCalendarApiService';
 import { Ocurrencia, aFechaLocal } from '../../../infrastructure/api/CalendarApiService';
+import * as ScreenOrientation from 'expo-screen-orientation';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const DAYS_ORDER = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo'];
@@ -83,6 +84,10 @@ function aBloqueGoogle(evento: EventoImportado, day: string): ScheduledActivity 
  * pasan por aqui: se dibujan con su bloque del plan. Lo que si llega son las
  * que el mes muestra y el plan no: parciales con fecha unica, actividades
  * movidas de dia. Es lo que hace que el grid del dia refleje el mes.
+ *
+ * Llevan la actividad real para pintarse con el MISMO bloque que el plan
+ * (color estable del id e interactivo): antes eran una variante de solo
+ * lectura con un solo color para todas.
  */
 function aBloqueAgenda(occ: Ocurrencia, day: string): ScheduledActivity {
   const a = occ.actividad;
@@ -97,7 +102,7 @@ function aBloqueAgenda(occ: Ocurrencia, day: string): ScheduledActivity {
     ? particion.endHour.getHours() * 60 + particion.endHour.getMinutes()
     : a.preferredEndTime ?? inicioMin + 45;
   return {
-    activity: undefined,
+    activity: a,
     assignedStartTime: minutosA_hhmm(inicioMin),
     assignedEndTime: minutosA_hhmm(finMin),
     day: day as any,
@@ -284,6 +289,52 @@ export default function ScheduleView() {
   /** Fecha destino elegida en el picker, local `YYYY-MM-DD`. */
   const [destinoElegido, setDestinoElegido] = useState<string | null>(null);
 
+  /** Copia fuera de pantalla del grid de la semana, para exportar la foto. */
+  const weekGridRef = useRef<View>(null);
+  const [compartiendo, setCompartiendo] = useState(false);
+
+  /**
+   * La foto se genera de la copia `paraCaptura` del WeekGrid: la semana entera
+   * —cabecera incluida— sin scroll y sin datos personales encima. El boton
+   * flotante queda fuera de esa copia, asi no se filtra en la imagen.
+   *
+   * Los modulos nativos se piden recién aca, no en el import del módulo: si
+   * el binario se compiló sin ellos, el import estático revienta la app al
+   * arrancar (pantalla negra) en vez de fallar solo este botón.
+   */
+  const compartirHorario = useCallback(async () => {
+    if (compartiendo) return;
+    setCompartiendo(true);
+    try {
+      const { captureRef } = require('react-native-view-shot') as typeof import('react-native-view-shot');
+      const Sharing = require('expo-sharing') as typeof import('expo-sharing');
+      const uri = await captureRef(weekGridRef, {
+        format: 'png',
+        quality: 1,
+        result: 'tmpfile',
+      });
+      if (!(await Sharing.isAvailableAsync())) {
+        Alert.alert(
+          'Compartir no disponible',
+          'Tu dispositivo no permite compartir imágenes desde la app.'
+        );
+        return;
+      }
+      await Sharing.shareAsync(uri, {
+        mimeType: 'image/png',
+        dialogTitle: 'Compartir mi horario',
+        UTI: 'public.png',
+      });
+    } catch {
+      Alert.alert(
+        'No pudimos generar la imagen',
+        'Comprobá que la app esté actualizada con la última versión.'
+      );
+    } finally {
+      setCompartiendo(false);
+    }
+  }, [compartiendo]);
+
   const mesVisible = useCalendarStore((s) => s.mesVisible);
   const porDia = useCalendarStore((s) => s.porDia);
   const cargandoCalendario = useCalendarStore((s) => s.cargando);
@@ -350,6 +401,19 @@ export default function ScheduleView() {
       setSelectedDay(newDay as any);
     }
   }, [selectedDay, setSelectedDay]);
+
+  // La app arranca bloqueada en portrait (AppNavigator). Esta pantalla es la
+  // excepción (item rotación): desbloquea mientras está enfocada —el horario
+  // semanal en landscape entra en pantalla— y vuelve a bloquear al salir,
+  // para que ninguna otra pantalla aparezca acostada por accidente.
+  useFocusEffect(
+    useCallback(() => {
+      ScreenOrientation.unlockAsync();
+      return () => {
+        ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+      };
+    }, [])
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -453,6 +517,31 @@ export default function ScheduleView() {
 
   const items = activitiesForDay();
 
+  // La semana que dibuja el WeekGrid (landscape / foto) es la MISMA que la
+  // de las paginas del dia: anclada a HOY por fechaISODeLaPage. Las
+  // ocurrencias reales que el plan no trae —parciales con fecha unica,
+  // importados de Google materializados— se combinan igual que en el modo
+  // grid (plan + agenda, dedup por id de actividad), solo que agrupadas por
+  // dia de la semana en vez de por pagina.
+  const bloquesExtraPorDia = useMemo(() => {
+    const salida: Record<string, ScheduledActivity[]> = {};
+    DAYS_ORDER.forEach((dia, i) => {
+      const diaDeLaSemana = dia as DayOfWeek;
+      const inicioDeLaPagina = perDayStartHours?.[i] ?? startHour;
+      const delPlan = schedule
+        ? schedule.getItemsByDay(diaDeLaSemana, inicioDeLaPagina)
+        : [];
+      const idsDelPlan = new Set(
+        delPlan.map((b) => b.activity?.id).filter((id): id is string => Boolean(id))
+      );
+      const fecha = fechaISODeLaPage(i);
+      salida[dia] = (porDia[fecha] ?? [])
+        .filter((occ) => occ.actividad?.id && !idsDelPlan.has(occ.actividad.id))
+        .map((occ) => aBloqueAgenda(occ, dia));
+    });
+    return salida;
+  }, [schedule, porDia, perDayStartHours, startHour]);
+
   const onGenerateWithEnergy = useCallback(
     async (nivel: number) => {
       setShowEnergyPicker(false);
@@ -495,6 +584,56 @@ export default function ScheduleView() {
   // datos, y todavia no llegaron.
   if (cargandoActividades && activities.length === 0) {
     return <LoadingScreen mensaje="Cargando tu horario..." />;
+  }
+
+  // Girar el telefono ya ocultaba la barra de tabs para ganar alto; lo que
+  // faltaba era usarlo. En landscape la semana entera se ve de una, en
+  // cualquier modo del calendario (semana, lista, mes o año), y de paso
+  // sirve para exportar la foto.
+  if (esApaisado && schedule && !showEmptyState) {
+    return (
+      <View style={[s.container, { paddingTop: insets.top }]}>
+        <WeekGrid
+          schedule={schedule}
+          startHour={startHour ?? 0}
+          endHour={endHour ?? 1440}
+          itemsExtraPorDia={bloquesExtraPorDia}
+        />
+
+        <TouchableOpacity
+          style={s.fabShareBtn}
+          activeOpacity={0.8}
+          disabled={compartiendo}
+          onPress={compartirHorario}
+          testID="compartir-horario"
+          accessibilityLabel={compartiendo ? 'Generando la imagen del horario' : 'Compartir imagen del horario'}
+        >
+          <Ionicons
+            name={compartiendo ? 'hourglass-outline' : 'share-outline'}
+            size={20}
+            color={comfyColors.green}
+          />
+          <Text style={[s.fabShareText, { color: comfyColors.green }]}>
+            {compartiendo ? 'Generando…' : 'Compartir'}
+          </Text>
+        </TouchableOpacity>
+
+        <View
+          ref={weekGridRef}
+          collapsable={false}
+          pointerEvents="none"
+          style={[s.fueraDePantalla, { width: anchoPantalla }]}
+        >
+          <WeekGrid
+            paraCaptura
+            schedule={schedule}
+            startHour={startHour ?? 0}
+            endHour={endHour ?? 1440}
+            itemsExtraPorDia={bloquesExtraPorDia}
+          />
+        </View>
+      </View>
+    );
   }
 
   if (viewMode === 'anual' && !showEmptyState) {
@@ -600,18 +739,6 @@ export default function ScheduleView() {
           </View>
         )}
       </View>
-    );
-  }
-
-  // Girar el telefono ya ocultaba la barra de tabs para ganar alto; lo que
-  // faltaba era usarlo. La semana entera se ve de una y sirve para la foto.
-  if (esApaisado && schedule && !showEmptyState) {
-    return (
-      <WeekGrid
-        schedule={schedule}
-        startHour={startHour ?? 0}
-        endHour={endHour ?? 1440}
-      />
     );
   }
 
@@ -751,6 +878,34 @@ const createStyles = (
   comfyFontColors: ReturnType<typeof useTheme>['comfyFontColors'],
 ) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.screenBackground },
+  fabShareBtn: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 999,
+    backgroundColor: 'rgba(16, 17, 26, 0.92)',
+    borderWidth: 1,
+    borderColor: 'rgba(52, 199, 123, 0.5)',
+    shadowColor: '#000',
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+  },
+  fabShareText: {
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  fueraDePantalla: {
+    position: 'absolute',
+    left: -10000,
+    top: 0,
+  },
   volverAlDia: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -22,7 +22,9 @@ import { useRewardsStore } from "../../../infrastructure/store/useRewardsStore";
 import { useCalendarStore } from "../../../infrastructure/store/useCalendarStore";
 import { ActivityDetailModal } from "../../components/organisms/Schedule/ActivityDetailModal";
 import { useGoogleCalendarStore } from "../../../infrastructure/store/useGoogleCalendarStore";
-import { RespuestaDeCierre } from "../../../infrastructure/api/RewardsApiService";
+import { RespuestaDeCierre, fechaLocal } from "../../../infrastructure/api/RewardsApiService";
+import { sinResponder } from "../../../domain/services/pendingAnswers";
+import { PendientesDeck, TarjetaPendiente } from "../../components/molecules/Rewards/PendientesDeck";
 import { Reflexion } from "../../../domain/services/energyReflection";
 import { EnergyRecord } from "../../../application/ports/out/EnergyRepository";
 import {
@@ -54,7 +56,6 @@ import {
   FABs,
 } from "./components";
 import { Sapo } from "../../components/atoms/Mascot/Sapo";
-import { CarryOverCard } from "../../components/organisms/Rewards/CarryOverCard";
 
 export default function HomeView() {
   const navigation = useNavigation<any>();
@@ -75,14 +76,15 @@ const isLight = esClaro;
   const cargandoActividades = useActivityStore((s) => s.isLoading);
   const racha = useRewardsStore((s) => s.racha);
   const progreso = useRewardsStore((s) => s.progreso);
+  const diasCompletados = useRewardsStore((s) => s.diasCompletados);
   const cargarLogros = useRewardsStore((s) => s.cargar);
   const completadas = useRewardsStore((s) => s.progreso.completadosIds);
   const noHechas = useRewardsStore((s) => s.progreso.noHechasIds);
   const alternarCompletada = useRewardsStore((s) => s.alternar);
-  const diasTerminados = useRewardsStore((s) => s.diasTerminados);
-  const cerrar = useRewardsStore((s) => s.cerrar);
   const pendientesPasados = useRewardsStore((s) => s.pendientesPasados);
   const marcarPasado = useRewardsStore((s) => s.marcarPasado);
+  const diasTerminados = useRewardsStore((s) => s.diasTerminados);
+  const cerrar = useRewardsStore((s) => s.cerrar);
   const sesion = useFocusSessionStore((s) => s.sesion);
   const iniciarSesion = useFocusSessionStore((s) => s.iniciarSesion);
   const anotarSalida = useFocusSessionStore((s) => s.anotarSalida);
@@ -168,12 +170,83 @@ const isLight = esClaro;
 
   const [selectedActivity, setSelectedActivity] = useState<ScheduledActivity | null>(null);
 
-  // El carry-over se puede descartar "por ahora" en esta sesión, pero vuelve
-  // a aparecer al reabrir la app mientras haya pendientes sin responder:
-  // la regla es que siempre pregunta antes de actuar.
-  const [carryOverDescartado, setCarryOverDescartado] = useState(false);
-  const carryOverVisible =
-    !carryOverDescartado && pendientesPasados.length > 0 && !ofrecerCierre;
+  // ── Mazo de pendientes (una carta por actividad sin responder) ──
+  const cartasPendientes = useMemo(() => {
+    const hoy = fechaLocal();
+    const delDia = sinResponder({
+      items: todayItems,
+      minutoActual: currentMinutes,
+      completadas,
+      noHechas,
+    }).map((pendiente) => ({
+      id: pendiente.id,
+      origen: 'hoy' as const,
+      titulo: pendiente.titulo,
+      descripcion: 'Hoy',
+      desde: hoy,
+    }));
+
+    const pasadas = pendientesPasados
+      .slice()
+      .sort((a, b) => a.fecha.localeCompare(b.fecha))
+      .flatMap((pendiente) =>
+        pendiente.items.map((item) => ({
+          id: item.activityId,
+          origen: 'pasado' as const,
+          titulo: item.titulo,
+          descripcion: descripcionDeFecha(pendiente.fecha),
+          desde: pendiente.fecha,
+        }))
+      );
+
+    return [...pasadas, ...delDia];
+  }, [todayItems, currentMinutes, completadas, noHechas, pendientesPasados]);
+
+  // Se abre una sola vez por sesión: al entrar con deudas sin responder y sin
+  // que corresponda el cierre de día (que ya las pregunta él).
+  const [deckAbierto, setDeckAbierto] = useState(false);
+
+  useEffect(() => {
+    if (!ofrecerCierre && cartasPendientes.length > 0 && !deckAbierto) {
+      setDeckAbierto(true);
+    }
+  }, [ofrecerCierre, cartasPendientes.length, deckAbierto]);
+
+  const [guardandoDeck, setGuardandoDeck] = useState(false);
+  const conGuardadoDeck = async (accion: () => Promise<void>) => {
+    setGuardandoDeck(true);
+    try {
+      await accion();
+    } finally {
+      setGuardandoDeck(false);
+    }
+  };
+
+  const marcarHechaDeck = (carta: TarjetaPendiente) =>
+    conGuardadoDeck(async () => {
+      if (carta.origen === 'pasado') {
+        await marcarPasado(carta.id, carta.desde, true);
+      } else {
+        await alternarCompletada(carta.id);
+      }
+      await cargarLogros();
+    });
+
+  const marcarNoHechaDeck = (carta: TarjetaPendiente) =>
+    conGuardadoDeck(async () => {
+      // Una "no hecha" de hoy no se persiste: no responder ≠ responder que
+      // no. Se contesta el día al cierre, y acá solo sale de la fila.
+      if (carta.origen === 'pasado') {
+        await marcarPasado(carta.id, carta.desde, false);
+      }
+      await cargarLogros();
+    });
+
+  const reprogramarDeck = (carta: TarjetaPendiente, destino: string) =>
+    conGuardadoDeck(async () => {
+      await useCalendarStore.getState().mover(carta.id, carta.desde, destino);
+      await cargarLogros();
+    });
 
   // ── Derived UI state ──
   const isCurrentTravel = currentActivity && (currentActivity.tipo === 'viaje' || !currentActivity.activity);
@@ -276,18 +349,17 @@ const isLight = esClaro;
         areaDelDia={areaDelDia}
         startHour={startHour}
         selectedEnergy={selectedEnergy}
+        diasCompletados={diasCompletados}
       />
-      <CarryOverCard
-        pendientes={pendientesPasados}
-        onMarcar={async (activityId, fecha, hecha) => {
-          await marcarPasado(activityId, fecha, hecha);
-          await cargarLogros();
-        }}
-        onReprogramar={async (activityId, fecha, nuevaFecha) => {
-          await useCalendarStore.getState().mover(activityId, fecha, nuevaFecha);
-          await cargarLogros();
-        }}
-        onDismiss={() => setCarryOverDescartado(true)}
+      <PendientesDeck
+        visible={deckAbierto && cartasPendientes.length > 0}
+        cartas={cartasPendientes}
+        onHecha={marcarHechaDeck}
+        onNoHecha={marcarNoHechaDeck}
+        onReprogramar={reprogramarDeck}
+        onSaltar={() => undefined}
+        onCerrar={() => setDeckAbierto(false)}
+        guardando={guardandoDeck}
       />
       <View style={styles.lotusContainer}>
         <LotusLandscape testID="lotus-card" style={StyleSheet.absoluteFill} />
@@ -313,7 +385,7 @@ const isLight = esClaro;
           <View style={styles.googleCalendarBanner}>
             <Ionicons name="logo-google" size={24} color={colors.iconPrimary} />
             <Text style={styles.googleCalendarBannerText}>
-              Conectá tu Google Calendar para ver tus eventos aquí
+              Conecta tu Google Calendar para ver tus eventos aquí
             </Text>
             <TouchableOpacity
               testID="vincular-calendario"
@@ -366,6 +438,17 @@ const isLight = esClaro;
   );
 }
 
+const MESES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+
+function descripcionDeFecha(iso: string): string {
+  const fecha = new Date(iso + 'T12:00:00');
+  const ayer = new Date();
+  ayer.setDate(ayer.getDate() - 1);
+  if (fecha.toDateString() === ayer.toDateString()) return 'Ayer';
+  const [, mes, dia] = iso.split('-');
+  return `${Number(dia)} ${MESES_CORTOS[Number(mes) - 1]}`;
+}
+
 const createStyles = (
   colors: ReturnType<typeof useTheme>['colors'],
   comfyColors: ReturnType<typeof useTheme>['comfyColors'],
@@ -377,11 +460,12 @@ const createStyles = (
   },
   content: {
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingTop: 2,
     paddingBottom: 64,
   },
   lotusContainer: {
     height: 300,
+    top: -15,
     position: 'relative',
   },
   lotusCard: {

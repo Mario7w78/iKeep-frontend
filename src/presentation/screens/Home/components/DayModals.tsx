@@ -1,9 +1,14 @@
 import React from "react";
+import { Alert } from "react-native";
 import { Celebration } from "../../../components/atoms/Rewards/Celebration";
 import { FocusSession } from "../../../components/organisms/Focus/FocusSession";
 import { DayClose } from "../../../components/organisms/Rewards/DayClose";
 import { DayRecap } from "../../../components/organisms/Rewards/DayRecap";
-import { RespuestaDeCierre, Racha } from "../../../../infrastructure/api/RewardsApiService";
+import {
+  RespuestaDeCierre,
+  Racha,
+  fechaLocal,
+} from "../../../../infrastructure/api/RewardsApiService";
 import { AreaDeVida } from "../../../../domain/entities/lifeArea";
 import { Pendiente } from "../../../../domain/services/pendingAnswers";
 import { ScheduledActivity } from "../../../../domain/entities/Schedule";
@@ -42,6 +47,7 @@ interface DayModalsProps {
   startHour: number;
   /** Energía seleccionada del día para el resumen de Sapo. */
   selectedEnergy: EnergyLevelConfig;
+  diasCompletados: string[];
 }
 
 export const DayModals = ({
@@ -68,8 +74,13 @@ export const DayModals = ({
   areaDelDia,
 startHour,
   selectedEnergy,
+  diasCompletados,
 }: DayModalsProps) => {
-  const hoyISO = new Date().toISOString().split('T')[0];
+  // El dia del usuario, no el del servidor: `toISOString()` normaliza a UTC,
+  // y en Lima despues de las 19:00 ya devolveria el dia siguiente, que el
+  // backend rechaza como fecha futura. Antes eso hacia que "hice todo" no
+  // hiciera nada: el cierre fallaba con 422 y el error se tragaba en silencio.
+  const hoyISO = fechaLocal();
   const rachaNueva = racha.actual > 1 && progreso.terminado;
 
   return (
@@ -98,14 +109,19 @@ startHour,
         guardando={cerrandoDia}
         onCerrar={() => setDiaCerrado(hoyISO)}
         onResponder={async (respuesta, hechas) => {
-          setDiaCerrado(hoyISO);
           setCerrandoDia(true);
           try {
             await cerrar(respuesta, hechas, hoyISO);
+            setDiaCerrado(hoyISO);
             setRespuestaDelCierre(respuesta);
             setRecapPendiente(true);
-          } catch {
-            // El store ya revirtio y avisa por consola
+          } catch (error) {
+            console.error('No se pudo cerrar el día:', error);
+            Alert.alert(
+              'No pudimos cerrar el día',
+              'Revisá tu conexión y volvé a intentarlo.',
+              [{ text: 'Entendido' }],
+            );
           } finally {
             setCerrandoDia(false);
           }
@@ -121,6 +137,7 @@ startHour,
         onDismiss={() => setRecapPendiente(false)}
         startHour={startHour}
         selectedEnergy={selectedEnergy}
+        diasCompletados={diasCompletados}
       />
     </>
   );

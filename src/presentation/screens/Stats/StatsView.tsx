@@ -7,18 +7,24 @@ import { useTheme, ThemeColors } from "../../components/theme/colors";
 import { ESPACIO, PESO, RADIO, TEXTO } from "../../components/theme/tokens";
 import { fechaLocal } from "../../../infrastructure/api/RewardsApiService";
 import { useRewardsStore } from "../../../infrastructure/store/useRewardsStore";
+import { useCalendarStore } from "../../../infrastructure/store/useCalendarStore";
 import { LifeFlower } from "../../components/organisms/Rewards/LifeFlower";
+import { RachaHero } from "../../components/molecules/Rewards/RachaHero";
+import { CarryOverInline } from "../../components/molecules/Rewards/CarryOverInline";
+import { useTipoSapo } from "../Home/hooks/useTipoSapo";
 
 /**
  * Lo que llevas hecho.
  *
  * Era un placeholder de 49 líneas que ni siquiera estaba en las pestañas:
- * decía "tus métricas aparecerán aquí" desde hacía meses. Ahora que existe el
- * evento de completar, hay algo real que mostrar.
+ * decía "tus métricas aparecerán aquí" desde hacía meses. La pantalla es hoy
+ * un hito a la Duolingo: el héroe de la racha con la mascota celebrando y la
+ * barra hacia el siguiente COMPONENTE CRÍTICO, las reprogramaciones
+ * pendientes como tarjeta integrada, el progreso del día y, abajo, la
+ * cuadrícula de los últimos diez semanas y la flor del equilibrio.
  *
- * Solo muestra lo que el usuario hizo, nunca lo que dejó de hacer. Una app de
- * estudio que te recuerda tus huecos es una que se cierra: la racha rota ya
- * se siente sola, no hace falta un gráfico que la subraye.
+ * Muestra lo que el usuario hizo, nunca lo que dejó de hacer —la racha rota
+ * ya se siente sola, no hace falta un gráfico que la subraye.
  */
 
 /** Cuántos días atrás dibuja la cuadrícula. Diez semanas entran en pantalla. */
@@ -34,6 +40,9 @@ export default function StatsView() {
   const cargar = useRewardsStore((s) => s.cargar);
   const flor = useRewardsStore((s) => s.flor);
   const cargarFlor = useRewardsStore((s) => s.cargarFlor);
+  const pendientesPasados = useRewardsStore((s) => s.pendientesPasados);
+  const marcarPasado = useRewardsStore((s) => s.marcarPasado);
+  const { tipoSapo } = useTipoSapo();
 
   useEffect(() => {
     cargar();
@@ -55,43 +64,71 @@ export default function StatsView() {
 
   const totalDias = hechos.size;
 
+  /** Cuánto del día queda (0..1), para el anillo de la llama en riesgo. */
+  const restaDelDia = useMemo(() => {
+    const ahora = new Date();
+    const minutos = ahora.getHours() * 60 + ahora.getMinutes();
+    return 1 - minutos / 1440;
+  }, []);
+
+  const reprogramarPasado = async (activityId: string, fecha: string, nuevaFecha: string) => {
+    await useCalendarStore.getState().mover(activityId, fecha, nuevaFecha);
+    await cargar();
+  };
+
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.titulo}>Tu progreso</Text>
 
-        <View style={styles.fila}>
-          <Tarjeta
-            styles={styles}
-            icono="flame"
-            color={colors.warning}
-            valor={racha.actual}
-            etiqueta={racha.actual === 1 ? "día seguido" : "días seguidos"}
+        {racha.actual > 0 ? (
+          <RachaHero
+            actual={racha.actual}
+            mejor={racha.mejor}
+            enRiesgo={racha.enRiesgo}
+            hechos={diasCompletados}
+            tipoSapo={tipoSapo}
+            restaDelDia={racha.enRiesgo ? restaDelDia : undefined}
           />
-          <Tarjeta
-            styles={styles}
-            icono="trophy"
-            color={colors.secondaryAccent}
-            valor={racha.mejor}
-            etiqueta="tu mejor racha"
-          />
-        </View>
+        ) : (
+          <View style={styles.rachaVacia} testID="racha-duolingo">
+            <Ionicons name="flame-outline" size={32} color={colors.warning} />
+            <Text style={styles.rachaVaciaTexto}>
+              Tu racha se apagó. Hoy se enciende una nueva.
+            </Text>
+          </View>
+        )}
 
-        <View style={styles.fila}>
-          <Tarjeta
-            styles={styles}
-            icono="checkmark-done"
-            color={colors.secondaryAccent}
-            valor={totalDias}
-            etiqueta={totalDias === 1 ? "día con algo hecho" : "días con algo hecho"}
-          />
-          <Tarjeta
-            styles={styles}
-            icono="today"
-            color="#7EC8E3"
-            valor={progreso.completadas}
-            etiqueta={`de ${progreso.total} hoy`}
-          />
+        <CarryOverInline
+          pendientes={pendientesPasados}
+          onMarcar={async (activityId, fecha, hecha) => {
+            await marcarPasado(activityId, fecha, hecha);
+            await cargar();
+          }}
+          onReprogramar={reprogramarPasado}
+        />
+
+        <View style={styles.progresoDia} testID="progreso-dia">
+          <View style={styles.progresoEncabezado}>
+            <View style={styles.progresoIzquierda}>
+              <Ionicons name="checkmark-circle" size={14} color={colors.accent} />
+              <Text style={styles.progresoTitulo}>Progreso del día</Text>
+            </View>
+            <Text style={styles.progresoContador}>
+              {progreso.completadas} de {progreso.total}
+            </Text>
+          </View>
+          <View style={styles.carrilProgreso}>
+            <View
+              style={[styles.rellenoProgreso, { width: `${Math.round(progreso.fraccion * 100)}%` }]}
+            />
+          </View>
+          <View style={styles.progresoPie}>
+            <Ionicons name="leaf-outline" size={12} color={colors.textSecondary} />
+            <Text style={styles.progresoPieTexto}>
+              {totalDias === 1 ? "1 día con algo hecho" : `${totalDias} días con algo hecho`}
+            </Text>
+          </View>
         </View>
 
         {/* Va arriba de la cuadrícula a propósito: la cuadrícula dice
@@ -128,20 +165,6 @@ export default function StatsView() {
   );
 }
 
-const Tarjeta: React.FC<{
-  styles: ReturnType<typeof createStyles>;
-  icono: string;
-  color: string;
-  valor: number;
-  etiqueta: string;
-}> = ({ styles, icono, color, valor, etiqueta }) => (
-  <View style={styles.tarjeta}>
-    <Ionicons name={icono as any} size={20} color={color} />
-    <Text style={styles.valor}>{valor}</Text>
-    <Text style={styles.etiqueta}>{etiqueta}</Text>
-  </View>
-);
-
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     safe: {
@@ -150,34 +173,74 @@ const createStyles = (colors: ThemeColors) =>
     },
     content: {
       padding: ESPACIO.xl,
-      gap: ESPACIO.md,
+      gap: ESPACIO.lg,
     },
     titulo: {
       fontSize: TEXTO.display,
       fontWeight: PESO.maximo,
       color: colors.surface,
-      marginBottom: ESPACIO.sm,
+      marginBottom: -ESPACIO.xs,
     },
-    fila: {
-      flexDirection: "row",
-      gap: ESPACIO.md,
+    rachaVacia: {
+      alignItems: "center",
+      gap: ESPACIO.sm,
+      padding: ESPACIO.xxl,
+      borderRadius: RADIO.xl,
+      backgroundColor: colors.cardBackground,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
     },
-    tarjeta: {
-      flex: 1,
-      gap: ESPACIO.xs,
+    rachaVaciaTexto: {
+      fontSize: TEXTO.pie,
+      color: colors.textSecondary,
+      textAlign: "center",
+    },
+    progresoDia: {
+      gap: ESPACIO.sm - 2,
       padding: ESPACIO.lg,
       borderRadius: RADIO.lg,
       backgroundColor: colors.cardBackground,
       borderWidth: 1,
       borderColor: colors.cardBorder,
     },
-    valor: {
-      fontSize: TEXTO.display,
-      fontWeight: PESO.maximo,
+    progresoEncabezado: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
+    progresoIzquierda: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: ESPACIO.xs,
+    },
+    progresoTitulo: {
+      fontSize: TEXTO.pie,
+      fontWeight: PESO.fuerte,
       color: colors.surface,
     },
-    etiqueta: {
+    progresoContador: {
       fontSize: TEXTO.pie,
+      fontWeight: PESO.maximo,
+      color: colors.accent,
+    },
+    carrilProgreso: {
+      height: 8,
+      borderRadius: RADIO.pill,
+      backgroundColor: colors.cardBorder,
+      overflow: "hidden",
+    },
+    rellenoProgreso: {
+      height: "100%",
+      borderRadius: RADIO.pill,
+      backgroundColor: colors.accent,
+    },
+    progresoPie: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: ESPACIO.xs,
+    },
+    progresoPieTexto: {
+      fontSize: TEXTO.micro,
       color: colors.textSecondary,
     },
     seccion: {
@@ -187,7 +250,6 @@ const createStyles = (colors: ThemeColors) =>
       backgroundColor: colors.cardBackground,
       borderWidth: 1,
       borderColor: colors.cardBorder,
-      marginTop: ESPACIO.sm,
     },
     seccionTitulo: {
       fontSize: TEXTO.cuerpo,
@@ -206,7 +268,7 @@ const createStyles = (colors: ThemeColors) =>
       backgroundColor: colors.cardBorder,
     },
     celdaHecha: {
-      backgroundColor: colors.secondaryAccent,
+      backgroundColor: colors.accent,
     },
     pie: {
       fontSize: TEXTO.micro,

@@ -121,22 +121,48 @@ export function ActivityConfigDetailModal({
       minute: "2-digit",
     });
 
-  const getGroupsForActivity = (act: Activity) => {
-    const groups: Record<number, { days: DayOfWeek[]; config: DayConfig }> = {};
+  // Orden canónico de la semana para no pintar Martes antes que Lunes.
+  const DAY_ORDER: DayOfWeek[] = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo'];
+
+  // Firma de un horario: dos días de una clase pueden diferir en hora (una
+  // serie de Google condensada), y una tarjeta de grupo que colapsa todo a la
+  // primera partición mentiría. Los días se agrupan por groupId + firma.
+  const firmaDe = (cfg: DayConfig) =>
+    cfg.partitions
+      .map((p) =>
+        [
+          new Date(p.startHour).getTime(),
+          new Date(p.endHour).getTime(),
+          p.durationTime,
+          p.travelTo ?? 0,
+          p.travelFrom ?? 0,
+        ].join("|")
+      )
+      .join(";");
+
+  const getGruposDeActividad = (act: Activity) => {
+    const grupos: Record<string, { dias: DayOfWeek[]; config: DayConfig }> = {};
     (Object.entries(act.daysConfig) as [string, DayConfig][]).forEach(
       ([day, cfg]) => {
         if (cfg) {
-          if (!groups[cfg.groupId]) {
-            groups[cfg.groupId] = { days: [], config: cfg };
+          const clave = `${cfg.groupId ?? 0}|${firmaDe(cfg)}`;
+          if (!grupos[clave]) {
+            grupos[clave] = { dias: [], config: cfg };
           }
-          groups[cfg.groupId].days.push(day as DayOfWeek);
+          grupos[clave].dias.push(day as DayOfWeek);
         }
       }
     );
-    return groups;
+    return Object.values(grupos)
+      .map((g) => ({
+        ...g,
+        gid: g.config.groupId ?? 0,
+        dias: g.dias.slice().sort((a, z) => DAY_ORDER.indexOf(a) - DAY_ORDER.indexOf(z)),
+      }))
+      .sort((a, z) => a.gid - z.gid);
   };
 
-  const groups = getGroupsForActivity(activity);
+  const grupos = getGruposDeActividad(activity);
 
   const configuredDays = activity.daysEnabled.length;
 
@@ -260,15 +286,14 @@ export function ActivityConfigDetailModal({
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>GRUPOS Y HORARIOS</Text>
               <View style={styles.groupsContainer}>
-                {Object.entries(groups).map(([gidStr, { days, config }]) => {
-                  const gid = Number(gidStr);
-                  const color = groupColors[gid % groupColors.length];
+                {grupos.map((grupo) => {
+                  const color = groupColors[grupo.gid % groupColors.length];
 
                   return (
-                    <View key={gid} style={styles.groupTag}>
+                    <View key={`${grupo.gid}-${grupo.dias.join('-')}`} style={styles.groupTag}>
                       <View style={styles.daysRow}>
                         <Ionicons name="calendar" size={14} color={color.bg} />
-                        {days.map((day) => (
+                        {grupo.dias.map((day) => (
                           <View key={day} style={[styles.dayBadge, { backgroundColor: color.bg + '30' }]}>
                             <Text style={[styles.dayBadgeText, { color: color.bg }]}>
                               {day.substring(0, 3)}
@@ -276,7 +301,7 @@ export function ActivityConfigDetailModal({
                           </View>
                         ))}
                       </View>
-                      {config.partitions.map((partition, idx) => {
+                      {grupo.config.partitions.map((partition, idx) => {
                         const timeRange = activity.isFixed()
                           ? `${formatTime(partition.startHour)} - ${formatTime(partition.endHour)}`
                           : 'Horario optimizable';

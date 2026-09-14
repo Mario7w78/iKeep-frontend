@@ -57,4 +57,22 @@ describe('Celebration', () => {
 
     expect(vista.getByText('¡Racha de 7!')).toBeTruthy();
   });
+
+  it('mensaje null = solo confeti, sin el cartel que duplica el texto', async () => {
+    // El wizard de creación ya escribe "¡Actividad creada!" debajo del sapo;
+    // un cartel encima lo repetiría. Y un cartel sin texto sería una cápsula
+    // vacía: decoración muda sobre el confeti.
+    const vista = await render(<Celebration disparo={1} mensaje={null} />);
+
+    expect(vista.getByTestId('celebration')).toBeTruthy();
+    expect(vista.queryByTestId('cartel')).toBeNull();
+    expect(vista.queryByText('¡Día completo!')).toBeNull();
+  });
+
+  it('con mensaje muestra la capsula con el texto', async () => {
+    const vista = await render(<Celebration disparo={1} mensaje="¡Racha de 3!" />);
+
+    expect(vista.getByTestId('cartel')).toBeTruthy();
+    expect(vista.getByText('¡Racha de 3!')).toBeTruthy();
+  });
 });

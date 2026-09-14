@@ -18,6 +18,21 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   clear: jest.fn(),
 }));
 
+// El paisaje de la sesión y el sapo vienen de rive; en los tests se dibujan
+// como un View plano (si se resolviera el paquete real, el transform de
+// jest-expo no lo soporta y la suite ni cargaría).
+jest.mock('../../../../components/atoms/Lotus/LotusLandscape', () => {
+  const { View } = require('react-native');
+  return { LotusLandscape: ({ testID, style }: any) => <View testID={testID} style={style} /> };
+});
+jest.mock('../../../../components/atoms/Mascot/Sapo', () => {
+  const { View } = require('react-native');
+  return { Sapo: ({ testID, style }: any) => <View testID={testID} style={style} /> };
+});
+jest.mock('react-native-safe-area-context', () => ({
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+
 import { iniciar } from '../../../../../domain/services/focusSession';
 import { FocusSession } from '../FocusSession';
 
@@ -162,5 +177,55 @@ describe('cerrar sin marcar', () => {
     });
 
     expect(onDescartar).toHaveBeenCalled();
+  });
+});
+
+describe('olvidarse de marcarla', () => {
+  it('se puede quitar de la pantalla y la sesión queda como píldora', async () => {
+    const vista = await montar(iniciar('a1', 25, hace(18)));
+
+    expect(vista.getByTestId('sesion-enfocada')).toBeTruthy();
+    expect(vista.queryByTestId('sesion-mini')).toBeNull();
+
+    // La vista enfocada estorba si vuelvo a la app sin haberla marcado.
+    await act(async () => {
+      fireEvent.press(vista.getByTestId('sesion-minimizar'));
+    });
+
+    expect(vista.queryByTestId('sesion-enfocada')).toBeNull();
+    expect(vista.getByTestId('sesion-mini')).toBeTruthy();
+  });
+
+  it('la píldora muestra que sigue corriendo y al tocarla vuelve la vista', async () => {
+    const vista = await montar(iniciar('a1', 25, hace(5)));
+
+    await act(async () => {
+      fireEvent.press(vista.getByTestId('sesion-minimizar'));
+    });
+
+    const pildora = vista.getByTestId('sesion-mini');
+    expect(pildora).toBeTruthy();
+    expect(vista.getByText('5 min · en curso')).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.press(pildora);
+    });
+
+    expect(vista.getByTestId('sesion-enfocada')).toBeTruthy();
+    expect(vista.queryByTestId('sesion-mini')).toBeNull();
+  });
+
+  it('una sesión caducada no se minimiza: solo se puede cerrar', async () => {
+    const vista = await montar(iniciar('a1', 25, hace(14 * 60)));
+
+    expect(vista.getByTestId('sesion-cerrar-caducada')).toBeTruthy();
+    expect(vista.queryByTestId('sesion-minimizar')).toBeNull();
+    expect(vista.queryByTestId('sesion-mini')).toBeNull();
+  });
+
+  it('el paisaje de la sesión incluye el loto de Home', async () => {
+    const vista = await montar(iniciar('a1', 25, hace(5)));
+
+    expect(vista.getByTestId('lotus-sesion')).toBeTruthy();
   });
 });

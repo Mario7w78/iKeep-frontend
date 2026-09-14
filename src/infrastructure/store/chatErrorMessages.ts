@@ -31,6 +31,11 @@ const DEMASIADOS_INTENTOS =
 const NO_SE_PUDO_APLICAR =
   'No pude acomodar ese cambio en tu horario, así que lo dejé como estaba. Prueba con otro horario o ajusta la actividad a mano.';
 
+const SIN_PILAS = [
+  'Uy, me quedé sin batería de tanto pensar y apagué el sueño de golpe. Haz la actividad tú a mano con el botón de crear: es rapidísimo, y yo mientras recargo para la próxima.',
+  'Se me acabaron las pilas justo cuando más me necesitabas. La llevo yo a la laguna a cargar un rato; tú crea la actividad a mano y en un minuto la tienes lista.',
+].join(' ');
+
 const ALGO_SALIO_MAL =
   'Algo salió mal de mi lado. No se perdió nada; vuelve a intentarlo.';
 
@@ -46,6 +51,7 @@ export function mensajeParaElUsuario(
   if (error instanceof BackendError) {
     if (error.status === 401 || error.status === 403) return SESION_VENCIDA;
     if (error.status === 429) return DEMASIADOS_INTENTOS;
+    if (error.status === 402) return SIN_PILAS;
     if (error.status === 409) return NO_SE_PUDO_APLICAR;
     // Sin status es un fallo de red: o no se pudo conectar, o se agotó la
     // espera. El texto original distingue los dos casos.

@@ -8,7 +8,12 @@ import { DURACION, ESPACIO, PESO, RADIO, TEXTO } from '../../theme/tokens';
 interface Props {
   /** Cambia cada vez que hay algo que festejar. Ver la nota de abajo. */
   disparo: number;
-  mensaje?: string;
+  /**
+   * Texto del cartel. `null` muestra solo el confeti, sin cartel: sirve cuando
+   * el contexto ya dice qué se celebró (por ejemplo el wizard de creación, que
+   * escribe "¡Actividad creada!" debajo del sapo).
+   */
+  mensaje?: string | null;
 }
 
 /**
@@ -136,27 +141,30 @@ export const Celebration: React.FC<Props> = ({
         );
       })}
 
-      <Animated.View
-        style={[
-          styles.cartel,
-          {
-            opacity: avance.interpolate({
-              inputRange: [0, 0.15, 0.75, 1],
-              outputRange: [0, 1, 1, 0],
-            }),
-            transform: [
-              {
-                scale: avance.interpolate({
-                  inputRange: [0, 0.2, 1],
-                  outputRange: [0.85, 1, 1],
-                }),
-              },
-            ],
-          },
-        ]}
-      >
-        <Text style={styles.texto}>{mensaje}</Text>
-      </Animated.View>
+      {mensaje !== null && (
+        <Animated.View
+          style={[
+            styles.cartel,
+            {
+              opacity: avance.interpolate({
+                inputRange: [0, 0.15, 0.75, 1],
+                outputRange: [0, 1, 1, 0],
+              }),
+              transform: [
+                {
+                  scale: avance.interpolate({
+                    inputRange: [0, 0.2, 1],
+                    outputRange: [0.85, 1, 1],
+                  }),
+                },
+              ],
+            },
+          ]}
+          testID="cartel"
+        >
+          <Text style={styles.texto}>{mensaje}</Text>
+        </Animated.View>
+      )}
     </View>
   );
 };

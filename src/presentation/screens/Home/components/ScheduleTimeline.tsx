@@ -74,9 +74,9 @@ export const ScheduleTimeline = ({
           </Text>
           {item.activity ? (
             <>
-              <Text style={styles.nextTitle}>{areaTituloDe(item.activity.area)}</Text>
+              <Text style={styles.nextTitle}>{item.activity.title}</Text>
               <Text style={styles.nextActivityTitle} numberOfLines={1}>
-                {item.activity.title}
+                {areaTituloDe(item.activity.area)}
               </Text>
             </>
           ) : (

@@ -9,6 +9,9 @@
 /** Las fases coinciden con las animaciones de `lotus_landscape.riv`. */
 export type FaseDelDia = 'Morning' | 'Evening' | 'Night';
 
+/** Hora (inclusive) donde termina la noche larga: de 00:00 a 04:59 sigue siendo noche. */
+export const INICIO_MANIANA = 5;
+
 /** Hora (inclusive) donde empieza la tarde. */
 export const INICIO_TARDE = 15;
 
@@ -16,7 +19,7 @@ export const INICIO_TARDE = 15;
 export const INICIO_NOCHE = 20;
 
 export function faseDelDia(horaLocal: number): FaseDelDia {
-  if (horaLocal >= INICIO_NOCHE) return 'Night';
+  if (horaLocal >= INICIO_NOCHE || horaLocal < INICIO_MANIANA) return 'Night';
   if (horaLocal >= INICIO_TARDE) return 'Evening';
   return 'Morning';
 }

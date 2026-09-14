@@ -38,10 +38,19 @@ describe('errores tecnicos', () => {
   });
 
   it('nunca aparece la palabra BackendError', () => {
-    for (const codigo of [400, 401, 409, 429, 500, 503, null]) {
+    for (const codigo of [400, 401, 402, 409, 429, 500, 503, null]) {
       const texto = mensajeParaElUsuario(new BackendError('lo que sea', codigo as any));
       expect(texto).not.toMatch(/BackendError|Error:/);
     }
+  });
+
+  it('sin presupuesto Sapo se cansa y manda a hacerlo a mano', () => {
+    const texto = mensajeParaElUsuario(
+      new BackendError('Todos los proveedores se quedaron sin presupuesto.', 402)
+    );
+
+    expect(texto).not.toMatch(/error|fallo/i);
+    expect(texto).toMatch(/a mano/);
   });
 });
 
@@ -60,7 +69,7 @@ describe('errores que si le importan al usuario', () => {
 
 describe('el tono', () => {
   it('habla en espanol neutro', () => {
-    const textos = [400, 429, 500, null].map((c) =>
+    const textos = [400, 402, 429, 500, null].map((c) =>
       mensajeParaElUsuario(new BackendError('x', c as any))
     );
 

@@ -8,6 +8,7 @@ import React from 'react';
 import { render } from '@testing-library/react-native';
 
 jest.mock('@expo/vector-icons', () => ({ Ionicons: () => null }));
+jest.mock('../../../components/atoms/Mascot/Sapo', () => ({ Sapo: () => null }));
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(),
   getItem: jest.fn().mockResolvedValue(null),
@@ -49,7 +50,9 @@ describe('StatsView', () => {
   it('muestra la racha actual y la mejor', async () => {
     const vista = await render(<StatsView />);
 
-    expect(vista.getByText('3')).toBeTruthy();
+    // El número de la racha vive dos veces en el héroe (la llama y la mochila
+    // del sapo): ambas pintan el mismo hito.
+    expect(vista.getAllByText('3').length).toBeGreaterThanOrEqual(1);
     expect(vista.getByText('9')).toBeTruthy();
     expect(vista.getByText('tu mejor racha')).toBeTruthy();
   });

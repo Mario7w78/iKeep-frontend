@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useMemo } from 'react';
 import { Modal, View, Text, StyleSheet, TouchableOpacity, Pressable, PanResponder, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ScheduledActivity } from '../../../../domain/entities/Schedule';
+import { DayOfWeek } from '../../../../domain/entities/Activity';
 import { useTheme } from '../../theme/colors';
 import type { ThemeColors } from '../../theme/colors';
 
@@ -12,7 +13,8 @@ interface ActivityDetailModalProps {
   onEdit?: (activityId: string) => void;
   /**
    * Empezar una sesión enfocada. Opcional porque no toda pantalla que abre
-   * este detalle está en condiciones de sostener una sesión.
+   * este detalle está en condiciones de sostener una sesión. Solo se
+   * ofrece cuando el bloque es del día de hoy.
    */
   onEnfocar?: (activityId: string, minutos: number) => void;
 }
@@ -65,6 +67,8 @@ export function ActivityDetailModal({ visible, activityItem, onClose, onEdit, on
 
   const { activity, assignedStartTime, assignedEndTime, day } = activityItem;
   if (!activity) return null;
+
+  const esHoy = day === diaDeHoy();
 
   const getIdentityIcon = (identity: string) => {
     switch (identity) {
@@ -164,6 +168,13 @@ export function ActivityDetailModal({ visible, activityItem, onClose, onEdit, on
             </View>
           </View>
 
+          {activity.description && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>DESCRIPCIÓN</Text>
+              <Text style={styles.descriptionText}>{activity.description}</Text>
+            </View>
+          )}
+
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>DETALLES</Text>
             <View style={styles.grid}>
@@ -216,7 +227,7 @@ export function ActivityDetailModal({ visible, activityItem, onClose, onEdit, on
             </View>
           </View>
 
-          {onEnfocar && (
+          {onEnfocar && esHoy && (
             <TouchableOpacity
               testID="empezar-sesion"
               style={styles.editButton}
@@ -359,6 +370,12 @@ const createStyles = (colors: ThemeColors, comfyColors: Record<string, string>, 
     fontWeight: '700',
     marginTop: 2,
   },
+  descriptionText: {
+    color: colors.textSecondary,
+    fontSize: 15,
+    fontWeight: '500',
+    lineHeight: 22,
+  },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -420,6 +437,13 @@ const createStyles = (colors: ThemeColors, comfyColors: Record<string, string>, 
     fontWeight: '900',
   },
 });
+
+const DIAS_DE_LA_SEMANA: DayOfWeek[] = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo'];
+
+/** El día de la semana actual, en la misma clave que usa el horario. */
+function diaDeHoy(): DayOfWeek {
+  return DIAS_DE_LA_SEMANA[(new Date().getDay() + 6) % 7];
+}
 
 /**
  * Cuánto dura el bloque, en minutos.

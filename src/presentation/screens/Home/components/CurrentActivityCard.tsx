@@ -62,7 +62,7 @@ export const CurrentActivityCard = ({
     }
     Alert.alert(
       'Marcar como hecha',
-      `¿Confirmás que completaste "${actividad.title}"?`,
+      `¿Confirmas que completaste "${actividad.title}"?`,
       [
         { text: 'Cancelar', style: 'cancel' },
         { text: 'Confirmar', onPress: () => alternarCompletada(id) },

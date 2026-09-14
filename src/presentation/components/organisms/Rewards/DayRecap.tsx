@@ -11,6 +11,8 @@ import { AREAS, AreaDeVida } from '../../../../domain/entities/lifeArea';
 import { ThemeColors, useTheme } from '../../theme/colors';
 import { ESPACIO, PESO, RADIO, TEXTO } from '../../theme/tokens';
 import { Sapo } from '../../atoms/Mascot/Sapo';
+import { StreakFlame } from '../../atoms/Rewards/StreakFlame';
+import { RachaSemanal } from '../../atoms/Rewards/RachaSemanal';
 import { EnergyLevelConfig } from '../../../screens/Home/HomeView.utils';
 
 interface Props {
@@ -25,6 +27,8 @@ interface Props {
   startHour: number;
   /** Energía seleccionada del día para el resumen de Sapo. */
   selectedEnergy: EnergyLevelConfig;
+  /** Días con algo hecho, para dibujar la cadena semanal de la racha. */
+  diasCompletados?: string[];
 }
 
 /**
@@ -72,6 +76,7 @@ export const DayRecap: React.FC<Props> = ({
   onDismiss,
   startHour,
   selectedEnergy,
+  diasCompletados,
 }) => {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -84,6 +89,12 @@ export const DayRecap: React.FC<Props> = ({
   const tituloArea = areaDestacada
     ? AREAS.find((a) => a.valor === areaDestacada)?.titulo
     : null;
+  // La cadena cuenta con fotografías, no con adivinanzas: si quien la arma no
+  // trajo los días, no se dibuja nada. En el día difícil y en el vacío la
+  // llama no muestra número: ahí los dígitos juzgan, y juzgar no es el tono.
+  const conCadena =
+    racha.actual > 0 && diasCompletados !== undefined;
+  const ocultarNumero = dificil || ceroHechas;
 
   return (
     <Pressable
@@ -131,11 +142,6 @@ export const DayRecap: React.FC<Props> = ({
             <Text testID="recap-conteo" style={styles.titulo}>
               Hiciste {progreso.completadas} de {progreso.total}
             </Text>
-            {racha.actual > 0 && (
-              <Text testID="recap-racha" style={styles.bajada}>
-                Racha de {racha.actual} días
-              </Text>
-            )}
             {tituloArea && (
               <View testID="recap-area" style={styles.area}>
                 <Text style={styles.areaTitulo}>{tituloArea}</Text>
@@ -143,6 +149,23 @@ export const DayRecap: React.FC<Props> = ({
               </View>
             )}
           </>
+        )}
+
+        {conCadena && (
+          <View style={styles.cadenaBloque} testID="recap-cadena">
+            <StreakFlame
+              dias={racha.actual}
+              enRiesgo={racha.enRiesgo}
+              size={56}
+              mostrarNumero={!ocultarNumero}
+            />
+            <RachaSemanal hechos={diasCompletados as string[]} />
+            {!ocultarNumero && (
+              <Text testID="recap-racha" style={styles.nota}>
+                Racha de {racha.actual} días
+              </Text>
+            )}
+          </View>
         )}
 
         {/* Resumen de Sapo con datos del día y mensaje motivador */}
@@ -168,12 +191,6 @@ export const DayRecap: React.FC<Props> = ({
               Mañana empieza a las {Math.floor(startHour / 60)}
                 .{String(startHour % 60).padStart(2, '0')}
             </Text>
-            {racha.actual > 0 && (
-              <Text style={styles.sapoDetalle}>
-                <Ionicons name="flame-outline" size={16} color={colors.warning} />
-                Racha de {racha.actual} días
-              </Text>
-            )}
           </View>
           <Text style={styles.sapoMensaje}>
             {mensajeSapo(progreso.completadas, progreso.total, racha.actual, selectedEnergy.label)}
@@ -223,6 +240,12 @@ const createStyles = (colors: ThemeColors) =>
       fontSize: TEXTO.pie,
       color: colors.textSecondary,
       textAlign: 'center',
+    },
+    cadenaBloque: {
+      alignItems: 'center',
+      gap: ESPACIO.sm,
+      marginTop: ESPACIO.md,
+      minWidth: '100%',
     },
     area: {
       alignItems: 'center',

@@ -16,12 +16,19 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   removeItem: jest.fn(),
   clear: jest.fn(),
 }));
+jest.mock('@rive-app/react-native', () => ({
+  Fit: { Contain: 'contain' },
+  RiveView: () => null,
+  useRiveFile: () => ({ riveFile: null }),
+  useViewModelInstance: () => ({ instance: null, isLoading: false }),
+}));
 
 import { DayRecap } from '../DayRecap';
 import {
   ProgresoDelDia,
   Racha,
 } from '../../../../../infrastructure/api/RewardsApiService';
+import { ENERGY_LEVELS_CONFIG } from '../../../../screens/Home/HomeView.utils';
 
 const PROGRESO: ProgresoDelDia = {
   completadas: 4,
@@ -58,6 +65,9 @@ async function montar(
       areaDestacada="cuerpo"
       respuestaCierre="algunas"
       onDismiss={jest.fn()}
+      diasCompletados={['2026-06-07', '2026-06-08', '2026-06-09']}
+      startHour={480}
+      selectedEnergy={ENERGY_LEVELS_CONFIG[0]}
       {...props}
     />
   );
@@ -91,6 +101,22 @@ describe('lo que cuenta del dia', () => {
     });
 
     expect(vista.queryByText(/Racha de \d+/)).toBeNull();
+    expect(vista.queryByTestId('recap-cadena')).toBeNull();
+  });
+
+  it('dibuja la cadena de la racha junto con la llama', async () => {
+    const vista = await montar();
+
+    expect(vista.getByTestId('recap-cadena')).toBeTruthy();
+    expect(vista.getByTestId('racha-cadena')).toBeTruthy();
+    expect(vista.getByTestId('streak-flame')).toBeTruthy();
+  });
+
+  it('sin los días de la cadena no dibuja nada, sin romperse', async () => {
+    const vista = await montar({ diasCompletados: undefined });
+
+    expect(vista.queryByTestId('recap-cadena')).toBeNull();
+    expect(vista.queryByTestId('streak-flame')).toBeNull();
   });
 
   it('nombra la única área que fue adelante', async () => {

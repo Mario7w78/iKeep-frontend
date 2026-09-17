@@ -1,31 +1,18 @@
 /**
- * La mascota y su State Machine, contra el runtime Rive mockeado.
+ * La mascota y su ViewModel (API v2 de rive), contra el runtime mockeado.
  *
- * El mock vive en `__mocks__/rive-react-native.tsx` y jest-expo lo aplica
- * solo para todo el runner: acá solo se afirma contra él.
+ * El mock vive en `__mocks__/rive-react-native.tsx` y jest-expo lo aplica solo
+ * para todo el runner (moduleNameMapper + mock manual): acá solo se afirma
+ * contra él. `__modelos` expone cada ViewModel y `__instancias` las RiveView.
  */
 
 // El store de la racha arrastra Supabase y AsyncStorage, que no tienen
-// nativo en jest. Acá la racha se fija con setState: las APIs no se tocan.
+// nativo en jest. Acá no se tocan las APIs.
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(),
   getItem: jest.fn().mockResolvedValue(null),
   removeItem: jest.fn(),
   clear: jest.fn(),
-}));
-
-// El asset se resuelve bien en el runner (stub por moduleNameMapper); la
-// prueba de "falta el asset" baja esta bandera en vez de reimportar todo.
-// `undefined` = usar el real; se resuelve perezoso para esquivar el TDZ
-// del factory izado de jest.mock.
-const mockFuenteVisible: { valor: number | null | undefined } = { valor: undefined };
-jest.mock('../sapoAssets', () => ({
-  get FUENTE_SAPO() {
-    if (mockFuenteVisible.valor === undefined) {
-      mockFuenteVisible.valor = jest.requireActual('../sapoAssets').FUENTE_SAPO;
-    }
-    return mockFuenteVisible.valor;
-  },
 }));
 
 import React from 'react';
@@ -34,16 +21,14 @@ import { render } from '@testing-library/react-native';
 
 // Los helpers del mock no existen en los tipos reales del paquete: solo
 // viven en la instancia que jest resuelve en el runner.
-const { __instancias, __reset } = require('rive-react-native') as {
-  __instancias: Array<{
-    props: Record<string, any>;
-    play: ReturnType<typeof jest.fn>;
-    pause: ReturnType<typeof jest.fn>;
-    stop: ReturnType<typeof jest.fn>;
-    reset: ReturnType<typeof jest.fn>;
-    setEnum: ReturnType<typeof jest.fn>;
+const { __instancias, __modelos, __reset, Fit } = require('rive-react-native') as {
+  __instancias: Array<Record<string, any>>;
+  __modelos: Array<{
+    enumProperty: ReturnType<typeof jest.fn>;
+    artboardProperty: ReturnType<typeof jest.fn>;
   }>;
   __reset(): void;
+  Fit: { Contain: string };
 };
 
 import { Sapo } from '../Sapo';
@@ -64,13 +49,25 @@ describe('estadoRiveDe', () => {
 });
 
 describe('contrato del artboard principal', () => {
-  it('monta Artboard y su State Machine, con Data Binding activo', async () => {
+  it('monta RiveView con el ViewModel en autobind y fit Contain', async () => {
     await render(<Sapo />);
 
-    const rive = __instancias.at(-1);
-    expect(rive?.props.artboardName).toBe('Artboard');
-    expect(rive?.props.stateMachineName).toBe('State Machine');
-    expect(rive?.props.dataBinding).toEqual({ type: 'autobind', value: true });
+    const rive = __instancias.at(-1)!;
+    const modelo = __modelos.at(-1)!;
+    expect(rive.file).toBeTruthy();
+    expect(rive.dataBind).toBe(modelo);
+    expect(rive.fit).toBe(Fit.Contain);
+  });
+
+  it('el contenedor escala con size y la RiveView llena ese marco (sin frame fijo)', async () => {
+    const vista = await render(<Sapo size={240} testID="sapo-240" />);
+
+    const marco = StyleSheet.flatten(vista.getByTestId('sapo-240').props.style);
+    const rive = __instancias.at(-1)!;
+    const lienzo = StyleSheet.flatten(rive.style);
+
+    expect(marco).toEqual(expect.objectContaining({ width: 240, height: 240 }));
+    expect(lienzo).toEqual({ width: 240, height: 240 });
   });
 });
 
@@ -78,55 +75,51 @@ describe('Data Binding', () => {
   it('asigna Idle al enum sapoState al cargar', async () => {
     await render(<Sapo />);
 
-    const rive = __instancias.at(-1);
-    expect(rive?.setEnum).toHaveBeenCalledWith('sapoState', 'Idle');
+    const modelo = __modelos.at(-1)!;
+    const setter = modelo.enumProperty('sapoState') as { set: ReturnType<typeof jest.fn> };
+    expect(modelo.enumProperty).toHaveBeenCalledWith('sapoState');
+    expect(setter.set).toHaveBeenCalledWith('Idle');
   });
 
-  it('celebrating asigna Success y no reproduce animaciones lineales', async () => {
+  it('celebrating asigna Success al enum', async () => {
     await render(<Sapo estado="celebrating" />);
 
-    const rive = __instancias.at(-1)!;
-    expect(rive.setEnum).toHaveBeenCalledWith('sapoState', 'Success');
-    expect(rive.play).not.toHaveBeenCalled();
+    const modelo = __modelos.at(-1)!;
+    const setter = modelo.enumProperty('sapoState') as { set: ReturnType<typeof jest.fn> };
+    expect(setter.set).toHaveBeenCalledWith('Success');
   });
 
   it('restablece Idle cuando la app cambia de celebrating a otro estado', async () => {
     const vista = await render(<Sapo estado="celebrating" />);
-    const rive = __instancias.at(-1)!;
-    rive.setEnum.mockClear();
+
+    const modelo = __modelos.at(-1)!;
+    const setter = modelo.enumProperty('sapoState') as { set: ReturnType<typeof jest.fn> };
+    setter.set.mockClear();
 
     await vista.rerender(<Sapo estado="idle" />);
 
-    expect(rive.setEnum).toHaveBeenCalledWith('sapoState', 'Idle');
+    expect(setter.set).toHaveBeenCalledWith('Idle');
   });
 });
 
-describe('Sapo sin animar', () => {
-  it('no llama al runtime cuando se le pide quieto', async () => {
-    await render(<Sapo animar={false} />);
-    await render(<Sapo estado="happy" animar={false} />);
+describe('cambio de artboard', () => {
+  it('hostea Baby -> Kid -> Adult según tipoSapo', async () => {
+    const vista = await render(<Sapo tipoSapo={0} />);
 
-    for (const instancia of __instancias) {
-      expect(instancia.setEnum).not.toHaveBeenCalled();
-    }
-  });
-});
+    const rive = __instancias.at(-1)!;
+    const bindables = rive.file.getBindableArtboard as ReturnType<typeof jest.fn>;
+    const modelo = __modelos.at(-1)!;
+    const artboardSetter = modelo.artboardProperty('artboardProperty') as { set: ReturnType<typeof jest.fn> };
 
-describe('Sapo sin asset', () => {
-  it('un require que falla deja el hueco reservado, sin romper nada', async () => {
-    /** La mascota es decoración: si falta el asset, la pantalla conserva
-     *  su composición en vez de romperse o reacomodarse. */
-    const montadas = __instancias.length;
-    mockFuenteVisible.valor = null;
-    try {
-      const vista = await render(<Sapo tamano={80} />);
+    expect(bindables).toHaveBeenNthCalledWith(1, 'Baby_Sapo');
+    expect(artboardSetter.set).toHaveBeenCalledWith({ nombre: 'Baby_Sapo' });
 
-      const estilo = StyleSheet.flatten(vista.getByTestId('sapo').props.style);
-      expect(estilo).toEqual(expect.objectContaining({ width: 80, height: 80 }));
-    } finally {
-      mockFuenteVisible.valor = require('../sapoAssets').FUENTE_SAPO;
-    }
-    // No quedó ninguna instancia de Rive montada por este render.
-    expect(__instancias).toHaveLength(montadas);
+    await vista.rerender(<Sapo tipoSapo={1} />);
+    expect(bindables).toHaveBeenLastCalledWith('Kid_Sapo');
+    expect(artboardSetter.set).toHaveBeenLastCalledWith({ nombre: 'Kid_Sapo' });
+
+    await vista.rerender(<Sapo tipoSapo={2} />);
+    expect(bindables).toHaveBeenLastCalledWith('Adult_Sapo');
+    expect(artboardSetter.set).toHaveBeenLastCalledWith({ nombre: 'Adult_Sapo' });
   });
 });

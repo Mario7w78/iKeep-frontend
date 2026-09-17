@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { RespuestaDeCierre } from '../../../../infrastructure/api/RewardsApiService';
 import { ThemeColors, useTheme } from '../../theme/colors';
@@ -53,7 +54,8 @@ export const DayClose: React.FC<Props> = ({
   guardando = false,
 }) => {
   const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const insets = useSafeAreaInsets();
+  const styles = useMemo(() => createStyles(colors, insets), [colors, insets]);
 
   const [eligiendo, setEligiendo] = useState(false);
   const [hechas, setHechas] = useState<string[]>([]);
@@ -188,7 +190,7 @@ export const DayClose: React.FC<Props> = ({
   );
 };
 
-const createStyles = (colors: ThemeColors) =>
+const createStyles = (colors: ThemeColors, insets: { bottom: number }) =>
   StyleSheet.create({
     contenedor: { flex: 1, justifyContent: 'flex-end' },
     fondo: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(10, 11, 18, 0.62)' },
@@ -197,7 +199,7 @@ const createStyles = (colors: ThemeColors) =>
       borderTopLeftRadius: RADIO.xl,
       borderTopRightRadius: RADIO.xl,
       paddingHorizontal: ESPACIO.lg,
-      paddingBottom: ESPACIO.xxxl,
+      paddingBottom: Math.max(ESPACIO.xxxl, insets.bottom),
       gap: ESPACIO.sm,
     },
     asa: {

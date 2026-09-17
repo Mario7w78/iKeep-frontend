@@ -1,7 +1,7 @@
 import { create, StoreApi, UseBoundStore } from 'zustand';
 import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Schedule, ScheduleProps } from '../../domain/entities/Schedule';
+import { Schedule, ScheduleProps, validarIntegridadHorario } from '../../domain/entities/Schedule';
 import { Activity, DayOfWeek } from '../../domain/entities/Activity';
 import { ActivityRepository } from '../../application/ports/out/ActivityRepository';
 import { JS_DAY_TO_DAYOFWEEK } from '../../presentation/utils/scheduleUtils';
@@ -31,6 +31,19 @@ interface DayLimitPersistence {
   setPerDayStartHours: (val: number[] | null) => Promise<void>;
   getPerDayEndHours: () => Promise<number[] | null>;
   setPerDayEndHours: (val: number[] | null) => Promise<void>;
+  /**
+   * Trae todos los límites del día en una sola lectura de fila. Lo implementan
+   * los adaptadores que pueden leer el settings completo de una vez; quienes
+   * no, el store cae a los getters individuales en paralelo.
+   */
+  getAll?: () => Promise<{
+    startHour: number;
+    endHour: number;
+    diaInicio: number;
+    diasTotales: number;
+    perDayStartHours: number[] | null;
+    perDayEndHours: number[] | null;
+  } | null>;
 }
 
 export type CalendarViewMode = 'grid' | 'list' | 'mes' | 'anual';
@@ -41,6 +54,7 @@ interface ScheduleStoreState {
   schedule: Schedule | null;
   isLoading: boolean;
   isLoadedFromStorage: boolean;
+  scheduleWarnings: string[];
   selectedDay: DayOfWeek;
   /**
    * La vista del calendario (dia/semana, lista, mes, anual). Vive en el store,
@@ -56,6 +70,8 @@ interface ScheduleStoreState {
   loadSchedule: () => Promise<void>;
   /** Deja en memoria un horario que el servidor ya persistio. */
   hidratarHorario: (crudo: any) => void;
+  /** Oculta la advertencia de integridad sin regenerar el horario. */
+  descartarAdvertencias: () => void;
   setSelectedDay: (day: DayOfWeek) => void;
   setCalendarViewMode: (mode: CalendarViewMode) => void;
   setStartHour: (hour: number) => void;
@@ -108,6 +124,7 @@ function construirHorario(crudo: any): Schedule {
     assignedEndTime: item.assignedEndTime,
     day: item.day,
     tipo: item.tipo,
+    nombre: item.nombre,
   }));
 
   return new Schedule({
@@ -176,6 +193,7 @@ export function createScheduleStore(
           assignedEndTime: item.assignedEndTime,
           day: item.day,
           tipo: item.tipo,
+          nombre: item.nombre,
         })),
       };
       await schedulePersistence.save(row);
@@ -188,6 +206,7 @@ export function createScheduleStore(
     schedule: null,
     isLoading: false,
     isLoadedFromStorage: false,
+    scheduleWarnings: [],
     startHour: 0,
     endHour: 1439,
     selectedDay: JS_DAY_TO_DAYOFWEEK[new Date().getDay()],
@@ -208,16 +227,32 @@ export function createScheduleStore(
 
     loadDayLimits: async () => {
       try {
-        const start = await dayLimitPersistence.getStartHour();
-        const end = await dayLimitPersistence.getEndHour();
-        const diaInicio = await dayLimitPersistence.getDiaInicio();
-        const diasTotales = await dayLimitPersistence.getDiasTotales();
-        const perDayStart = await dayLimitPersistence.getPerDayStartHours();
-        const perDayEnd = await dayLimitPersistence.getPerDayEndHours();
-        const energyPattern = await getEnergyPatternOverride();
+        const [energyPattern, all] = await Promise.all([
+          getEnergyPatternOverride(),
+          dayLimitPersistence.getAll
+            ? dayLimitPersistence.getAll()
+            : (async () => {
+                const [start, end, diaInicio, diasTotales, perDayStart, perDayEnd] = await Promise.all([
+                  dayLimitPersistence.getStartHour(),
+                  dayLimitPersistence.getEndHour(),
+                  dayLimitPersistence.getDiaInicio(),
+                  dayLimitPersistence.getDiasTotales(),
+                  dayLimitPersistence.getPerDayStartHours(),
+                  dayLimitPersistence.getPerDayEndHours(),
+                ]);
+                return {
+                  startHour: start,
+                  endHour: end,
+                  diaInicio,
+                  diasTotales,
+                  perDayStartHours: perDayStart,
+                  perDayEndHours: perDayEnd,
+                };
+              })(),
+        ]);
 
-        let sH = start !== null ? start : 240;
-        let eH = end !== null ? end : 1320;
+        let sH = all ? all.startHour : 240;
+        let eH = all ? all.endHour : 1320;
 
         if (sH === eH) {
           sH = 240;
@@ -227,16 +262,18 @@ export function createScheduleStore(
         set({
           startHour: sH,
           endHour: eH,
-          rollingWeekStartDay: diaInicio ?? 0,
-          rollingWeekTotalDays: diasTotales ?? 7,
-          perDayStartHours: perDayStart ?? null,
-          perDayEndHours: perDayEnd ?? null,
+          rollingWeekStartDay: all?.diaInicio ?? 0,
+          rollingWeekTotalDays: all?.diasTotales ?? 7,
+          perDayStartHours: all?.perDayStartHours ?? null,
+          perDayEndHours: all?.perDayEndHours ?? null,
           customEnergyPattern: energyPattern,
         });
       } catch (e) {
         console.error('Error cargando límites del día:', e);
       }
     },
+
+    descartarAdvertencias: () => set({ scheduleWarnings: [] }),
 
     /**
      * Deja en memoria un horario que el servidor ya guardo.
@@ -247,7 +284,11 @@ export function createScheduleStore(
      */
     hidratarHorario: (crudo: any) => {
       const hidratado = construirHorario(crudo);
-      set({ schedule: hidratado });
+      const diagnostico = validarIntegridadHorario(hidratado);
+      if (!diagnostico.valido) {
+        console.warn('[Schedule] Integridad del horario hidratado:', diagnostico.advertencias);
+      }
+      set({ schedule: hidratado, scheduleWarnings: diagnostico.advertencias });
       syncNotifications(hidratado);
     },
 
@@ -257,10 +298,11 @@ export function createScheduleStore(
 
         if (parsed) {
           const loadedSchedule = construirHorario(parsed);
-            // Los identificadores los asigna el servidor. Los fallbacks
-            // cubren respuestas que no los traen —el backend no expone el id
-            // de la fila— sin dejar que un undefined llegue a la entidad.
-          set({ schedule: loadedSchedule });
+          const diagnostico = validarIntegridadHorario(loadedSchedule);
+          if (!diagnostico.valido) {
+            console.warn('[Schedule] Integridad del horario guardado:', diagnostico.advertencias);
+          }
+          set({ schedule: loadedSchedule, scheduleWarnings: diagnostico.advertencias });
           syncNotifications(loadedSchedule);
         }
       } catch (e) {
@@ -294,7 +336,11 @@ export function createScheduleStore(
           options.historial_energia = energyData.historial_energia;
         }
         const generated = await generateScheduleUseCase.execute(startHour, endHour, options);
-        set({ schedule: generated });
+        const diagnostico = validarIntegridadHorario(generated);
+        if (!diagnostico.valido) {
+          console.warn('[Schedule] Integridad del horario generado:', diagnostico.advertencias);
+        }
+        set({ schedule: generated, scheduleWarnings: diagnostico.advertencias });
         await saveScheduleToStorage(generated);
         syncNotifications(generated);
         if (showSuccessAlert) {

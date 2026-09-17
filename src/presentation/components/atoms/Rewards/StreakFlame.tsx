@@ -116,7 +116,7 @@ export const StreakFlame: React.FC<Props> = ({
       {(mostrarNumero || etiqueta) && (
         <View style={styles.textos}>
           {mostrarNumero && (
-            <Text testID="streak-numero" style={[styles.numero, { fontSize: size * 0.5 }]}>
+            <Text testID="streak-numero" style={[styles.numero, { fontSize: size * 0.4 }]}>
               {dias}
             </Text>
           )}
@@ -146,6 +146,7 @@ const createStyles = (colors: ThemeColors) =>
       gap: 2,
     },
     numero: {
+      marginTop: 15,
       fontWeight: PESO.maximo,
       color: colors.warning,
       lineHeight: 34,

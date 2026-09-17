@@ -52,8 +52,10 @@ jest.mock('react-native-safe-area-context', () => ({
 jest.mock('@expo/vector-icons', () => ({ Ionicons: () => null }));
 
 jest.mock('@react-native-async-storage/async-storage', () => ({
-  setItem: jest.fn(), getItem: jest.fn().mockResolvedValue(null),
-  removeItem: jest.fn(), clear: jest.fn(),
+  setItem: jest.fn().mockResolvedValue(undefined),
+  getItem: jest.fn().mockResolvedValue(null),
+  removeItem: jest.fn().mockResolvedValue(undefined),
+  clear: jest.fn().mockResolvedValue(undefined),
 }));
 
 // La foto del horario: se captura la copia semana-entera y se abre el sheet.
@@ -145,6 +147,8 @@ jest.mock('../../../../di/Dependencies', () => {
     perDayEndHours: null,
     calendarViewMode: 'grid',
     setCalendarViewMode: jest.fn(),
+    loadSchedule: jest.fn(),
+    scheduleWarnings: [],
   }));
   mockScheduleStoreApi = useScheduleStoreMock;
   const useActivityStoreMock = (selector: any) => {
@@ -505,9 +509,18 @@ describe('ScheduleView en el grid del dia', () => {
   }
 
   it('muestra como bloque la ocurrencia del dia que el plan semanal no cubre', async () => {
+    // La semana que dibuja el grid es la que contiene HOY (anclada en Lunes),
+    // asi que la ocurrencia debe caer en esa misma semana: una fecha fija del
+    // pasado dejaria de ser visible cuando el reloj real la deja atras.
+    const hoy = new Date();
+    const hoyISO =
+      `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
+    useCalendarStore.setState({
+      mesVisible: new Date(hoy.getFullYear(), hoy.getMonth(), 1),
+    });
     mockVer.mockResolvedValue([
       {
-        fecha: '2026-09-10',
+        fecha: hoyISO,
         actividad: { id: 'parcial-1', title: 'Parcial de Calculo', preferredStartTime: 9 * 60, preferredEndTime: 10 * 60 },
         movidaDesde: null,
         esUnica: true,
@@ -523,6 +536,21 @@ describe('ScheduleView en el grid del dia', () => {
   });
 
   it('no duplica en el bloque de agenda las recurrentes que el plan ya trae', async () => {
+    // El plan trae 'Clases' el jueves: para que el dedupe se pruebe de verdad,
+    // la ocurrencia debe caer el MISMO jueves de la semana actual, no un día
+    // arbitrario (las semanas del grid se anclan a HOY).
+    const hoy = new Date();
+    const diasDesdeLunes = (hoy.getDay() + 6) % 7;
+    const juevesDeLaSemana = new Date(
+      hoy.getFullYear(),
+      hoy.getMonth(),
+      hoy.getDate() - diasDesdeLunes + 3
+    );
+    const juevesISO =
+      `${juevesDeLaSemana.getFullYear()}-${String(juevesDeLaSemana.getMonth() + 1).padStart(2, '0')}-${String(juevesDeLaSemana.getDate()).padStart(2, '0')}`;
+    useCalendarStore.setState({
+      mesVisible: new Date(juevesDeLaSemana.getFullYear(), juevesDeLaSemana.getMonth(), 1),
+    });
     mockScheduleStoreApi.setState({
       schedule: {
         getAllItems: () => [BLOQUE_PLAN('Jueves')],
@@ -531,7 +559,7 @@ describe('ScheduleView en el grid del dia', () => {
     });
     mockVer.mockResolvedValue([
       {
-        fecha: '2026-09-10',
+        fecha: juevesISO,
         actividad: { id: 'recurrente-1', title: 'Clases', identity: 'clase' },
         movidaDesde: null,
         esUnica: false,

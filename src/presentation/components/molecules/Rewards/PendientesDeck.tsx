@@ -20,13 +20,19 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Modal,
-  PanResponder,
   Pressable,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import {
+  GestureHandlerRootView,
+  PanGestureHandler,
+  State as EstadoGesto,
+  type PanGestureHandlerGestureEvent,
+  type PanGestureHandlerStateChangeEvent,
+} from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../../theme/colors';
@@ -115,7 +121,10 @@ export const PendientesDeck: React.FC<Props> = ({
   // El PanResponder nace una sola vez y sus closures quedarian pegados al
   // primer render (visible=false, restantes=[]): el swipe nunca veria la
   // carta ni el volar fresco. Estos refs se reasignan en cada render para
-  // que los handlers lean SIEMPRE lo actual.
+  // que los handlers lean SIEMPRE lo actual. (En new-architecture el
+  // PanResponder de core no llega a negociar el gesto dentro del Modal; por
+  // eso el motor aquí es react-native-gesture-handler, lo mismo que usan
+  // ScheduleTimeline y SwipeableActivityCard.)
   const topRef = useRef(top);
   topRef.current = top;
   const volarRef = useRef<(carta: TarjetaPendiente, dx: number, dy: number, desenlace: (c: TarjetaPendiente) => void) => void>(() => {});
@@ -129,12 +138,12 @@ export const PendientesDeck: React.FC<Props> = ({
     if (enVuelo.current) return;
     enVuelo.current = true;
     Animated.parallel([
-      Animated.timing(translateX, { toValue: dx, duration: 220, useNativeDriver: true }),
-      Animated.timing(translateY, { toValue: dy, duration: 220, useNativeDriver: true }),
+      Animated.timing(translateX, { toValue: dx, duration: 220, useNativeDriver: false }),
+      Animated.timing(translateY, { toValue: dy, duration: 220, useNativeDriver: false }),
       Animated.timing(rotacion, {
         toValue: dx > 0 ? 0.25 : dx < 0 ? -0.25 : 0,
         duration: 220,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
     ]).start(() => {
       translateX.setValue(0);
@@ -149,30 +158,35 @@ export const PendientesDeck: React.FC<Props> = ({
   };
   volarRef.current = volar;
 
-  const pan = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > 12 || g.dy < -12,
-      onPanResponderGrant: () => setReprogramando(false),
-      onPanResponderMove: (_, g) => {
-        translateX.setValue(g.dx);
-        translateY.setValue(g.dy);
-        rotacion.setValue(g.dx / 400);
-      },
-      onPanResponderRelease: (_, g) => {
-        const actual = topRef.current;
-        if (!actual) return;
-        const lanzar = volarRef.current;
-        if (g.dx > 130) return lanzar(actual, 540, 60, (c) => void onHecha(c));
-        if (g.dx < -130) return lanzar(actual, -540, 60, (c) => void onNoHecha(c));
-        if (g.dy < -130) return lanzar(actual, 0, -560, (c) => onSaltar(c));
-        Animated.parallel([
-          Animated.spring(translateX, { toValue: 0, useNativeDriver: true }),
-          Animated.spring(translateY, { toValue: 0, useNativeDriver: true }),
-          Animated.spring(rotacion, { toValue: 0, useNativeDriver: true }),
-        ]).start();
-      },
-    })
-  ).current;
+  /** Sigue al dedo: los `translation*` vienen del gesto nativo. */
+  const alMoverGesto = (evento: PanGestureHandlerGestureEvent) => {
+    const { translationX, translationY } = evento.nativeEvent;
+    translateX.setValue(translationX);
+    translateY.setValue(translationY);
+    rotacion.setValue(translationX / 400);
+  };
+
+  /** Al soltar decide según el recorrido; si no alcanzó, la carta vuelve. */
+  const alTerminarGesto = (evento: PanGestureHandlerStateChangeEvent) => {
+    const { state, translationX, translationY } = evento.nativeEvent;
+    if (state === EstadoGesto.ACTIVE) {
+      setReprogramando(false);
+      return;
+    }
+    if (state !== EstadoGesto.END) return;
+
+    const actual = topRef.current;
+    if (!actual) return;
+    const lanzar = volarRef.current;
+    if (translationX > 130) return lanzar(actual, 540, 60, (c) => void onHecha(c));
+    if (translationX < -130) return lanzar(actual, -540, 60, (c) => void onNoHecha(c));
+    if (translationY < -130) return lanzar(actual, 0, -560, (c) => onSaltar(c));
+    Animated.parallel([
+      Animated.spring(translateX, { toValue: 0, useNativeDriver: false }),
+      Animated.spring(translateY, { toValue: 0, useNativeDriver: false }),
+      Animated.spring(rotacion, { toValue: 0, useNativeDriver: false }),
+    ]).start();
+  };
 
   if (!visible) return null;
 
@@ -181,7 +195,7 @@ export const PendientesDeck: React.FC<Props> = ({
 
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onCerrar}>
-      <View style={styles.contenedor} testID="mazo-pendientes">
+      <GestureHandlerRootView style={styles.contenedor} testID="mazo-pendientes">
         <Pressable style={styles.fondo} onPress={onCerrar} />
 
         <View style={styles.escena}>
@@ -232,20 +246,25 @@ export const PendientesDeck: React.FC<Props> = ({
             )}
 
             {top && (
-              <Animated.View
-                testID="carta-tope"
-                style={[
-                  styles.carta,
-                  {
-                    transform: [
-                      { translateX },
-                      { translateY },
-                      { rotate: rotacion.interpolate({ inputRange: [-0.3, 0.3], outputRange: ['-8deg', '8deg'] }) },
-                    ],
-                  },
-                ]}
-                {...pan.panHandlers}
+              <PanGestureHandler
+                testID="carta-gesto"
+                enabled={!guardando}
+                onGestureEvent={alMoverGesto}
+                onHandlerStateChange={alTerminarGesto}
               >
+                <Animated.View
+                  testID="carta-tope"
+                  style={[
+                    styles.carta,
+                    {
+                      transform: [
+                        { translateX },
+                        { translateY },
+                        { rotate: rotacion.interpolate({ inputRange: [-0.3, 0.3], outputRange: ['-8deg', '8deg'] }) },
+                      ],
+                    },
+                  ]}
+                >
                 <LinearGradient
                   colors={[colors.cardBackground, colors.cardBackground]}
                   style={styles.cartaFondo}
@@ -316,7 +335,8 @@ export const PendientesDeck: React.FC<Props> = ({
                     </View>
                   </View>
                 </LinearGradient>
-              </Animated.View>
+                </Animated.View>
+              </PanGestureHandler>
             )}
           </View>
 
@@ -360,7 +380,7 @@ export const PendientesDeck: React.FC<Props> = ({
             </TouchableOpacity>
           )}
         </View>
-      </View>
+    </GestureHandlerRootView>
     </Modal>
   );
 };

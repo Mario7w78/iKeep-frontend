@@ -35,32 +35,45 @@ export const ScheduleTimeline = ({
 
   if (!hasItems) return null;
 
-  const getActionsFor = (item: ScheduledActivity) => [
-    {
-      key: "editar",
-      label: "Editar",
-      icono: "create-outline" as const,
-      color: colors.secondaryAccent,
-      onPress: () => {
-        if (item.activity) {
-          navigation.navigate("CreateActivityModal", { activityId: item.activity.id });
-        }
+  const getActionsFor = (item: ScheduledActivity) => {
+    // Sin actividad no hay nada que editar: ocultar la acción evita un botón
+    // que no hace nada. El detalle siempre existe.
+    const acciones: {
+      key: string;
+      label: string;
+      icono: "create-outline" | "eye-outline";
+      color: string;
+      onPress: () => void;
+    }[] = [
+      {
+        key: "ver",
+        label: "Ver detalle",
+        icono: "eye-outline" as const,
+        color: colors.accent,
+        onPress: () => onPressActivity(item),
       },
-    },
-    {
-      key: "ver",
-      label: "Ver detalle",
-      icono: "eye-outline" as const,
-      color: colors.accent,
-      onPress: () => onPressActivity(item),
-    },
-  ];
+    ];
+
+    if (item.activity) {
+      acciones.unshift({
+        key: "editar",
+        label: "Editar",
+        icono: "create-outline" as const,
+        color: colors.secondaryAccent,
+        onPress: () => {
+          navigation.navigate("CreateActivityModal", { activityId: item.activity!.id });
+        },
+      });
+    }
+
+    return acciones;
+  };
 
   const renderSwipeableCard = (item: ScheduledActivity, key: string) => (
     <SwipeableActivityCard
       key={key}
       actions={getActionsFor(item)}
-      onPress={() => item.activity && onPressActivity(item)}
+      onPress={() => onPressActivity(item)}
     >
       <View style={styles.nextCardContent}>
         {item.activity && (
@@ -81,7 +94,7 @@ export const ScheduleTimeline = ({
             </>
           ) : (
             <Text style={styles.nextTitle}>
-              {item.tipo === 'trabajo' || item.tipo === 'viaje' ? '🚗 Viaje' : 'Actividad'}
+              {item.nombre ?? (item.tipo === 'trabajo' || item.tipo === 'viaje' ? '🚗 Viaje' : 'Actividad')}
             </Text>
           )}
         </View>

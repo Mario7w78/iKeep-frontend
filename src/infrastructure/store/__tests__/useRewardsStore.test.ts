@@ -172,4 +172,23 @@ describe('useRewardsStore', () => {
 
     expect(mockResumen).toHaveBeenCalled();
   });
+
+  it('un "no la hice" de hoy se persiste como no_hecha, por día', async () => {
+    // El deck del Home responde las cartas de hoy con ESTA accion. Que no se
+    // guarde era el bug: la carta volvía a aparecer en cada apertura.
+    await estado().marcarPasado('act-1', '2026-08-11', false);
+
+    expect(mockCompletar).toHaveBeenCalledWith(
+      'act-1', '2026-08-11', 'no_hecha', 'manual'
+    );
+    expect(mockResumen).toHaveBeenCalled(); // refresca: sale del carry-over
+  });
+
+  it('un "la hice" de un día anterior se persiste como hecha', async () => {
+    await estado().marcarPasado('act-1', '2026-08-10', true);
+
+    expect(mockCompletar).toHaveBeenCalledWith(
+      'act-1', '2026-08-10', 'hecha', 'manual'
+    );
+  });
 });

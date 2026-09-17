@@ -11,10 +11,10 @@
 export type EtapaSapo = 'bebé' | 'niño' | 'adulto';
 
 /** Días de racha para pasar de bebé a niño. */
-export const RACHA_NIÑO = 8;
+export const RACHA_NIÑO = 3;
 
 /** Días de racha para pasar de niño a adulto. */
-export const RACHA_ADULTO = 31;
+export const RACHA_ADULTO = 10;
 
 /**
  * La etapa que le toca a una racha.

@@ -10,6 +10,10 @@ import { fireEvent, render } from '@testing-library/react-native';
 
 jest.mock('@expo/vector-icons', () => ({ Ionicons: () => null }));
 
+jest.mock('react-native-safe-area-context', () => ({
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+
 import { Activity, ActivityType, DayOfWeek } from '../../../../../domain/entities/Activity';
 import { ScheduledActivity } from '../../../../../domain/entities/Schedule';
 import { ActivityDetailModal } from '../ActivityDetailModal';
@@ -97,5 +101,31 @@ describe('ActivityDetailModal · Descripción', () => {
     );
 
     expect(vista.queryByText('DESCRIPCIÓN')).toBeNull();
+  });
+
+  it('abre el detalle de un bloque sin actividad anidada', async () => {
+    // Un bloque puede llegar sin `activity` (tras /aplicar o en horarios
+    // viejos). El detalle debe renderizar el horario asignado y el nombre,
+    // en vez de quedarse vacío — eso se leía como "no hace nada".
+    const vista = await render(
+      <ActivityDetailModal
+        visible
+        activityItem={{
+          activity: undefined,
+          assignedStartTime: '09:00',
+          assignedEndTime: '10:00',
+          day: diaDeHoy,
+          nombre: 'GEST.PROYECTOS',
+        }}
+        onClose={() => {}}
+        onEnfocar={jest.fn()}
+        onEdit={jest.fn()}
+      />
+    );
+
+    expect(vista.getByText('GEST.PROYECTOS')).toBeTruthy();
+    expect(vista.getByText(/09:00/)).toBeTruthy();
+    expect(vista.queryByText('Empezar sesión')).toBeNull();
+    expect(vista.queryByText('Editar actividad')).toBeNull();
   });
 });

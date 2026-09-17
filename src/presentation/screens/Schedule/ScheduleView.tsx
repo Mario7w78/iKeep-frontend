@@ -1,6 +1,6 @@
 // screens/schedule/ScheduleView.tsx
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { useWindowDimensions, View, ActivityIndicator, TouchableOpacity, Text, StyleSheet, ScrollView, Dimensions, Alert, Platform } from 'react-native';
+import { useWindowDimensions, View, ActivityIndicator, TouchableOpacity, Text, StyleSheet, ScrollView, Dimensions, Alert, Platform, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -114,9 +114,13 @@ function aBloqueAgenda(occ: Ocurrencia, day: string): ScheduledActivity {
 function ChronologicalAgendaList({
   activities,
   onActivityPress,
+  onRefresh,
+  refreshing,
 }: {
   activities: ScheduledActivity[];
   onActivityPress: (item: ScheduledActivity) => void;
+  onRefresh?: () => void;
+  refreshing?: boolean;
 }) {
   const { colors, comfyColors, comfyFontColors } = useTheme();
   const s = useMemo(() => createStyles(colors, comfyColors, comfyFontColors), [colors]);
@@ -182,6 +186,14 @@ function ChronologicalAgendaList({
       style={{ flex: 1 }}
       contentContainerStyle={s.listContent}
       showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing ?? false}
+          onRefresh={onRefresh}
+          colors={[colors.accent]}
+          tintColor={colors.accent}
+        />
+      }
     >
       {activities.map((act, idx) => {
         const actActivity = act.activity;
@@ -261,6 +273,9 @@ export default function ScheduleView() {
     endHour,
     perDayStartHours,
     perDayEndHours,
+    loadSchedule,
+    scheduleWarnings,
+    descartarAdvertencias,
   } = useScheduleStore();
 
   const { activities } = useActivityStore();
@@ -292,6 +307,7 @@ export default function ScheduleView() {
   /** Copia fuera de pantalla del grid de la semana, para exportar la foto. */
   const weekGridRef = useRef<View>(null);
   const [compartiendo, setCompartiendo] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   /**
    * La foto se genera de la copia `paraCaptura` del WeekGrid: la semana entera
@@ -364,6 +380,16 @@ export default function ScheduleView() {
     },
     [irAlMes, sincronizarGoogleDelMes]
   );
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([loadSchedule(), loadActivities(), cargarMes()]);
+      sincronizarGoogleDelMes();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [loadSchedule, loadActivities, cargarMes, sincronizarGoogleDelMes]);
 
   // Solo al entrar al modo mes: pedirlo siempre gastaria un viaje de red que
   // la mayoria de las aperturas no usa. Tambien preseleccionamos hoy para que
@@ -592,7 +618,7 @@ export default function ScheduleView() {
   // sirve para exportar la foto.
   if (esApaisado && schedule && !showEmptyState) {
     return (
-      <View style={[s.container, { paddingTop: insets.top }]}>
+      <View style={[s.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
         <WeekGrid
           schedule={schedule}
           startHour={startHour ?? 0}
@@ -638,7 +664,7 @@ export default function ScheduleView() {
 
   if (viewMode === 'anual' && !showEmptyState) {
     return (
-      <View style={[s.container, { paddingTop: insets.top }]}>
+      <View style={[s.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
         <ScrollView contentContainerStyle={s.yearGrid}>
           {Array.from({ length: 12 }, (_, i) => {
             const monthDate = new Date(mesVisible.getFullYear(), i, 1);
@@ -673,7 +699,7 @@ export default function ScheduleView() {
 
   if (viewMode === 'mes' && !showEmptyState) {
     return (
-      <View style={[s.container, { paddingTop: insets.top }]}>
+      <View style={[s.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
         <MonthGrid
           mesVisible={mesVisible}
           porDia={porDia}
@@ -781,6 +807,22 @@ export default function ScheduleView() {
             onToggleViewMode={() => setViewMode(viewMode === 'grid' ? 'list' : viewMode === 'list' ? 'mes' : viewMode === 'mes' ? 'anual' : 'grid')}
           />
 
+          {scheduleWarnings.length > 0 && (
+            <View style={s.warningBanner}>
+              <Ionicons name="warning" size={16} color={comfyColors.orange} />
+              <Text style={s.warningText}>
+                Tu horario tiene inconsistencias en las horas. Tocá “Actualizar” para regenerarlo.
+              </Text>
+              <TouchableOpacity
+                onPress={descartarAdvertencias}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                testID="descartar-advertencias"
+              >
+                <Ionicons name="close" size={18} color={comfyColors.orange} />
+              </TouchableOpacity>
+            </View>
+          )}
+
           <GoogleCalendarCta />
           
           <ScrollView
@@ -822,6 +864,8 @@ export default function ScheduleView() {
                     <ChronologicalAgendaList
                       activities={dayItems}
                       onActivityPress={setSelectedActivity}
+                      onRefresh={handleRefresh}
+                      refreshing={refreshing}
                     />
                   )}
                 </View>
@@ -878,6 +922,25 @@ const createStyles = (
   comfyFontColors: ReturnType<typeof useTheme>['comfyFontColors'],
 ) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.screenBackground },
+  warningBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginHorizontal: 16,
+    marginTop: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: comfyColors.orange + '18',
+    borderWidth: 1,
+    borderColor: comfyColors.orange + '50',
+  },
+  warningText: {
+    flex: 1,
+    color: comfyColors.orange,
+    fontSize: 12,
+    fontWeight: '600',
+  },
   fabShareBtn: {
     position: 'absolute',
     top: 16,

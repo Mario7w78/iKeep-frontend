@@ -9,13 +9,44 @@
 
 import React from 'react';
 import { act, fireEvent, render, within } from '@testing-library/react-native';
-import { Animated, PanResponder } from 'react-native';
 
 jest.mock('@expo/vector-icons', () => ({ Ionicons: () => null }));
 jest.mock('expo-linear-gradient', () => ({
   LinearGradient: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
+/**
+ * El mock global de RNGH deja a PanGestureHandler como passthrough (sin
+ * testID ni callbacks en el árbol). Acá lo reemplazamos por un View que
+ * conserva `onGestureEvent`/`onHandlerStateChange`, para que el test pueda
+ * deslizar la carta llamándolos como haría el runtime.
+ */
+jest.mock('react-native-gesture-handler', () => {
+  const React_ = require('react');
+  const { View } = require('react-native');
+  return {
+    GestureHandlerRootView: ({ style, testID, children }: any) => (
+      <View style={style} testID={testID}>
+        {children}
+      </View>
+    ),
+    PanGestureHandler: ({ testID, enabled, children, onGestureEvent, onHandlerStateChange }: any) => (
+      <View testID={testID} onGestureEvent={onGestureEvent} onHandlerStateChange={onHandlerStateChange}>
+        {children}
+      </View>
+    ),
+    State: {
+      UNDETERMINED: 0,
+      FAILED: 1,
+      BEGAN: 2,
+      CANCELLED: 3,
+      ACTIVE: 4,
+      END: 5,
+    },
+  };
+});
+
+import { State as EstadoGesto } from 'react-native-gesture-handler';
 import { PendientesDeck, TarjetaPendiente } from '../PendientesDeck';
 
 const CARTAS: TarjetaPendiente[] = [
@@ -55,42 +86,25 @@ const terminar = async () => {
   await act(async () => {});
 };
 
-/** Arma el touchHistory que PanResponder usa para calcular dx/dy. */
-function touchEn(x: number, y: number, prevX = x, prevY = y, tsPrev = 0, ts = 1) {
-  return {
-    touchBank: [
-      {
-        touchActive: true,
-        startPageX: 0,
-        startPageY: 0,
-        startTimeStamp: 0,
-        currentPageX: x,
-        currentPageY: y,
-        currentTimeStamp: ts,
-        previousPageX: prevX,
-        previousPageY: prevY,
-        previousTimeStamp: tsPrev,
-      },
-    ],
-    numberActiveTouches: 1,
-    indexOfSingleActiveTouch: 0,
-    mostRecentTimeStamp: ts,
-  };
-}
-
-const eventoEn = (x: number, y: number, prevX?: number, prevY?: number, tsPrev?: number, ts?: number) => ({
-  touchHistory: touchEn(x, y, prevX, prevY, tsPrev, ts),
+/** Arma el evento del gesto RNGH con el recorrido de la carta. */
+const gestoEn = (x: number, y: number, state: number) => ({
+  nativeEvent: {
+    state,
+    translationX: x,
+    translationY: y,
+    velocityX: 0,
+    velocityY: 0,
+  },
 });
 
-/** Desliza la carta de arriba por el PanResponder real: grant->move->release. */
+/** Desliza la carta de arriba por el gesto real: move -> release (END). */
 const deslizar = async (vista: any, dx: number, dy = 0) => {
-  const carta = vista.getByTestId('carta-tope');
+  const gesto = vista.getByTestId('carta-gesto');
   await act(async () => {
-    carta.props.onResponderGrant(eventoEn(0, 0));
-    carta.props.onResponderMove(eventoEn(dx, dy, 0, 0, 1, 2));
+    gesto.props.onGestureEvent(gestoEn(dx, dy, EstadoGesto.ACTIVE));
   });
   await act(async () => {
-    carta.props.onResponderRelease(eventoEn(dx, dy, dx, dy, 2, 3));
+    gesto.props.onHandlerStateChange(gestoEn(dx, dy, EstadoGesto.END));
   });
   await terminar();
 };

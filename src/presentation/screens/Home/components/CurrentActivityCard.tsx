@@ -1,11 +1,15 @@
 import React from "react";
 import { View, Text, TouchableOpacity, Alert, ViewStyle, TextStyle } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useTheme } from "../../../components/theme/colors";
 import { formatMinutesRemaining, areaTituloDe } from "../HomeView.utils";
 import { ScheduledActivity } from "../../../../domain/entities/Schedule";
+import { useActivityStore, useScheduleStore } from "../../../../di/Dependencies";
 import { AreaIcon, areaColorMap } from "../../Activity/areaIcon";
 import { CompleteToggle } from "../../../components/atoms/Rewards/CompleteToggle";
+import { SwipeableActivityCard } from "../../../components/atoms/SwipeableActivityCard";
 interface CurrentActivityCardProps {
   currentActivity: ScheduledActivity | null;
   firstNext: ScheduledActivity | null;
@@ -40,6 +44,9 @@ export const CurrentActivityCard = ({
 }: CurrentActivityCardProps) => {
   const { colors, comfyColors, comfyFontColors } = useTheme();
   const styles = React.useMemo(() => createStyles(colors, comfyColors, comfyFontColors), [colors]);
+  const navigation = useNavigation<any>();
+  const { handleDeleteActivity } = useActivityStore();
+  const { handleGenerateSchedule } = useScheduleStore();
 
   const isCurrentTravel = currentActivity && (currentActivity.tipo === 'viaje' || !currentActivity.activity);
 
@@ -72,13 +79,63 @@ export const CurrentActivityCard = ({
 
   const actividad = currentActivity?.activity;
 
+  // La card puede mostrar la actual o la próxima: editar/eliminar siempre
+  // apuntan a la que se está mostrando.
+  const actividadEditable = actividad ?? firstNext?.activity;
+
+  const onEliminar = (id: string, nombre: string) => {
+    Alert.alert(
+      "Eliminar actividad",
+      `¿Estás seguro de que quieres eliminar "${nombre}"? Esto recalculará tu horario.`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Eliminar",
+          style: "destructive",
+          onPress: async () => {
+            await handleDeleteActivity(id);
+            try {
+              await handleGenerateSchedule();
+            } catch (e) {
+              console.error("Error generating schedule after delete:", e);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // Mismas acciones que en "Mis Actividades": deslizar hacia la izquierda.
+  const acciones = actividadEditable
+    ? [
+        {
+          key: "editar",
+          label: "Editar",
+          icono: "create-outline" as const,
+          color: colors.secondaryAccent,
+          onPress: () =>
+            navigation.navigate("CreateActivityModal", {
+              activityId: actividadEditable.id,
+            }),
+        },
+        {
+          key: "eliminar",
+          label: "Eliminar",
+          icono: "trash-outline" as const,
+          color: colors.error,
+          onPress: () => onEliminar(actividadEditable.id, actividadEditable.title),
+        },
+      ]
+    : [];
+
   return (
-    <TouchableOpacity
-      style={styles.card}
-      activeOpacity={0.75}
-      onPress={onPress}
-      disabled={disabled}
-    >
+    <GestureHandlerRootView>
+      <View style={styles.cardWrap}>
+        <SwipeableActivityCard
+          actions={acciones}
+          onPress={onPress}
+          disabled={disabled}
+        >
       {/* Fila principal: el área es lo resaltado; el check-in, a la derecha. */}
       <View style={styles.statusRow}>
         <View style={styles.statusLeft}>
@@ -87,9 +144,7 @@ export const CurrentActivityCard = ({
               <AreaIcon area={actividad.area} size={20} />
             </View>
           )}
-          <Text style={styles.areaTitle}>
-            {actividad ? areaTituloDe(actividad.area) : currentCardTitle}
-          </Text>
+          {actividad && <Text style={styles.areaTitle}>{areaTituloDe(actividad.area)}</Text>}
         </View>
         {showCompleteToggle && (
           <HechoToggle
@@ -143,7 +198,9 @@ export const CurrentActivityCard = ({
           <Text style={styles.timerLabel}>¡Día completado!</Text>
         </View>
       )}
-    </TouchableOpacity>
+        </SwipeableActivityCard>
+      </View>
+    </GestureHandlerRootView>
   );
 };
 
@@ -204,13 +261,7 @@ function createStyles(
   comfyFontColors: ReturnType<typeof import("../../../components/theme/colors").useTheme>['comfyFontColors']
 ): Record<string, ViewStyle | TextStyle> {
   return {
-    card: {
-      backgroundColor: colors.cardBackground,
-      borderColor: colors.cardBorder,
-      borderWidth: 1,
-      borderRadius: 14,
-      paddingHorizontal: 18,
-      paddingVertical: 18,
+    cardWrap: {
       marginBottom: 18,
     },
     statusRow: {

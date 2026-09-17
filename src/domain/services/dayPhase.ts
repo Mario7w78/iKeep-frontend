@@ -16,7 +16,7 @@ export const INICIO_MANIANA = 5;
 export const INICIO_TARDE = 15;
 
 /** Hora (inclusive) donde empieza la noche. */
-export const INICIO_NOCHE = 20;
+export const INICIO_NOCHE = 18;
 
 export function faseDelDia(horaLocal: number): FaseDelDia {
   if (horaLocal >= INICIO_NOCHE || horaLocal < INICIO_MANIANA) return 'Night';

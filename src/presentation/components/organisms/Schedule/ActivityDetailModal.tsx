@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useMemo } from 'react';
 import { Modal, View, Text, StyleSheet, TouchableOpacity, Pressable, PanResponder, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScheduledActivity } from '../../../../domain/entities/Schedule';
 import { DayOfWeek } from '../../../../domain/entities/Activity';
 import { useTheme } from '../../theme/colors';
@@ -22,7 +23,8 @@ interface ActivityDetailModalProps {
 export function ActivityDetailModal({ visible, activityItem, onClose, onEdit, onEnfocar }: ActivityDetailModalProps) {
   const translateY = useRef(new Animated.Value(0)).current;
   const { colors, comfyColors, comfyFontColors } = useTheme();
-  const styles = useMemo(() => createStyles(colors, comfyColors, comfyFontColors), [colors, comfyColors, comfyFontColors]);
+  const insets = useSafeAreaInsets();
+  const styles = useMemo(() => createStyles(colors, comfyColors, comfyFontColors, insets), [colors, comfyColors, comfyFontColors, insets]);
 
   const panResponder = useRef(
     PanResponder.create({
@@ -65,10 +67,12 @@ export function ActivityDetailModal({ visible, activityItem, onClose, onEdit, on
 
   if (!activityItem) return null;
 
-  const { activity, assignedStartTime, assignedEndTime, day } = activityItem;
-  if (!activity) return null;
-
+  // Un bloque puede llegar sin actividad anidada (tras /aplicar, o en
+  // horarios viejos). El detalle igual debe abrirse — el horario asignado y
+  // el nombre existen—; lo que no puede abrirse sin actividad es el editor.
+  const { activity, assignedStartTime, assignedEndTime, day, nombre } = activityItem;
   const esHoy = day === diaDeHoy();
+  const identidad = activity?.identity ?? 'tarea';
 
   const getIdentityIcon = (identity: string) => {
     switch (identity) {
@@ -142,12 +146,12 @@ export function ActivityDetailModal({ visible, activityItem, onClose, onEdit, on
           
           <View style={styles.header}>
             <View style={styles.headerTitleRow}>
-              <View style={[styles.iconContainer, { backgroundColor: getIdentityColor(activity.identity) + '20' }]}>
-                <Ionicons name={getIdentityIcon(activity.identity)} size={24} color={getIdentityColor(activity.identity)} />
+              <View style={[styles.iconContainer, { backgroundColor: getIdentityColor(identidad) + '20' }]}>
+                <Ionicons name={getIdentityIcon(identidad)} size={24} color={getIdentityColor(identidad)} />
               </View>
               <View style={styles.titleWrapper}>
-                <Text style={styles.title} numberOfLines={2}>{activity.title}</Text>
-                <Text style={styles.subtitle}>{getIdentityLabel(activity.identity)}</Text>
+                <Text style={styles.title} numberOfLines={2}>{activity?.title ?? nombre ?? 'Actividad'}</Text>
+                <Text style={styles.subtitle}>{activity ? getIdentityLabel(identidad) : 'Bloque de horario'}</Text>
               </View>
             </View>
             <TouchableOpacity style={styles.closeButton} onPress={onClose}>
@@ -168,13 +172,14 @@ export function ActivityDetailModal({ visible, activityItem, onClose, onEdit, on
             </View>
           </View>
 
-          {activity.description && (
+          {activity?.description && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>DESCRIPCIÓN</Text>
               <Text style={styles.descriptionText}>{activity.description}</Text>
             </View>
           )}
 
+          {activity && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>DETALLES</Text>
             <View style={styles.grid}>
@@ -226,8 +231,9 @@ export function ActivityDetailModal({ visible, activityItem, onClose, onEdit, on
               </View>
             </View>
           </View>
+          )}
 
-          {onEnfocar && esHoy && (
+          {onEnfocar && esHoy && activity && (
             <TouchableOpacity
               testID="empezar-sesion"
               style={styles.editButton}
@@ -244,7 +250,7 @@ export function ActivityDetailModal({ visible, activityItem, onClose, onEdit, on
               <Text style={styles.editButtonText}>Empezar sesión</Text>
             </TouchableOpacity>
           )}
-          {onEdit && (
+          {onEdit && activity && (
             <TouchableOpacity
               style={styles.editButton}
               activeOpacity={0.8}
@@ -263,7 +269,7 @@ export function ActivityDetailModal({ visible, activityItem, onClose, onEdit, on
   );
 }
 
-const createStyles = (colors: ThemeColors, comfyColors: Record<string, string>, comfyFontColors: Record<string, string>) => StyleSheet.create({
+const createStyles = (colors: ThemeColors, comfyColors: Record<string, string>, comfyFontColors: Record<string, string>, insets: { bottom: number }) => StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -281,7 +287,7 @@ const createStyles = (colors: ThemeColors, comfyColors: Record<string, string>, 
     borderBottomWidth: 0,
     paddingTop: 12,
     paddingHorizontal: 24,
-    paddingBottom: 40,
+    paddingBottom: Math.max(40, insets.bottom),
     gap: 20,
   },
   indicator: {

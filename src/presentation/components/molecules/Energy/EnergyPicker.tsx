@@ -10,6 +10,7 @@ import {
   Pressable,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme, comfyColors, ThemeColors } from '../../theme/colors';
 
 export interface EnergyOption {
@@ -38,7 +39,8 @@ export const EnergyPicker: React.FC<EnergyPickerProps> = ({
   onCancel,
 }) => {
   const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const insets = useSafeAreaInsets();
+  const styles = useMemo(() => createStyles(colors, insets), [colors, insets]);
   const [shouldRender, setShouldRender] = useState(visible);
   const animation = useRef(new Animated.Value(0)).current;
 
@@ -126,7 +128,7 @@ export const EnergyPicker: React.FC<EnergyPickerProps> = ({
   );
 };
 
-const createStyles = (colors: ThemeColors) => StyleSheet.create({
+const createStyles = (colors: ThemeColors, insets: { bottom: number }) => StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -139,7 +141,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.screenBackground,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    paddingBottom: 40,
+    paddingBottom: Math.max(40, insets.bottom),
     paddingHorizontal: 24,
   },
   handle: {

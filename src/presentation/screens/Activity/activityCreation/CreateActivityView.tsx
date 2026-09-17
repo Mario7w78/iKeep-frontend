@@ -1007,7 +1007,7 @@ export default function CreateActivityView({ navigation, route }: any) {
 
         {renderStep()}
 
-        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 24) }]}>
+        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, Platform.OS === 'android' ? 32 : 24) }]}>
           {step > 1 && (
             <TouchableOpacity
               style={[

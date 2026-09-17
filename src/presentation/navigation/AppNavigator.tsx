@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { StyleSheet, useWindowDimensions, View } from "react-native";
+import { Platform, StyleSheet, useWindowDimensions, View } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
@@ -94,10 +94,22 @@ function TabNavigator() {
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
 
+  // En Android la app va edge-to-edge: el contenido dibuja debajo de la barra
+  // de navegación del sistema y la tab bar tiene que empujarse para dejarla
+  // fuera. Algunos equipos reportan `insets.bottom` en 0 (barra gestual
+  // flotante en varios Galaxy, ver react-navigation#12727/#12769) y sin un
+  // piso la tab bar queda debajo de los botones del sistema. El piso de 24
+  // cubre esa barra gestual sin tocar el cálculo correcto de los demás.
+  const clearance = Math.max(
+    insets.bottom,
+    Platform.OS === 'android' ? 24 : 10,
+  );
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
+        tabBarHideOnKeyboard: true,
         tabBarActiveTintColor: colors.tabActive,
         tabBarInactiveTintColor: colors.tabInactive,
         tabBarShowLabel: true,
@@ -118,8 +130,8 @@ function TabNavigator() {
           : [
               styles.tabBar,
               {
-                height: 50 + insets.bottom,
-                paddingBottom: Math.max(insets.bottom, 10),
+                height: 65 + clearance,
+                paddingBottom: clearance,
                 backgroundColor: colors.tabBarBackground,
               },
             ],
@@ -178,7 +190,6 @@ export default function AppNavigator() {
   useEffect(() => {
     if (!session) return;
     (async () => {
-      await notificationScheduler.requestPermissions();
       // Lo que el usuario eligió en el onboarding se guarda recién acá: ese
       // paso corre antes de iniciar sesión y no tenía a quién asociarlo.
       // Va antes de loadDayLimits para que no lo pise con los valores por
@@ -188,8 +199,14 @@ export default function AppNavigator() {
         await setEndHour(pendingDayLimits.endHour);
         clearPendingDayLimits();
       }
-      await loadDayLimits();
-      await loadSchedule();
+      // Los tres restantes son independientes: pedir permiso de notificaciones
+      // no toca la base, y los límites del día no dependen del horario
+      // guardado. Correrlos en serie duplicaba la espera de la primera carga.
+      await Promise.all([
+        notificationScheduler.requestPermissions(),
+        loadDayLimits(),
+        loadSchedule(),
+      ]);
     })();
     // pendingDayLimits queda fuera de las dependencias a propósito: se limpia
     // dentro del efecto y volver a dispararlo sería un ciclo.

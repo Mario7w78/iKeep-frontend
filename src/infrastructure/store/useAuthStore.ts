@@ -58,6 +58,19 @@ let initialized = false;
 let ultimoUserId: string | null = null;
 
 /**
+ * La contraseña recién escrita en el registro, SOLO en memoria.
+ *
+ * Al confirmar el correo automáticamente (deep link) no hay credenciales en el
+ * enlace: Supabase confirma el email pero no abre sesión para un signUp común.
+ * Guardamos la contraseña que el usuario acaba de teclear para crear la sesión
+ * sin pedirle que vuelva a escribirla. Nunca se persiste: vive en este `let`,
+ * se borra al usarla, y desaparece si la app se cierra. Si la app se cerró y
+ * se reabre con el enlace, no hay contraseña en memoria y el usuario entra por
+ * Login normalmente.
+ */
+let contrasenaPendienteEnMemoria: string | null = null;
+
+/**
  * Vacía el recuerdo que las stores guardan POR USUARIO (actividades, meses del
  * calendario, rangos de Google). Sin esto, un logout + login con otra cuenta
  * mostraría los datos de la cuenta anterior.
@@ -133,6 +146,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // Lo persistimos para que la confirmación sobreviva al cierre de la app:
       // el usuario puede tocar el enlace del correo más tarde y reabrir la app.
       AsyncStorage.setItem(PENDIENTE_EMAIL_KEY, email).catch(() => {});
+      // En memoria, para poder crear la sesión solos al confirmar (no se
+      // guarda en disco: se borra al usarse o al cerrarse la app).
+      contrasenaPendienteEnMemoria = password;
     }
 
     return { error: null, requireConfirmation };
@@ -158,13 +174,31 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       return { error: 'Falta el email a confirmar. Vuelve a intentar el registro.' };
     }
 
-    const { error } = await supabase.auth.verifyOtp({
+    const { data, error } = await supabase.auth.verifyOtp({
       email,
       token,
       type: 'email',
     });
 
     if (error) return { error: error?.message ?? null };
+
+    // Verificar confirma el correo; en algunas configuraciones devuelve sesión
+    // también. Si no la devolvió, la creamos con la contraseña que el usuario
+    // tecleó en el registro (solo en memoria). El resultado es el mismo para
+    // quien lo vive: tocar el enlace = quedar dentro.
+    if (!data?.session && contrasenaPendienteEnMemoria) {
+      try {
+        await supabase.auth.signInWithPassword({
+          email,
+          password: contrasenaPendienteEnMemoria,
+        });
+      } catch (signInError) {
+        // La confirmación ya quedó hecha; si el auto-login falla, el usuario
+        // entra por Login con el aviso de "correo confirmado".
+        console.warn('[useAuthStore] Correo confirmado pero el auto-login falló:', signInError);
+      }
+    }
+    contrasenaPendienteEnMemoria = null;
 
     // Confirmado: ya no hace falta recordar el email pendiente.
     set({ pendienteEmail: null });

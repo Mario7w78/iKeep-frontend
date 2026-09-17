@@ -243,7 +243,7 @@ export const NLConversationStep: React.FC<Props> = ({
       )}
 
       {/* Input bar */}
-      <View style={[styles.inputBar, { paddingBottom: isKeyboardVisible ? 10 : Math.max(insets.bottom, 10) }]}>
+      <View style={[styles.inputBar, { paddingBottom: isKeyboardVisible ? 10 : Math.max(insets.bottom, Platform.OS === 'android' ? 24 : 10) }]}>
         <TextInput
           ref={inputRef}
           testID="chat-input"

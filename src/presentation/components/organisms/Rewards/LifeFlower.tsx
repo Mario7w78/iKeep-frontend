@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { AREAS } from '../../../../domain/entities/lifeArea';
 import { Flor } from '../../../../domain/services/lifeBalance';
+import { Logo } from '../../atoms/Lotus/Logo';
 import { ThemeColors, useTheme } from '../../theme/colors';
 import { ESPACIO, PESO, RADIO, TEXTO } from '../../theme/tokens';
 
@@ -43,7 +44,7 @@ export const LifeFlower: React.FC<Props> = ({ flor }) => {
   if (totalHecho < MINIMO_PARA_HABLAR) {
     return (
       <View style={styles.seccion} testID="flor-vacia">
-        <Text style={styles.titulo}>Tu flor</Text>
+        <Logo width={150} style={styles.logoCabecera} />
         <Text style={styles.pie}>
           Cada pétalo es un área de tu vida. Se abren con lo que vas haciendo.
         </Text>
@@ -53,7 +54,7 @@ export const LifeFlower: React.FC<Props> = ({ flor }) => {
 
   return (
     <View style={styles.seccion} testID="flor">
-      <Text style={styles.titulo}>Tu flor</Text>
+      <Logo width={150} style={styles.logoCabecera} />
 
       {/* Hueco reservado para la flor ilustrada. Va vacío a propósito: la
           ilustración llega después y el tamaño ya está tomado. */}
@@ -111,10 +112,8 @@ const createStyles = (colors: ThemeColors) =>
       padding: ESPACIO.lg,
       gap: ESPACIO.sm,
     },
-    titulo: {
-      fontSize: TEXTO.destacado,
-      fontWeight: PESO.maximo,
-      color: colors.surface,
+    logoCabecera: {
+      alignSelf: 'center',
     },
     huecoFlor: {
       alignSelf: 'center',

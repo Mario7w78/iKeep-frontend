@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTheme } from '../../components/theme/colors';
 import { PrimaryButton } from '../../components/atoms/Common/PrimaryButton';
+import { PasswordField } from '../../components/atoms/Common/PasswordField';
 import { useAuthStore } from '../../../infrastructure/store/useAuthStore';
 import { AuthStackParamList } from '../../navigation/AppNavigator';
 import { LotusFlower } from '../../components/atoms/Lotus/LotusFlower';
@@ -82,14 +83,12 @@ export default function LoginView({ navigation }: Props) {
               keyboardType="email-address"
               autoComplete="email"
             />
-            <TextInput
-              style={styles.input}
+            <PasswordField
               placeholder="Contraseña"
-              placeholderTextColor={colors.textTertiary}
               value={password}
               onChangeText={setPassword}
-              secureTextEntry
               autoComplete="password"
+              testID="login-password"
             />
 
             {error && <Text style={styles.error}>{error}</Text>}

@@ -50,8 +50,9 @@ export function durationToHeight(startMin: number, endMin: number, hourHeight: n
 
 export function formatDisplayTime(hhmm: string): string {
   const [h, m] = hhmm.split(':').map(Number);
-  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
-  const ampm = h < 12 ? 'AM' : 'PM';
+  const wrapped = h % 24;
+  const h12 = wrapped === 0 ? 12 : wrapped > 12 ? wrapped - 12 : wrapped;
+  const ampm = wrapped < 12 ? 'AM' : 'PM';
   return `${h12}:${m < 10 ? '0' + m : m} ${ampm}`;
 }
 

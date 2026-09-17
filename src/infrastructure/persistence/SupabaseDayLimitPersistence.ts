@@ -30,6 +30,19 @@ async function upsertSettings(patch: Record<string, any>): Promise<void> {
 }
 
 export const supabaseDayLimitPersistence: DayLimitPersistence = {
+  getAll: async () => {
+    const row = await getSettingsRow();
+    if (!row) return null;
+    return {
+      startHour: row.start_hour ?? 240,
+      endHour: row.end_hour ?? 1320,
+      diaInicio: row.dia_inicio ?? 0,
+      diasTotales: row.dias_totales ?? 7,
+      perDayStartHours: row.per_day_start_hours ?? null,
+      perDayEndHours: row.per_day_end_hours ?? null,
+    };
+  },
+
   getStartHour: async () => {
     const row = await getSettingsRow();
     return row?.start_hour ?? 240;

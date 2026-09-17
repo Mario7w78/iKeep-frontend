@@ -15,6 +15,10 @@ jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({ navigate: jest.fn() }),
 }));
 
+jest.mock('react-native-safe-area-context', () => ({
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+
 import { Activity, ActivityType, DayOfWeek } from '../../../../../domain/entities/Activity';
 import { ActivityConfigDetailModal } from '../ActivityConfigDetailModal';
 

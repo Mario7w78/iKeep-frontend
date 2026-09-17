@@ -56,12 +56,14 @@ export const Sapo: React.FC<Props> = ({
   }
 
   return (
+    <View style={[{ width: size, height: size, overflow: 'hidden' }, style]}>
     <RiveView
       testID={testID}
       file={riveFile}
       dataBind={instance}
       fit={Fit.Contain}
-      style={[{ width: size, height: size, overflow: 'hidden' }, style]}
+      style={[{ width: size, height: size }]}
     />
+    </View>
   );
 };

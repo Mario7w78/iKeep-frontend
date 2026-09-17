@@ -185,7 +185,7 @@ export default function OnBoardingView() {
   const isLast = activeIndex === SLIDES.length - 1;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.screenBackground }} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.screenBackground }} edges={['top', 'left', 'right', 'bottom']}>
       <KeyboardAwareScrollView
         style={{ flex: 1, backgroundColor: colors.screenBackground }}
         contentContainerStyle={{ flex: 1 }}

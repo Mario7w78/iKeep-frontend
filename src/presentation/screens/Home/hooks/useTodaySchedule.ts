@@ -46,7 +46,7 @@ export const useTodaySchedule = ({
   const nextActivities = useMemo(() => {
     return todayItems.filter((item) => {
       const start = toMinutes(item.assignedStartTime);
-      return start > currentMinutes && item.activity !== undefined && item.tipo !== 'viaje';
+      return start > currentMinutes && item.tipo !== 'viaje';
     });
   }, [todayItems, currentMinutes]);
 
@@ -79,7 +79,7 @@ export const useTodaySchedule = ({
       const loopDayIndex = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo'].indexOf(dayOfWeek);
       const displayStart = perDayStartHours?.[loopDayIndex] ?? startHour ?? undefined;
       const items = schedule.getItemsByDay(dayOfWeek, displayStart);
-      const filteredItems = items.filter(item => item.activity !== undefined && item.tipo !== 'viaje');
+      const filteredItems = items.filter(item => item.tipo !== 'viaje');
       if (filteredItems.length > 0) {
         return { day: dayOfWeek, items: filteredItems };
       }

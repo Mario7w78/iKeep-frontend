@@ -1,33 +1,23 @@
 /**
- * Mock manual de rive-react-native para todo el runner.
+ * Mock manual de @rive-app/react-native (API v2) para todo el runner.
  *
- * jest-expo aplica los mocks manuales en `__mocks__/` de la raíz a los
- * paquetes de node_modules sin que cada suite llame jest.mock(): así las
- * suites que renderizan Sapo de pasada no saben ni les importa que abajo
- * hay un runtime Rive.
+ * El componente Sapo usa el paquete scoped con la API v2:
+ *   - `useRiveFile(fuente)`      -> { riveFile }
+ *   - `useViewModelInstance(..)` -> { instance, isLoading }
+ *   - `<RiveView file dataBind fit style/>`
+ * El paquete real es ESM y no pasa por el transform de jest-expo, así que sin
+ * este mock el runner muere con "Cannot use import statement outside a module"
+ * en cualquier suite que renderice Sapo (RachaHero, MessageBubble, etc.).
  *
- * Contrato:
- * - `default` es un forwardRef que registra cada montaje en `__instancias`
- *   con los controles como jest.Mock. Se afirma con
- *   `__instancias.at(-1).play` → `('Idle', 'loop')`, etc.
- * - `__reset()` limpia entre tests.
- * - `LoopMode` y `Fit` replican el vocabulario del paquete real.
+ * Contrato expuesto para afirmar:
+ *   - `__instancias`: props de cada RiveView viva (la última = la actual).
+ *   - `__modelos`: instancias de ViewModel devueltas por useViewModelInstance;
+ *     `enumProperty(path)` y `artboardProperty(path)` son jest.fn() que
+ *     devuelven `{ set: jest.fn() }` (el mismo setter siempre).
+ *   - `__reset()` limpia entre tests.
  */
-import React, {
-  forwardRef,
-  useCallback,
-  useEffect,
-  useImperativeHandle,
-  useRef,
-  useState,
-} from 'react';
+import React, { forwardRef, useEffect } from 'react';
 import { View } from 'react-native';
-
-export const LoopMode = {
-  OneShot: 'oneshot',
-  Loop: 'loop',
-  AutoLoop: 'autoloop',
-} as const;
 
 export const Fit = {
   Contain: 'contain',
@@ -36,65 +26,86 @@ export const Fit = {
   None: 'none',
 } as const;
 
+export const Alignment = {
+  Center: 'center',
+  TopLeft: 'topleft',
+  TopCenter: 'topcenter',
+  TopRight: 'topright',
+  CenterLeft: 'centerleft',
+  CenterRight: 'centerright',
+  BottomLeft: 'bottomleft',
+  BottomCenter: 'bottomcenter',
+  BottomRight: 'bottomright',
+} as const;
+
+export const LoopMode = {
+  OneShot: 'oneshot',
+  Loop: 'loop',
+  AutoLoop: 'autoloop',
+} as const;
+
 export const AutoBind = (value: boolean) => ({ type: 'autobind', value });
 
-type Controles = {
-  play: ReturnType<typeof jest.fn>;
-  pause: ReturnType<typeof jest.fn>;
-  stop: ReturnType<typeof jest.fn>;
-  reset: ReturnType<typeof jest.fn>;
-  setEnum: ReturnType<typeof jest.fn>;
+export const DataBindMode = {
+  auto: 'auto',
+  manual: 'manual',
+} as const;
+
+export type ModeloMock = {
+  enumProperty: ReturnType<typeof jest.fn>;
+  artboardProperty: ReturnType<typeof jest.fn>;
 };
 
-/** Instancias montadas; la última es la que acaba de renderizar. */
-export const __instancias: Array<{ props: Record<string, unknown> } & Controles> = [];
+function modeloNuevo(): ModeloMock {
+  const enumSet = jest.fn();
+  const artboardSet = jest.fn();
+  return {
+    enumProperty: jest.fn((_path: string) => ({ set: enumSet })),
+    artboardProperty: jest.fn((_path: string) => ({ set: artboardSet })),
+  };
+}
+
+/** RiveView vivas; la última es la que acabó de renderizar. */
+export const __instancias: Array<Record<string, any>> = [];
+
+/** ViewModels entregados por useViewModelInstance (spies del modelo). */
+export const __modelos: ModeloMock[] = [];
 
 export const __reset = (): void => {
   __instancias.length = 0;
+  __modelos.length = 0;
 };
+
+export function useRiveFile(_fuente: unknown) {
+  const riveFile = React.useMemo(
+    () => ({ getBindableArtboard: jest.fn((nombre: string) => ({ nombre })) }),
+    []
+  );
+  return { riveFile };
+}
+
+export function useViewModelInstance(_file: unknown, _opts?: unknown) {
+  const modelo = React.useMemo(modeloNuevo, []);
+  __modelos.push(modelo);
+  return { instance: modelo, isLoading: false };
+}
 
 type Props = Record<string, any>;
 
-const Rive = forwardRef<Controles, Props>((props, ref) => {
-  // Estables para que el ref siga siendo el mismo entre renders.
-  const controles = useRef<Controles>({
-    play: jest.fn(),
-    pause: jest.fn(),
-    stop: jest.fn(),
-    reset: jest.fn(),
-    setEnum: jest.fn(),
-  }).current;
-
+export const RiveView = forwardRef<unknown, Props>((props, ref) => {
   useEffect(() => {
-    __instancias.push({ props, ...controles });
-    // Al desmontar se va: `at(-1)` siempre apunta al vivo más nuevo.
+    __instancias.push(props);
     return () => {
-      const indice = __instancias.findIndex((i) => i.play === controles.play);
+      const indice = __instancias.indexOf(props);
       if (indice >= 0) __instancias.splice(indice, 1);
     };
-  }, [controles]);
+  }, [props]);
 
-  useImperativeHandle(ref, () => controles);
+  React.useImperativeHandle(ref, () => ({}));
 
-  return <View testID={props.testID} />;
+  return <View testID={props.testID} style={props.style} />;
 });
 
-Rive.displayName = 'Rive';
+RiveView.displayName = 'RiveView';
 
-export default Rive;
-
-export function useRive(): [(node: Controles | null) => void, Controles | null] {
-  const [riveRef, setRiveRef] = useState<Controles | null>(null);
-  return [setRiveRef, riveRef];
-}
-
-export function useRiveEnum(
-  riveRef: Controles | null,
-  path: string
-): [undefined, (value: string) => void] {
-  const setValue = useCallback(
-    (value: string) => riveRef?.setEnum(path, value),
-    [path, riveRef]
-  );
-  return [undefined, setValue];
-}
+export default RiveView;

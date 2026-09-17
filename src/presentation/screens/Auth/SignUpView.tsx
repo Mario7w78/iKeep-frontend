@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTheme } from '../../components/theme/colors';
 import { PrimaryButton } from '../../components/atoms/Common/PrimaryButton';
+import { PasswordField } from '../../components/atoms/Common/PasswordField';
 import { useAuthStore } from '../../../infrastructure/store/useAuthStore';
 import { AuthStackParamList } from '../../navigation/AppNavigator';
 import { LotusFlower } from '../../components/atoms/Lotus/LotusFlower';
@@ -54,9 +55,10 @@ export default function SignUpView({ navigation }: Props) {
     if (requireConfirmation) {
       // Confirmación por email habilitada: Supabase acaba de mandar el enlace a
       // lotus://confirmar-email. El aviso es notable (#6) para que el usuario
-      // sepa que hay un paso más antes de poder entrar.
+      // sepa que hay un paso más antes de poder entrar. Al tocar el enlace se
+      // confirma el correo y la sesión se crea sola (ver useAuthStore).
       setInfo(
-        'Revisa tu correo y toca el enlace de confirmación. Volverás automáticamente a la app para continuar.'
+        'Revisa tu correo y toca el enlace de confirmación. Te conectamos automáticamente.'
       );
       return;
     }
@@ -103,23 +105,19 @@ export default function SignUpView({ navigation }: Props) {
                 keyboardType="email-address"
                 autoComplete="email"
               />
-              <TextInput
-                style={styles.input}
+              <PasswordField
                 placeholder="Contraseña (mínimo 6 caracteres)"
-                placeholderTextColor={colors.textTertiary}
                 value={password}
                 onChangeText={setPassword}
-                secureTextEntry
                 autoComplete="password-new"
+                testID="signup-password"
               />
-              <TextInput
-                style={styles.input}
+              <PasswordField
                 placeholder="Repetir contraseña"
-                placeholderTextColor={colors.textTertiary}
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
-                secureTextEntry
                 autoComplete="password-new"
+                testID="signup-confirm-password"
               />
 
               {error && <Text style={styles.error}>{error}</Text>}

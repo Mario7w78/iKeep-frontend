@@ -38,8 +38,8 @@ describe('RachaHero', () => {
 
     expect(vista.getByTestId('mochila-hito')).toBeTruthy();
     expect(vista.getByText('COMPONENTE CRÍTICO')).toBeTruthy();
-    // 3 de 7: faltan 4 para el primer hito.
-    expect(vista.getByText('Faltan 4 para el hito de 7.')).toBeTruthy();
+    // 3 de 10: faltan 7 para el siguiente hito.
+    expect(vista.getByText('Faltan 7 para el hito de 10.')).toBeTruthy();
   });
 
   it('el singular se respeta', async () => {

@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect, useState } from "react";
+import React, { useMemo, useEffect, useRef, useState } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -203,11 +203,16 @@ const isLight = esClaro;
   }, [todayItems, currentMinutes, completadas, noHechas, pendientesPasados]);
 
   // Se abre una sola vez por sesión: al entrar con deudas sin responder y sin
-  // que corresponda el cierre de día (que ya las pregunta él).
+  // que corresponda el cierre de día (que ya las pregunta él). El ref guarda
+  // que ya se ofreció: sin eso, al cerrar el mazo (última carta volada o el
+  // fondo tocado) el efecto de abajo lo REABRE al instante mientras queden
+  // cartas, y quedas preso del mismo título en bucle.
   const [deckAbierto, setDeckAbierto] = useState(false);
+  const deckOfrecido = useRef(false);
 
   useEffect(() => {
-    if (!ofrecerCierre && cartasPendientes.length > 0 && !deckAbierto) {
+    if (!ofrecerCierre && cartasPendientes.length > 0 && !deckAbierto && !deckOfrecido.current) {
+      deckOfrecido.current = true;
       setDeckAbierto(true);
     }
   }, [ofrecerCierre, cartasPendientes.length, deckAbierto]);
@@ -234,11 +239,11 @@ const isLight = esClaro;
 
   const marcarNoHechaDeck = (carta: TarjetaPendiente) =>
     conGuardadoDeck(async () => {
-      // Una "no hecha" de hoy no se persiste: no responder ≠ responder que
-      // no. Se contesta el día al cierre, y acá solo sale de la fila.
-      if (carta.origen === 'pasado') {
-        await marcarPasado(carta.id, carta.desde, false);
-      }
+      // "No la hice" ES una respuesta y se guarda como tal, por día. El
+      // backend la distingue de "sin resolver": no suma al anillo pero deja
+      // de preguntar. Antes no se persistía para hoy, y la carta volvía a
+      // aparecer en cada apertura — como si la decisión no existiera.
+      await marcarPasado(carta.id, carta.desde, false);
       await cargarLogros();
     });
 
@@ -277,9 +282,9 @@ const isLight = esClaro;
       };
 
   const currentCardTitle = currentActivity
-    ? (isCurrentTravel ? (currentActivity.nombre ?? 'Traslado') : (currentActivity.activity?.title ?? 'Actividad sin nombre'))
+    ? (isCurrentTravel ? (currentActivity.nombre ?? 'Traslado') : (currentActivity.activity?.title ?? currentActivity.nombre ?? 'Actividad sin nombre'))
     : firstNext
-    ? firstNext.activity?.title ?? 'Actividad sin nombre'
+    ? (firstNext.activity?.title ?? firstNext.nombre ?? 'Actividad sin nombre')
     : "Sin actividades pendientes";
 
   const areaDelDia = useMemo(
@@ -301,7 +306,12 @@ const isLight = esClaro;
   // Ademas hay que esperar a que el horario termine de hidratarse desde
   // storage (isLoadedFromStorage), o el render principal mostraria
   // "Sin bloques programados" un instante antes de saber si hay horario.
-  if ((cargandoActividades && !activities.length) || !isLoadedFromStorage) {
+  // Con cero actividades no hay horario posible: no vale la pena bloquear
+  // la pantalla esperando la hidratacion de un schedule que no va a existir.
+  if (
+    (cargandoActividades && !activities.length) ||
+    (!isLoadedFromStorage && activities.length > 0)
+  ) {
     return (
       <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
         <LoadingScreen />

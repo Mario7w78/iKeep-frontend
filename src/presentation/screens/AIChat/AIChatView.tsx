@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTheme } from '../../components/theme/colors';
 import { useChatStore } from '../../../di/Dependencies';
 import { warmUpBackend } from '../../../infrastructure/api/apiConfig';
 import { NLConversationStep } from '../../components/organisms/CreateActivity/NLConversationStep';
@@ -9,6 +10,7 @@ import { formStateToDraft } from "../../../application/mappers/formStateToDraft"
 import { useSugerenciasSapo } from "./useSugerenciasSapo";
 
 export default function AIChatView({ navigation }: any) {
+  const { colors } = useTheme();
   // The backend sleeps after ~15 min of inactivity and takes 20-50s to wake.
   // Ping it while the user is still typing so their first message does not
   // have to absorb the cold start.
@@ -68,7 +70,7 @@ export default function AIChatView({ navigation }: any) {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']} testID="ai-chat-view-container">
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.screenBackground }]} edges={['top']} testID="ai-chat-view-container">
       <NLConversationStep
         messages={messages}
         onSend={sendMessage}

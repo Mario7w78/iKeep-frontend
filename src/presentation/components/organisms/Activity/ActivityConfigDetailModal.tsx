@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Activity, DayOfWeek } from "../../../../domain/entities/Activity";
 import { DayConfig } from "../../../../domain/entities/activity.types";
 import { useTheme, groupColors } from "../../theme/colors";
@@ -31,7 +32,8 @@ export function ActivityConfigDetailModal({
 }: ActivityConfigDetailModalProps) {
   const navigation = useNavigation<any>();
   const { colors, comfyColors } = useTheme();
-  const styles = useMemo(() => createStyles(colors, comfyColors), [colors, comfyColors]);
+  const insets = useSafeAreaInsets();
+  const styles = useMemo(() => createStyles(colors, comfyColors, insets), [colors, comfyColors, insets]);
 
   if (!activity) return null;
 
@@ -368,7 +370,7 @@ export function ActivityConfigDetailModal({
   );
 }
 
-const createStyles = (colors: ThemeColors, comfyColors: Record<string, string>) => StyleSheet.create({
+const createStyles = (colors: ThemeColors, comfyColors: Record<string, string>, insets: { bottom: number }) => StyleSheet.create({
   overlayContainer: {
     flex: 1,
     backgroundColor: colors.overlayBackground,
@@ -385,7 +387,7 @@ const createStyles = (colors: ThemeColors, comfyColors: Record<string, string>) 
     borderBottomWidth: 0,
     paddingTop: 12,
     paddingHorizontal: 24,
-    paddingBottom: 40,
+    paddingBottom: Math.max(40, insets.bottom),
     maxHeight: SCREEN_HEIGHT * 0.85,
     gap: 16,
   },

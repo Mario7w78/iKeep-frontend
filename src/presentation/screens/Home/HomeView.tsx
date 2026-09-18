@@ -1,5 +1,6 @@
 import React, { useMemo, useEffect, useRef, useState } from "react";
 import {
+  AppState,
   ScrollView,
   StyleSheet,
   View,
@@ -101,6 +102,21 @@ const isLight = esClaro;
     cargarLogros();
   }, [cargarLogros]);
 
+  useEffect(() => {
+    // Volver de background puede haber cambiado el día: los rewards y el
+    // schedule quedaron del día anterior. Recargar en cada primer plano
+    // (el efecto de montaje solo corre una vez).
+    let estadoAnterior = AppState.currentState;
+    const sub = AppState.addEventListener("change", (estado) => {
+      if (estado === "active" && estadoAnterior !== "active") {
+        cargarLogros();
+        loadActivities();
+      }
+      estadoAnterior = estado;
+    });
+    return () => sub.remove();
+  }, [cargarLogros, loadActivities]);
+
   useFocusEffect(
     React.useCallback(() => {
       loadActivities();
@@ -113,15 +129,18 @@ const isLight = esClaro;
     }
   }, [isLoadedFromStorage, activities, schedule, handleGenerateSchedule]);
 
-  const todayItems = useMemo(() => {
-    const today = JS_DAY_TO_DAYOFWEEK[new Date().getDay()];
-    const dayIndex = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo'].indexOf(today);
-    const displayStart = perDayStartHours?.[dayIndex] ?? startHour;
-    return schedule?.getItemsByDay(today, displayStart) ?? [];
-  }, [schedule, startHour, perDayStartHours]);
-
   // ── Hooks ──
   const currentTime = useCurrentTime();
+
+  const hoyDia = JS_DAY_TO_DAYOFWEEK[currentTime.getDay()];
+
+  const todayItems = useMemo(() => {
+    const dayIndex = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo'].indexOf(hoyDia);
+    const displayStart = perDayStartHours?.[dayIndex] ?? startHour;
+    return schedule?.getItemsByDay(hoyDia, displayStart) ?? [];
+  }, [schedule, startHour, perDayStartHours, hoyDia]);
+
+  // ── Hooks ──
   const { tipoSapo } = useTipoSapo();
 
   const currentMinutes = useMemo(

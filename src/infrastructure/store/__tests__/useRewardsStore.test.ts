@@ -23,6 +23,7 @@ jest.mock('../../api/RewardsApiService', () => ({
   fechaLocal: () => '2026-08-11',
 }));
 
+import { BackendError } from '../../api/backendClient';
 import { useRewardsStore } from '../useRewardsStore';
 
 const RESUMEN = {
@@ -57,6 +58,7 @@ describe('useRewardsStore', () => {
         noHechasIds: [],
       },
       diasTerminados: 0,
+      hidratado: false,
     });
   });
 
@@ -65,6 +67,25 @@ describe('useRewardsStore', () => {
 
     expect(estado().racha.actual).toBe(3);
     expect(estado().progreso.total).toBe(3);
+  });
+
+  it('queda hidratado recien cuando el resumen llega', async () => {
+    // Quien dibuja preguntas depende de esto: antes de la primera respuesta
+    // "vacio" y "no respondio nada" son indistinguibles.
+    expect(estado().hidratado).toBe(false);
+
+    await estado().cargar();
+
+    expect(estado().hidratado).toBe(true);
+  });
+
+  it('un fallo no lo deja hidratado', async () => {
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    mockResumen.mockRejectedValue(new Error('sin red'));
+
+    await estado().cargar();
+
+    expect(estado().hidratado).toBe(false);
   });
 
   it('un fallo al cargar no rompe la pantalla', async () => {
@@ -77,24 +98,55 @@ describe('useRewardsStore', () => {
     expect(estado().cargando).toBe(false);
   });
 
-  it('reintenta una vez: el primer pedido del dia despierta al servidor', async () => {
+  it('reintenta un 502 pasajero: la instancia se reinicio y vuelve', async () => {
+    jest.useFakeTimers();
     mockResumen
-      .mockRejectedValueOnce(new Error('El servidor tardo demasiado en responder.'))
+      .mockRejectedValueOnce(new BackendError('El servidor respondio 502.', 502))
       .mockResolvedValueOnce(RESUMEN);
 
-    await estado().cargar();
+    const promesa = estado().cargar();
+    await jest.advanceTimersByTimeAsync(10_000);
+    await promesa;
 
     expect(mockResumen).toHaveBeenCalledTimes(2);
     expect(estado().racha.actual).toBe(3);
+    jest.useRealTimers();
+  });
+
+  it('reintenta un fallo de red (status null)', async () => {
+    jest.useFakeTimers();
+    mockResumen
+      .mockRejectedValueOnce(new BackendError('No se pudo conectar.', null))
+      .mockResolvedValueOnce(RESUMEN);
+
+    const promesa = estado().cargar();
+    await jest.advanceTimersByTimeAsync(10_000);
+    await promesa;
+
+    expect(mockResumen).toHaveBeenCalledTimes(2);
+    jest.useRealTimers();
   });
 
   it('pero no insiste para siempre', async () => {
+    jest.useFakeTimers();
     jest.spyOn(console, 'warn').mockImplementation(() => {});
-    mockResumen.mockRejectedValue(new Error('sin red'));
+    mockResumen.mockRejectedValue(new BackendError('El servidor respondio 502.', 502));
+
+    const promesa = estado().cargar();
+    await jest.advanceTimersByTimeAsync(60_000);
+    await promesa;
+
+    expect(mockResumen).toHaveBeenCalledTimes(3);
+    jest.useRealTimers();
+  });
+
+  it('no reintenta un error que no es pasajero', async () => {
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    mockResumen.mockRejectedValue(new BackendError('Fecha invalida', 422));
 
     await estado().cargar();
 
-    expect(mockResumen).toHaveBeenCalledTimes(2);
+    expect(mockResumen).toHaveBeenCalledTimes(1);
   });
 
   it('marcar actualiza antes de que el servidor conteste', async () => {
@@ -171,6 +223,45 @@ describe('useRewardsStore', () => {
     await estado().alternar('act-9');
 
     expect(mockResumen).toHaveBeenCalled();
+  });
+
+  it('dos marcas rápidas no se pisan: el resumen viejo no borra la segunda', async () => {
+    // Marcar es optimista y refresca después. Con dos marcas seguidas salen
+    // dos resúmenes en paralelo; si el de la primera resuelve último con una
+    // foto vieja, borraba la segunda marca y quedaba "marqué 2, contó 1".
+    useRewardsStore.setState({
+      progreso: { ...RESUMEN.progreso, completadas: 0, completadosIds: [], total: 2 },
+    });
+
+    const fotoVieja = {
+      ...RESUMEN,
+      progreso: { ...RESUMEN.progreso, completadas: 1, completadosIds: ['act-1'], total: 2 },
+    };
+    const fotoNueva = {
+      ...RESUMEN,
+      progreso: {
+        ...RESUMEN.progreso,
+        completadas: 2,
+        completadosIds: ['act-1', 'act-2'],
+        total: 2,
+      },
+    };
+
+    let resolverVieja: (valor: any) => void = () => {};
+    const promesaVieja = new Promise((r) => {
+      resolverVieja = r;
+    });
+    mockResumen
+      .mockReturnValueOnce(promesaVieja) // la marca de act-1 tarda y trae la foto de una sola
+      .mockResolvedValueOnce(fotoNueva); // la de act-2 llega primero y ya trae las dos
+
+    const primera = estado().alternar('act-1');
+    const segunda = estado().alternar('act-2');
+    await segunda;
+    resolverVieja(fotoVieja);
+    await primera;
+
+    expect(estado().progreso.completadosIds).toEqual(['act-1', 'act-2']);
   });
 
   it('un "no la hice" de hoy se persiste como no_hecha, por día', async () => {

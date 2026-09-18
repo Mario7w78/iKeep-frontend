@@ -100,6 +100,10 @@ function hhmmToMinutes(hhmm: string): number {
     return h * 60 + m;
 }
 
+function fmtHora(minutos: number): string {
+    return `${String(Math.floor(minutos / 60)).padStart(2, '0')}:${String(minutos % 60).padStart(2, '0')}`;
+}
+
 export function validarIntegridadHorario(schedule: Schedule): DiagnosticoHorario {
     const advertencias: string[] = [];
 
@@ -121,16 +125,33 @@ export function validarIntegridadHorario(schedule: Schedule): DiagnosticoHorario
         }
 
         if (item.activity?.isFixed()) {
-            const dayConfig = item.activity.daysConfig?.[item.day];
-            const particion = dayConfig?.partitions?.[0];
-            if (particion?.startHour && particion?.endHour) {
-                const cfgStart = particion.startHour.getHours() * 60 + particion.startHour.getMinutes();
-                const cfgEnd = particion.endHour.getHours() * 60 + particion.endHour.getMinutes();
-                const margen = Math.max(particion.travelTo ?? 0, particion.travelFrom ?? 0) + 30;
-                if (cfgEnd > cfgStart && (startMins < cfgStart - margen || startMins > cfgEnd + margen)) {
-                    const fmt = (v: number) => `${String(Math.floor(v / 60)).padStart(2, '0')}:${String(v % 60).padStart(2, '0')}`;
+            // Una actividad fija puede tener varios turnos el mismo día (clase
+            // de la mañana y de la tarde). El bloque tiene que caer dentro de
+            // ALGUNO: compararlo solo contra el primero marcaba como
+            // inconsistente un horario que el usuario ve perfecto.
+            const rangos = (item.activity.daysConfig?.[item.day]?.partitions ?? [])
+                .filter((particion) => particion?.startHour && particion?.endHour)
+                .map((particion) => {
+                    const cfgStart = particion.startHour.getHours() * 60 + particion.startHour.getMinutes();
+                    const cfgEnd = particion.endHour.getHours() * 60 + particion.endHour.getMinutes();
+                    const margen = Math.max(particion.travelTo ?? 0, particion.travelFrom ?? 0) + 30;
+                    return { cfgStart, cfgEnd, margen };
+                })
+                // Un turno que cruza medianoche no se juzga con horas lineales.
+                .filter((rango) => rango.cfgEnd > rango.cfgStart);
+
+            if (rangos.length > 0) {
+                const entra = rangos.some(
+                    (rango) =>
+                        startMins >= rango.cfgStart - rango.margen &&
+                        startMins <= rango.cfgEnd + rango.margen,
+                );
+                if (!entra) {
+                    const lista = rangos
+                        .map((rango) => `${fmtHora(rango.cfgStart)}–${fmtHora(rango.cfgEnd)}`)
+                        .join(', ');
                     advertencias.push(
-                        `${label}: hora_inicio ${item.assignedStartTime} fuera del rango fijo (${fmt(cfgStart)}–${fmt(cfgEnd)})`
+                        `${label}: hora_inicio ${item.assignedStartTime} fuera del rango fijo (${lista})`
                     );
                 }
             }

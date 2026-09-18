@@ -48,7 +48,10 @@ export const CurrentActivityCard = ({
   const { handleDeleteActivity } = useActivityStore();
   const { handleGenerateSchedule } = useScheduleStore();
 
-  const isCurrentTravel = currentActivity && (currentActivity.tipo === 'viaje' || !currentActivity.activity);
+  // Idéntico criterio que HomeView: un traslado se identifica por su tipo,
+  // no por la ausencia de Activity (una actividad desconocida también viene
+  // sin Activity y no es un viaje).
+  const isCurrentTravel = !!currentActivity && currentActivity.tipo === 'viaje';
 
   const showCompleteToggle = !!currentActivity && !!currentActivity.activity && !!alternarCompletada;
 
@@ -163,7 +166,9 @@ export const CurrentActivityCard = ({
         </View>
       )}
 
-      {currentActivity || firstNext ? (
+      {/* También en el estado libre: sin esto la card mostraba los minutos
+          disponibles sin decir de qué eran. */}
+      {currentActivity || firstNext || freeTimeMinutes !== null ? (
         <Text style={styles.currentTitle}>{currentCardTitle}</Text>
       ) : null}
 

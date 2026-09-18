@@ -89,6 +89,12 @@ describe('lo que cuenta del dia', () => {
     expect(vista.getByText('Hiciste 4 de 7')).toBeTruthy();
   });
 
+  it('cuenta las completadas con las cifras resueltas, sin llaves literales', async () => {
+    const vista = await montar();
+
+    expect(vista.getByText('Completaste 4 de 7 actividades.')).toBeTruthy();
+  });
+
   it('muestra la racha viva tal como viene del store', async () => {
     const vista = await montar();
 

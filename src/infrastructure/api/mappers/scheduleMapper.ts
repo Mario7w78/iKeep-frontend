@@ -183,13 +183,40 @@ export const domainToScheduleRequest = (
     };
 };
 
+/**
+ * De qué definición salió un bloque del horario.
+ *
+ * El solver devuelve ids compuestos —`{actividad}-{grupo}-{día}-{turno}`— y el
+ * id de la actividad puede a su vez tener guiones: las importadas de Google son
+ * `google-<hash>`. Cortar en el primer guion devolvía `"google"`, así que cada
+ * bloque perdía su actividad en silencio. Sin `Activity`, la tarjeta del Home
+ * no puede abrir el detalle de configuración y solo muestra el bloque.
+ *
+ * Se busca el prefijo más largo que sea un id conocido, sin suponer nada sobre
+ * la forma del id — el mismo criterio que `apply_proposal._actividad_del_bloque`
+ * en el backend.
+ */
+const actividadDeBloque = (
+    idCompuesto: string,
+    originalActivities: Activity[]
+): Activity | undefined => {
+    let candidato = String(idCompuesto ?? '');
+    while (candidato) {
+        const encontrada = originalActivities.find(a => String(a.id) === candidato);
+        if (encontrada) return encontrada;
+        const corte = candidato.lastIndexOf('-');
+        if (corte <= 0) return undefined;
+        candidato = candidato.slice(0, corte);
+    }
+    return undefined;
+};
+
 export const scheduleResponseToDomain = (
     response: ScheduleResponseDto,
     originalActivities: Activity[]
 ): Schedule => {
     const scheduledActivities: ScheduledActivity[] = response.bloques.map(bloque => {
-        const originalId = bloque.id_actividad.split('-')[0];
-        const activity = originalActivities.find(a => String(a.id) === originalId);
+        const activity = actividadDeBloque(bloque.id_actividad, originalActivities);
 
         // Travel blocks and unknown activities are rendered without an Activity reference
         if (!activity) {

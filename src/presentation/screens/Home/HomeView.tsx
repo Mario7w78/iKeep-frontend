@@ -15,13 +15,14 @@ import { useAppStore } from "../../../infrastructure/store/useAppStore";
 import { ScheduledActivity } from "../../../domain/entities/Schedule";
 import { useTheme } from "../../components/theme/colors";
 import { JS_DAY_TO_DAYOFWEEK } from "../../utils/scheduleUtils";
+import { moverOcurrencia } from "../../utils/moverOcurrencia";
 import { LotusLandscape } from "../../components/atoms/Lotus/LotusLandscape";
 import { LoadingScreen } from "../../components/atoms/Common/LoadingScreen";
 import { useFocusSessionStore } from "../../../infrastructure/store/useFocusSessionStore";
 import { useRewardsStore } from "../../../infrastructure/store/useRewardsStore";
-import { useCalendarStore } from "../../../infrastructure/store/useCalendarStore";
 import { ActivityDetailModal } from "../../components/organisms/Schedule/ActivityDetailModal";
-import { useGoogleCalendarStore } from "../../../infrastructure/store/useGoogleCalendarStore";
+import { ActivityConfigDetailModal } from "../../components/organisms/Activity/ActivityConfigDetailModal";
+import { useAvisoGoogleCalendar } from "../../hooks/useAvisoGoogleCalendar";
 import { RespuestaDeCierre, fechaLocal } from "../../../infrastructure/api/RewardsApiService";
 import { sinResponder } from "../../../domain/services/pendingAnswers";
 import { PendientesDeck, TarjetaPendiente } from "../../components/molecules/Rewards/PendientesDeck";
@@ -66,6 +67,8 @@ const isLight = esClaro;
 
   // ── Stores ──
   const username = useAppStore((s) => s.username);
+  const cartasOfrecidas = useAppStore((s) => s.cartasOfrecidas);
+  const marcarCartasOfrecidas = useAppStore((s) => s.marcarCartasOfrecidas);
   const schedule = useScheduleStore((s) => s.schedule);
   const isLoadedFromStorage = useScheduleStore((s) => s.isLoadedFromStorage);
   const handleGenerateSchedule = useScheduleStore((s) => s.handleGenerateSchedule);
@@ -84,6 +87,7 @@ const isLight = esClaro;
   const pendientesPasados = useRewardsStore((s) => s.pendientesPasados);
   const marcarPasado = useRewardsStore((s) => s.marcarPasado);
   const diasTerminados = useRewardsStore((s) => s.diasTerminados);
+  const logrosHidratados = useRewardsStore((s) => s.hidratado);
   const cerrar = useRewardsStore((s) => s.cerrar);
   const sesion = useFocusSessionStore((s) => s.sesion);
   const iniciarSesion = useFocusSessionStore((s) => s.iniciarSesion);
@@ -162,16 +166,21 @@ const isLight = esClaro;
     todayItems,
     completadas,
     noHechas,
+    hidratado: logrosHidratados,
   });
 
-  // Google Calendar connection state
-  const googleCalendarEstado = useGoogleCalendarStore((s) => s.estado);
-  const googleCalendarConectado = googleCalendarEstado === 'conectado';
+  // Google Calendar: el aviso se muestra una vez y se esconde solo.
+  const mostrarAvisoCalendario = useAvisoGoogleCalendar();
 
   const [selectedActivity, setSelectedActivity] = useState<ScheduledActivity | null>(null);
 
   // ── Mazo de pendientes (una carta por actividad sin responder) ──
   const cartasPendientes = useMemo(() => {
+    // Sin el resumen cargado, `completadas` y `noHechas` vacias hacen que todo
+    // parezca sin responder: el mazo se abriria un instante al abrir la app y
+    // se cerraria cuando llega la respuesta.
+    if (!logrosHidratados) return [];
+
     const hoy = fechaLocal();
     const delDia = sinResponder({
       items: todayItems,
@@ -200,7 +209,7 @@ const isLight = esClaro;
       );
 
     return [...pasadas, ...delDia];
-  }, [todayItems, currentMinutes, completadas, noHechas, pendientesPasados]);
+  }, [logrosHidratados, todayItems, currentMinutes, completadas, noHechas, pendientesPasados]);
 
   // Se abre una sola vez por sesión: al entrar con deudas sin responder y sin
   // que corresponda el cierre de día (que ya las pregunta él). El ref guarda
@@ -210,12 +219,34 @@ const isLight = esClaro;
   const [deckAbierto, setDeckAbierto] = useState(false);
   const deckOfrecido = useRef(false);
 
+  // Cuando el cierre delega en el mazo ("hice algunas"), el mazo es la última
+  // palabra: al cerrarlo se cierra el día y se muestra el resumen.
+  const cierrePorMazo = useRef(false);
+
+  // La identidad de una carta es su origen, su día y su actividad: la misma
+  // actividad sin responder hoy y ayer son dos deudas distintas.
+  const clavesPendientes = useMemo(
+    () => cartasPendientes.map((c) => `${c.origen}:${c.desde}:${c.id}`),
+    [cartasPendientes]
+  );
+
   useEffect(() => {
-    if (!ofrecerCierre && cartasPendientes.length > 0 && !deckAbierto && !deckOfrecido.current) {
+    // Se abre solo si hay una deuda que todavía no se ofreció. El `useRef`
+    // evita reabrirlo en la misma sesión al cerrar el mazo; el conjunto
+    // persistido evita que vuelva en cada arranque.
+    const hayDeudaNueva = clavesPendientes.some((clave) => !cartasOfrecidas.includes(clave));
+    if (
+      !ofrecerCierre &&
+      cartasPendientes.length > 0 &&
+      !deckAbierto &&
+      !deckOfrecido.current &&
+      hayDeudaNueva
+    ) {
       deckOfrecido.current = true;
+      marcarCartasOfrecidas(clavesPendientes);
       setDeckAbierto(true);
     }
-  }, [ofrecerCierre, cartasPendientes.length, deckAbierto]);
+  }, [ofrecerCierre, cartasPendientes.length, clavesPendientes, deckAbierto, cartasOfrecidas, marcarCartasOfrecidas]);
 
   const [guardandoDeck, setGuardandoDeck] = useState(false);
   const conGuardadoDeck = async (accion: () => Promise<void>) => {
@@ -225,6 +256,38 @@ const isLight = esClaro;
     } finally {
       setGuardandoDeck(false);
     }
+  };
+
+  // "Hice algunas" del cierre: el detalle se verifica en el mazo, no en una
+  // lista adentro del modal. El cierre queda respondido (no vuelve a ofrecerse
+  // hoy) y el mazo toma la posta. Se marca como ofrecido para que el auto-abrir
+  // no lo reabra apenas se cierre.
+  const cerrarCierreConMazo = () => {
+    setDiaCerrado(fechaLocal());
+    setRespuestaDelCierre(null);
+    setRecapPendiente(false);
+    cierrePorMazo.current = true;
+    deckOfrecido.current = true;
+    marcarCartasOfrecidas(clavesPendientes);
+    setDeckAbierto(true);
+  };
+
+  // El mazo cierra el día: lo que quedó sin tocar se cierra como no hecho y el
+  // resumen se muestra con el progreso final. Solo aplica cuando se llegó acá
+  // desde "hice algunas"; el auto-abrir normal no cierra nada.
+  const cerrarMazo = () => {
+    setDeckAbierto(false);
+    if (!cierrePorMazo.current) return;
+    cierrePorMazo.current = false;
+    void (async () => {
+      try {
+        await cerrar('algunas', progreso.completadosIds ?? [], fechaLocal());
+        setRespuestaDelCierre('algunas');
+        setRecapPendiente(true);
+      } catch (error) {
+        console.error('No se pudo cerrar el día:', error);
+      }
+    })();
   };
 
   const marcarHechaDeck = (carta: TarjetaPendiente) =>
@@ -249,12 +312,15 @@ const isLight = esClaro;
 
   const reprogramarDeck = (carta: TarjetaPendiente, destino: string) =>
     conGuardadoDeck(async () => {
-      await useCalendarStore.getState().mover(carta.id, carta.desde, destino);
+      await moverOcurrencia(carta.id, carta.desde, destino);
       await cargarLogros();
     });
 
   // ── Derived UI state ──
-  const isCurrentTravel = currentActivity && (currentActivity.tipo === 'viaje' || !currentActivity.activity);
+  // Solo el tipo del bloque distingue un traslado. `!activity` no basta: una
+  // actividad desconocida (p. ej. importada de Google) tambien llega sin
+  // Activity, y no por eso es un viaje.
+  const isCurrentTravel = !!currentActivity && currentActivity.tipo === 'viaje';
 
   const cardStatus = currentActivity
     ? {
@@ -285,7 +351,7 @@ const isLight = esClaro;
     ? (isCurrentTravel ? (currentActivity.nombre ?? 'Traslado') : (currentActivity.activity?.title ?? currentActivity.nombre ?? 'Actividad sin nombre'))
     : firstNext
     ? (firstNext.activity?.title ?? firstNext.nombre ?? 'Actividad sin nombre')
-    : "Sin actividades pendientes";
+    : "Tiempo disponible";
 
   const areaDelDia = useMemo(
     () =>
@@ -351,6 +417,7 @@ const isLight = esClaro;
         setDiaCerrado={setDiaCerrado}
         setCerrandoDia={setCerrandoDia}
         cerrar={cerrar}
+        onAlgunas={cerrarCierreConMazo}
         recapPendiente={recapPendiente}
         diaCerrado={diaCerrado}
         setRecapPendiente={setRecapPendiente}
@@ -368,7 +435,7 @@ const isLight = esClaro;
         onNoHecha={marcarNoHechaDeck}
         onReprogramar={reprogramarDeck}
         onSaltar={() => undefined}
-        onCerrar={() => setDeckAbierto(false)}
+        onCerrar={cerrarMazo}
         guardando={guardandoDeck}
       />
       <View style={styles.lotusContainer}>
@@ -391,7 +458,7 @@ const isLight = esClaro;
           fraccion={progreso.fraccion}
         />
 
-        {!googleCalendarConectado && (
+        {mostrarAvisoCalendario && (
           <View style={styles.googleCalendarBanner}>
             <Ionicons name="logo-google" size={24} color={colors.iconPrimary} />
             <Text style={styles.googleCalendarBannerText}>
@@ -434,9 +501,19 @@ const isLight = esClaro;
           onPressActivity={setSelectedActivity}
         />
 
-        <ActivityDetailModal
+        {/* Detalle de configuración para bloques con actividad; el de bloque
+            queda de respaldo para bloques sin Activity (viajes, Google). */}
+        <ActivityConfigDetailModal
+          visible={selectedActivity !== null && selectedActivity.activity !== undefined}
+          activity={selectedActivity?.activity ?? null}
+          onClose={() => setSelectedActivity(null)}
           onEnfocar={iniciarSesion}
-          visible={selectedActivity !== null}
+          esHoy={selectedActivity?.day === JS_DAY_TO_DAYOFWEEK[new Date().getDay()]}
+          minutosDelBloque={selectedActivity ? duracionDelBloque(selectedActivity) : undefined}
+        />
+
+        <ActivityDetailModal
+          visible={selectedActivity !== null && selectedActivity.activity === undefined}
           activityItem={selectedActivity}
           onClose={() => setSelectedActivity(null)}
           onEdit={(activityId) => navigation.navigate("CreateActivityModal", { activityId })}
@@ -449,6 +526,19 @@ const isLight = esClaro;
 }
 
 const MESES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+
+/**
+ * Cuánto dura el bloque, en minutos, para arrancar una sesión enfocada.
+ * La duración sale del horario asignado y no de un selector.
+ */
+function duracionDelBloque(item: ScheduledActivity): number {
+  const aMinutos = (hhmm: string) => {
+    const [h, m] = String(hhmm ?? '').split(':').map(Number);
+    return (h || 0) * 60 + (m || 0);
+  };
+  const minutos = aMinutos(item.assignedEndTime) - aMinutos(item.assignedStartTime);
+  return minutos > 0 ? minutos : 25;
+}
 
 function descripcionDeFecha(iso: string): string {
   const fecha = new Date(iso + 'T12:00:00');

@@ -21,10 +21,22 @@ interface AppState {
    * exists.
    */
   pendingDayLimits: DayLimits | null;
+  /**
+   * Claves de las cartas del mazo "¿Qué te quedó sin responder?" que ya se
+   * ofrecieron solas.
+   *
+   * El mazo se auto-abre una sola vez por deuda: sin esto el guard vivía en un
+   * `useRef`, así que cerrar y reabrir la app lo reseteaba y la misma pregunta
+   * volvía a aparecer en cada arranque. Se guarda el conjunto de claves
+   * vigentes —no un booleano— para que una deuda nueva sí lo abra, y se
+   * reemplaza entero en cada oferta para que no crezca sin límite.
+   */
+  cartasOfrecidas: string[];
   setHasSeenOnboarding: (value: boolean) => void;
   setUsername: (name: string) => void;
   setPendingDayLimits: (limits: DayLimits) => void;
   clearPendingDayLimits: () => void;
+  marcarCartasOfrecidas: (claves: string[]) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -33,10 +45,12 @@ export const useAppStore = create<AppState>()(
       hasSeenOnboarding: false,
       username: '',
       pendingDayLimits: null,
+      cartasOfrecidas: [],
       setHasSeenOnboarding: (value) => set({ hasSeenOnboarding: value }),
       setUsername: (name) => set({ username: name }),
       setPendingDayLimits: (limits) => set({ pendingDayLimits: limits }),
       clearPendingDayLimits: () => set({ pendingDayLimits: null }),
+      marcarCartasOfrecidas: (claves) => set({ cartasOfrecidas: claves }),
     }),
     {
       name: 'onboarding-storage',

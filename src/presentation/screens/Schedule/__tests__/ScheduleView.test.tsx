@@ -155,6 +155,10 @@ jest.mock('../../../../di/Dependencies', () => {
     const state = { activities: [], loadActivities: mockLoadActivities, isLoading: false };
     return selector ? selector(state) : state;
   };
+  // moverOcurrencia lee el store por fuera de React para saber si la actividad
+  // es fija: sin esto, mover una ocurrencia reventaba con "getState is not a
+  // function" en cuanto la pantalla lo llamaba.
+  (useActivityStoreMock as any).getState = () => ({ activities: [] });
   return {
     useScheduleStore: useScheduleStoreMock,
     useActivityStore: useActivityStoreMock,

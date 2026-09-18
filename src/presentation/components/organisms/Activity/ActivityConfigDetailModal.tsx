@@ -23,15 +23,28 @@ interface ActivityConfigDetailModalProps {
   visible: boolean;
   activity: Activity | null;
   onClose: () => void;
+  /**
+   * Empezar una sesión enfocada. Opcional porque no toda pantalla que abre
+   * este detalle está en condiciones de sostener una sesión. Solo se ofrece
+   * cuando el bloque es del día de hoy (esHoy).
+   */
+  onEnfocar?: (activityId: string, minutos: number) => void;
+  /** El bloque actual es del día de hoy: única condición para ofrecer sesión. */
+  esHoy?: boolean;
+  /** Duración del bloque (o 25 por defecto) con la que arranca la sesión. */
+  minutosDelBloque?: number;
 }
 
 export function ActivityConfigDetailModal({
   visible,
   activity,
   onClose,
+  onEnfocar,
+  esHoy,
+  minutosDelBloque,
 }: ActivityConfigDetailModalProps) {
   const navigation = useNavigation<any>();
-  const { colors, comfyColors } = useTheme();
+  const { colors, comfyColors, comfyFontColors } = useTheme();
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(colors, comfyColors, insets), [colors, comfyColors, insets]);
 
@@ -344,6 +357,21 @@ export function ActivityConfigDetailModal({
             </View>
           </ScrollView>
 
+          {onEnfocar && esHoy && (
+            <TouchableOpacity
+              testID="empezar-sesion"
+              style={styles.sessionButton}
+              activeOpacity={0.8}
+              onPress={() => {
+                onEnfocar(activity.id, minutosDelBloque ?? 25);
+                onClose();
+              }}
+            >
+              <Ionicons name="timer-outline" size={20} color={comfyFontColors.green} />
+              <Text style={[styles.actionButtonText, { color: comfyFontColors.green }]}>Empezar sesión</Text>
+            </TouchableOpacity>
+          )}
+
           <View style={styles.buttonRow}>
             <TouchableOpacity
               style={[styles.actionButton, styles.editButtonSecondary]}
@@ -569,6 +597,16 @@ const createStyles = (colors: ThemeColors, comfyColors: Record<string, string>, 
     color: colors.surface,
     fontSize: 16,
     fontWeight: "900",
+  },
+  sessionButton: {
+    height: 52,
+    borderRadius: 18,
+    backgroundColor: comfyColors.green,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginBottom: 4,
   },
   buttonRow: {
     flexDirection: "row",

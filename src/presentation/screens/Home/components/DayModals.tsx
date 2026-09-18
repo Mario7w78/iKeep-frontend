@@ -37,6 +37,8 @@ interface DayModalsProps {
   setCerrandoDia: (value: boolean) => void;
   setDiaCerrado: (value: string) => void;
   cerrar: (respuesta: RespuestaDeCierre, hechas?: string[], fecha?: string) => Promise<void>;
+  /** "Hice algunas": el mazo verifica y cierra el día. */
+  onAlgunas: () => void;
   recapPendiente: boolean;
   diaCerrado: string | null;
   setRecapPendiente: (value: boolean) => void;
@@ -66,6 +68,7 @@ export const DayModals = ({
   setCerrandoDia,
   setDiaCerrado,
   cerrar,
+  onAlgunas,
   recapPendiente,
   diaCerrado,
   setRecapPendiente,
@@ -108,10 +111,10 @@ startHour,
         pendientes={sinResolver}
         guardando={cerrandoDia}
         onCerrar={() => setDiaCerrado(hoyISO)}
-        onResponder={async (respuesta, hechas) => {
+        onResponder={async (respuesta) => {
           setCerrandoDia(true);
           try {
-            await cerrar(respuesta, hechas, hoyISO);
+            await cerrar(respuesta, [], hoyISO);
             setDiaCerrado(hoyISO);
             setRespuestaDelCierre(respuesta);
             setRecapPendiente(true);
@@ -126,6 +129,7 @@ startHour,
             setCerrandoDia(false);
           }
         }}
+        onVerificar={onAlgunas}
       />
 
       <DayRecap

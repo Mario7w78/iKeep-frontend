@@ -107,3 +107,50 @@ export async function backendRequest<T>(
 
 /** Para reintentos, cuando la instancia ya esta despierta. */
 export const RETRY_TIMEOUT_MS = WARM_TIMEOUT_MS;
+
+/**
+ * Los 5xx que valen un reintento.
+ *
+ * 502/503/504 los emite el proxy de Render cuando la instancia todavia no
+ * atiende —arranque o reinicio—; `status === null` cubre red caida y timeouts.
+ * Un 4xx NO entra: reintentar algo mal formado o sin permiso no lo arregla, y
+ * un 429 pide esperar, no insistir.
+ */
+function esPasajero(error: unknown): boolean {
+  if (!(error instanceof BackendError)) return false;
+  return (
+    error.status === null ||
+    error.status === 502 ||
+    error.status === 503 ||
+    error.status === 504
+  );
+}
+
+const REINTENTOS = 3;
+const ESPERA_MS = [1_000, 3_000];
+
+/**
+ * Llama `peticion` reintentando solo fallos pasajeros, con espera creciente.
+ *
+ * Un reinicio de la instancia dura unos segundos: sin esto, un unico 502 se
+ * mostraba como error aunque el siguiente intento hubiera andado bien.
+ *
+ * `debeSeguir` aborta los reintentos cuando lo pedido quedo viejo (otra carga
+ * mas nueva tomo el mando): sin eso golpeariamos un servidor que arranca para
+ * tirar la respuesta.
+ */
+export async function conReintentos<T>(
+  peticion: () => Promise<T>,
+  { debeSeguir = () => true }: { debeSeguir?: () => boolean } = {}
+): Promise<T> {
+  for (let intento = 0; ; intento++) {
+    try {
+      return await peticion();
+    } catch (error) {
+      const esUltimo = intento >= REINTENTOS - 1;
+      if (esUltimo || !debeSeguir() || !esPasajero(error)) throw error;
+      const espera = ESPERA_MS[intento] ?? ESPERA_MS[ESPERA_MS.length - 1];
+      await new Promise((resolver) => setTimeout(resolver, espera));
+    }
+  }
+}

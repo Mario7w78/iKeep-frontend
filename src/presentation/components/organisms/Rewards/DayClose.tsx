@@ -1,8 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import {
   Modal,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -11,7 +10,6 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { RespuestaDeCierre } from '../../../../infrastructure/api/RewardsApiService';
 import { ThemeColors, useTheme } from '../../theme/colors';
 import { ESPACIO, PESO, RADIO, TEXTO } from '../../theme/tokens';
 
@@ -23,8 +21,9 @@ import { ESPACIO, PESO, RADIO, TEXTO } from '../../theme/tokens';
  * compañero o como un formulario.
  *
  * Por eso no son cuatro casillas para tildar —eso es trabajo administrativo—
- * sino una pregunta con tres salidas. La lista solo aparece si el usuario
- * dice que hizo algunas; para los otros dos caminos, un toque resuelve el día.
+ * sino una pregunta con tres salidas. "Hice algunas" no abre una lista acá:
+ * el detalle de qué sí y qué no se verifica en el mazo, que pregunta una
+ * actividad por vez. El cierre se queda con el resumen principal.
  *
  * "Fue un día difícil" es el botón que más importa y el que ninguna app de
  * hábitos tiene: deja todo SIN RESOLVER, que no suma pero tampoco resta, y
@@ -41,7 +40,9 @@ export interface PendienteDelDia {
 interface Props {
   visible: boolean;
   pendientes: PendienteDelDia[];
-  onResponder: (respuesta: RespuestaDeCierre, hechas: string[]) => void;
+  onResponder: (respuesta: 'todo' | 'dificil') => void;
+  /** "Hice algunas": delega la verificación al mazo de pendientes. */
+  onVerificar: () => void;
   onCerrar: () => void;
   guardando?: boolean;
 }
@@ -50,6 +51,7 @@ export const DayClose: React.FC<Props> = ({
   visible,
   pendientes,
   onResponder,
+  onVerificar,
   onCerrar,
   guardando = false,
 }) => {
@@ -57,133 +59,65 @@ export const DayClose: React.FC<Props> = ({
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(colors, insets), [colors, insets]);
 
-  const [eligiendo, setEligiendo] = useState(false);
-  const [hechas, setHechas] = useState<string[]>([]);
-
-  const alternar = (id: string) =>
-    setHechas((previas) =>
-      previas.includes(id) ? previas.filter((p) => p !== id) : [...previas, id]
-    );
-
-  const salir = () => {
-    setEligiendo(false);
-    setHechas([]);
-    onCerrar();
-  };
-
-  const responder = (respuesta: RespuestaDeCierre, ids: string[] = []) => {
-    setEligiendo(false);
-    setHechas([]);
-    onResponder(respuesta, ids);
-  };
-
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={salir}>
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onCerrar}>
       <View style={styles.contenedor} testID="cierre-del-dia">
-        <Pressable style={styles.fondo} onPress={salir} />
+        <Pressable style={styles.fondo} onPress={onCerrar} />
 
         <View style={styles.hoja}>
           <View style={styles.asa} />
 
-          {!eligiendo ? (
-            <>
-              <Text style={styles.titulo}>¿Cómo te fue hoy?</Text>
-              <Text style={styles.bajada}>
-                {pendientes.length === 1
-                  ? 'Queda 1 actividad sin responder.'
-                  : `Quedan ${pendientes.length} actividades sin responder.`}
-              </Text>
+          <Text style={styles.titulo}>¿Cómo te fue hoy?</Text>
+          <Text style={styles.bajada}>
+            {pendientes.length === 1
+              ? 'Queda 1 actividad sin responder.'
+              : `Quedan ${pendientes.length} actividades sin responder.`}
+          </Text>
 
-              <TouchableOpacity
-                testID="cierre-todo"
-                style={[styles.salida, styles.salidaPrincipal]}
-                onPress={() => responder('todo')}
-                disabled={guardando}
-                activeOpacity={0.8}
-              >
-                <Ionicons
-                  name="checkmark-circle"
-                  size={22}
-                  color={colors.screenBackground}
-                />
-                <Text style={[styles.salidaTexto, styles.salidaTextoPrincipal]}>
-                  Hice todo
-                </Text>
-              </TouchableOpacity>
+          <TouchableOpacity
+            testID="cierre-todo"
+            style={[styles.salida, styles.salidaPrincipal]}
+            onPress={() => onResponder('todo')}
+            disabled={guardando}
+            activeOpacity={0.8}
+          >
+            <Ionicons
+              name="checkmark-circle"
+              size={22}
+              color={colors.screenBackground}
+            />
+            <Text style={[styles.salidaTexto, styles.salidaTextoPrincipal]}>
+              Hice todo
+            </Text>
+          </TouchableOpacity>
 
-              <TouchableOpacity
-                testID="cierre-algunas"
-                style={styles.salida}
-                onPress={() => setEligiendo(true)}
-                disabled={guardando}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="list-outline" size={22} color={colors.surface} />
-                <Text style={styles.salidaTexto}>Hice algunas</Text>
-              </TouchableOpacity>
+          <TouchableOpacity
+            testID="cierre-algunas"
+            style={styles.salida}
+            onPress={onVerificar}
+            disabled={guardando}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="list-outline" size={22} color={colors.surface} />
+            <Text style={styles.salidaTexto}>Hice algunas</Text>
+          </TouchableOpacity>
 
-              <TouchableOpacity
-                testID="cierre-dificil"
-                style={styles.salida}
-                onPress={() => responder('dificil')}
-                disabled={guardando}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="cloudy-outline" size={22} color={colors.surface} />
-                <Text style={styles.salidaTexto}>Fue un día difícil</Text>
-              </TouchableOpacity>
+          <TouchableOpacity
+            testID="cierre-dificil"
+            style={styles.salida}
+            onPress={() => onResponder('dificil')}
+            disabled={guardando}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="cloudy-outline" size={22} color={colors.surface} />
+            <Text style={styles.salidaTexto}>Fue un día difícil</Text>
+          </TouchableOpacity>
 
-              {/* Sin penalización y dicho en voz alta: si el usuario cree que
-                  responder honestamente le cuesta la racha, no responde. */}
-              <Text style={styles.nota}>
-                Ninguna de las tres rompe tu racha.
-              </Text>
-            </>
-          ) : (
-            <>
-              <Text style={styles.titulo}>¿Cuáles sí?</Text>
-              <Text style={styles.bajada}>
-                Las que no toques quedan como no hechas.
-              </Text>
-
-              <ScrollView style={styles.lista}>
-                {pendientes.map((p) => {
-                  const elegida = hechas.includes(p.id);
-
-                  return (
-                    <TouchableOpacity
-                      key={p.id}
-                      testID={`cierre-item-${p.id}`}
-                      style={styles.item}
-                      onPress={() => alternar(p.id)}
-                      activeOpacity={0.75}
-                      accessibilityRole="checkbox"
-                      accessibilityState={{ checked: elegida }}
-                    >
-                      <Ionicons
-                        name={elegida ? 'checkbox' : 'square-outline'}
-                        size={22}
-                        color={elegida ? colors.secondaryAccent : colors.textSecondary}
-                      />
-                      <Text style={styles.itemTexto}>{p.titulo}</Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
-
-              <TouchableOpacity
-                testID="cierre-confirmar"
-                style={[styles.salida, styles.salidaPrincipal]}
-                onPress={() => responder('algunas', hechas)}
-                disabled={guardando}
-                activeOpacity={0.8}
-              >
-                <Text style={[styles.salidaTexto, styles.salidaTextoPrincipal]}>
-                  Listo
-                </Text>
-              </TouchableOpacity>
-            </>
-          )}
+          {/* Sin penalización y dicho en voz alta: si el usuario cree que
+              responder honestamente le cuesta la racha, no responde. */}
+          <Text style={styles.nota}>
+            Ninguna de las tres rompe tu racha.
+          </Text>
         </View>
       </View>
     </Modal>
@@ -250,12 +184,4 @@ const createStyles = (colors: ThemeColors, insets: { bottom: number }) =>
       textAlign: 'center',
       marginTop: ESPACIO.xs,
     },
-    lista: { maxHeight: 280 },
-    item: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: ESPACIO.md,
-      paddingVertical: ESPACIO.md,
-    },
-    itemTexto: { flex: 1, fontSize: TEXTO.pie, color: colors.surface },
   });

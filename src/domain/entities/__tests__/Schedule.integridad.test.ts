@@ -41,6 +41,37 @@ function fija(title: string, horaInicio: number, horaFin: number): Activity {
   });
 }
 
+/** Una fija con dos turnos el mismo día: mañana y tarde. */
+function fijaDosTurnos(title: string): Activity {
+  const turno = (horaInicio: number, horaFin: number) => ({
+    startHour: new Date(2026, 8, 14, horaInicio, 0),
+    endHour: new Date(2026, 8, 14, horaFin, 0),
+    durationTime: (horaFin - horaInicio) * 60,
+    travelTo: null,
+    travelFrom: null,
+  });
+  return new Activity({
+    id: `f2-${title}`,
+    title,
+    type: ActivityType.FIXED,
+    identity: 'clase',
+    priority: 5,
+    difficulty: 'media',
+    deadline: null,
+    daysEnabled: ['Lunes'],
+    daysConfig: {
+      Lunes: {
+        groupId: 1,
+        partitions: [turno(8, 10), turno(14, 16)],
+      },
+    },
+    optionalDay: false,
+    dayFrom: undefined,
+    dayTo: undefined,
+    isAnchor: false,
+  });
+}
+
 describe('Schedule (normalización de horas)', () => {
   it('sanea un fin que cruza la medianoche (>23:59)', () => {
     const s = horarioCon([
@@ -117,6 +148,29 @@ describe('validarIntegridadHorario', () => {
     ];
     const resultado = validarIntegridadHorario(horarioCon(items));
     expect(resultado.valido).toBe(true);
+  });
+
+  it('acepta el segundo turno de una fija con dos bloques el mismo día', () => {
+    // Clase de mañana y de tarde: el bloque de la tarde caía fuera del rango
+    // del primero y se marcaba como inconsistencia sin serlo.
+    const items: ScheduledActivity[] = [
+      { day: 'Lunes', assignedStartTime: '14:00', assignedEndTime: '16:00', nombre: 'Doble turno', activity: fijaDosTurnos('Doble turno') },
+    ];
+
+    expect(validarIntegridadHorario(horarioCon(items)).valido).toBe(true);
+  });
+
+  it('sigue marcando un bloque que no cae en ninguno de los turnos', () => {
+    const items: ScheduledActivity[] = [
+      { day: 'Lunes', assignedStartTime: '12:00', assignedEndTime: '13:00', nombre: 'Doble turno', activity: fijaDosTurnos('Doble turno') },
+    ];
+
+    const resultado = validarIntegridadHorario(horarioCon(items));
+
+    expect(resultado.valido).toBe(false);
+    expect(resultado.advertencias[0]).toContain('fuera del rango fijo');
+    expect(resultado.advertencias[0]).toContain('08:00–10:00');
+    expect(resultado.advertencias[0]).toContain('14:00–16:00');
   });
 
   it('marca duración sospechosa (>16h) en un bloque del mismo día', () => {

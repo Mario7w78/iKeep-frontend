@@ -111,6 +111,22 @@ describe('LotusLandscape', () => {
     vista.unmount();
   });
 
+  it('la fase cambia sola con la app abierta, sin recargar', async () => {
+    // Cruzar las 18:00 con la app abierta tiene que cambiar la ilustración:
+    // antes solo se recalculaba al volver de background y quedaba vieja.
+    const vista = await render(<LotusLandscape />);
+    const rive = __instancias.at(-1)!;
+    rive.play.mockClear();
+
+    jest.setSystemTime(HORA_22);
+    await act(async () => {
+      jest.advanceTimersByTime(60_000);
+    });
+
+    expect(rive.play).toHaveBeenCalledWith('Night', LoopMode.OneShot);
+    vista.unmount();
+  });
+
   it('el fin de otra animación no avisa onFinish', async () => {
     const alTerminar = jest.fn();
     const vista = await render(<LotusLandscape onFinish={alTerminar} />);

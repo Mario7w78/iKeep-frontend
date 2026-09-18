@@ -10,6 +10,8 @@ interface UseDayCloseParams {
   todayItems: ScheduledActivity[];
   completadas: string[];
   noHechas: string[];
+  /** Si ya llego el resumen del dia. Ver `useRewardsStore.hidratado`. */
+  hidratado: boolean;
 }
 
 interface UseDayCloseReturn {
@@ -36,6 +38,7 @@ export const useDayClose = ({
   todayItems,
   completadas,
   noHechas,
+  hidratado,
 }: UseDayCloseParams): UseDayCloseReturn => {
   const [diaCerrado, setDiaCerrado] = useState<string | null>(null);
   const [cerrandoDia, setCerrandoDia] = useState(false);
@@ -44,21 +47,28 @@ export const useDayClose = ({
 
   const sinResolver = useMemo(
     () =>
-      sinResponder({
-        items: todayItems,
-        minutoActual: currentTime.getHours() * 60 + currentTime.getMinutes(),
-        completadas,
-        noHechas,
-      }),
-    [todayItems, currentTime, completadas, noHechas]
+      // Sin el resumen cargado no se sabe que se respondio: todo apareceria
+      // sin resolver. Vacio hasta hidratar, o el cierre se ofrece solo un
+      // instante al abrir la app y se va cuando llega la respuesta.
+      hidratado
+        ? sinResponder({
+            items: todayItems,
+            minutoActual: currentTime.getHours() * 60 + currentTime.getMinutes(),
+            completadas,
+            noHechas,
+          })
+        : [],
+    [hidratado, todayItems, currentTime, completadas, noHechas]
   );
 
   const hoyISO = fechaLocal();
-  const ofrecerCierre = correspondeOfrecerCierre({
-    hora: currentTime.getHours(),
-    sinResolver: sinResolver.length,
-    yaCerro: diaCerrado === hoyISO,
-  });
+  const ofrecerCierre =
+    hidratado &&
+    correspondeOfrecerCierre({
+      hora: currentTime.getHours(),
+      sinResolver: sinResolver.length,
+      yaCerro: diaCerrado === hoyISO,
+    });
 
   return {
     ofrecerCierre,

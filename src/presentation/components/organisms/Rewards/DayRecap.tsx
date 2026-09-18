@@ -178,7 +178,7 @@ export const DayRecap: React.FC<Props> = ({
           <Text style={styles.sapoTitulo}>Resumen del día</Text>
           <Text style={styles.sapoTexto}>
             {progreso.total > 0
-              ? `Completaste {progreso.completadas} de {progreso.total} actividades.`
+              ? `Completaste ${progreso.completadas} de ${progreso.total} actividades.`
               : 'Hoy no tuviste actividades programadas.'}
           </Text>
           <View style={styles.sapoDetalles}>

@@ -8,7 +8,7 @@
  */
 
 import React from 'react';
-import { render } from '@testing-library/react-native';
+import { render, fireEvent } from '@testing-library/react-native';
 
 jest.mock('@expo/vector-icons', () => ({ Ionicons: () => null }));
 jest.mock('@react-navigation/native', () => ({
@@ -95,5 +95,56 @@ describe('ActivityConfigDetailModal · GRUPOS Y HORARIOS', () => {
 
     expect(vista.getAllByText(/2h 0min/)).toHaveLength(1);
     expect(vista.getAllByText(/3h 0min/)).toHaveLength(1);
+  });
+});
+
+/**
+ * El botón de sesión solo tiene sentido cuando el detalle representa el bloque
+ * del día de hoy; el modal se reusa desde la lista de actividades, donde no hay
+ * sesión que sostener.
+ */
+describe('ActivityConfigDetailModal · Empezar sesión', () => {
+  const actividad = actividadCon({
+    Martes: { partitions: [particion(20, 22)], groupId: 0 },
+  });
+
+  it('ofrece empezar sesión y arranca con la duración del bloque', async () => {
+    const onEnfocar = jest.fn();
+    const vista = await render(
+      <ActivityConfigDetailModal
+        visible
+        activity={actividad}
+        onClose={() => {}}
+        onEnfocar={onEnfocar}
+        esHoy
+        minutosDelBloque={120}
+      />
+    );
+
+    fireEvent.press(vista.getByTestId('empezar-sesion'));
+
+    expect(onEnfocar).toHaveBeenCalledWith('act-1', 120);
+  });
+
+  it('no ofrece sesión cuando el bloque no es de hoy', async () => {
+    const vista = await render(
+      <ActivityConfigDetailModal
+        visible
+        activity={actividad}
+        onClose={() => {}}
+        onEnfocar={jest.fn()}
+        esHoy={false}
+      />
+    );
+
+    expect(vista.queryByTestId('empezar-sesion')).toBeNull();
+  });
+
+  it('no ofrece sesión desde la lista de actividades (sin onEnfocar)', async () => {
+    const vista = await render(
+      <ActivityConfigDetailModal visible activity={actividad} onClose={() => {}} esHoy />
+    );
+
+    expect(vista.queryByTestId('empezar-sesion')).toBeNull();
   });
 });

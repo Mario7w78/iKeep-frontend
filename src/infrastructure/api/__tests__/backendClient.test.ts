@@ -9,7 +9,7 @@ jest.mock('../../supabase/client', () => ({
 }));
 
 import { supabase } from '../../supabase/client';
-import { BackendError, backendRequest } from '../backendClient';
+import { BackendError, backendRequest, conReintentos } from '../backendClient';
 
 const getSession = supabase.auth.getSession as jest.Mock;
 
@@ -100,5 +100,76 @@ describe('backendRequest', () => {
     (globalThis as any).fetch = jest.fn().mockRejectedValue(new TypeError('sin red'));
 
     await expect(backendRequest('/api/v1/actividades')).rejects.toThrow(BackendError);
+  });
+});
+
+describe('conReintentos', () => {
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it('reintenta un 502 y termina devolviendo el exito', async () => {
+    jest.useFakeTimers();
+    const peticion = jest
+      .fn()
+      .mockRejectedValueOnce(new BackendError('El servidor respondio 502.', 502))
+      .mockResolvedValueOnce('ok');
+
+    const promesa = conReintentos(peticion);
+    await jest.advanceTimersByTimeAsync(10_000);
+
+    await expect(promesa).resolves.toBe('ok');
+    expect(peticion).toHaveBeenCalledTimes(2);
+  });
+
+  it('reintenta un fallo de red (status null)', async () => {
+    jest.useFakeTimers();
+    const peticion = jest
+      .fn()
+      .mockRejectedValueOnce(new BackendError('No se pudo conectar.', null))
+      .mockResolvedValueOnce('ok');
+
+    const promesa = conReintentos(peticion);
+    await jest.advanceTimersByTimeAsync(10_000);
+
+    await expect(promesa).resolves.toBe('ok');
+    expect(peticion).toHaveBeenCalledTimes(2);
+  });
+
+  it('no reintenta un 4xx: no se arregla insistiendo', async () => {
+    const peticion = jest.fn().mockRejectedValue(new BackendError('Fecha invalida', 422));
+
+    await expect(conReintentos(peticion)).rejects.toMatchObject({ status: 422 });
+    expect(peticion).toHaveBeenCalledTimes(1);
+  });
+
+  it('se rinde tras agotar los intentos', async () => {
+    jest.useFakeTimers();
+    const peticion = jest
+      .fn()
+      .mockRejectedValue(new BackendError('El servidor respondio 503.', 503));
+
+    const promesa = conReintentos(peticion);
+    // El handler se engancha antes de avanzar: si no, la promesa rechaza
+    // mientras corren los timers y Jest lo reporta como rechazo sin manejar.
+    const asercion = expect(promesa).rejects.toMatchObject({ status: 503 });
+    await jest.advanceTimersByTimeAsync(60_000);
+
+    await asercion;
+    expect(peticion).toHaveBeenCalledTimes(3);
+  });
+
+  it('aborta los reintentos cuando debeSeguir lo dice', async () => {
+    jest.useFakeTimers();
+    const peticion = jest
+      .fn()
+      .mockRejectedValue(new BackendError('El servidor respondio 502.', 502));
+
+    const promesa = conReintentos(peticion, { debeSeguir: () => false });
+    const asercion = expect(promesa).rejects.toMatchObject({ status: 502 });
+    await jest.advanceTimersByTimeAsync(10_000);
+
+    await asercion;
+    expect(peticion).toHaveBeenCalledTimes(1);
   });
 });

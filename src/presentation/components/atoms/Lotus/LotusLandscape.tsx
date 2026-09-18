@@ -44,6 +44,18 @@ export const LotusLandscape: React.FC<Props> = ({
     return () => subscription.remove();
   }, []);
 
+  // La fase también cambia con la app abierta (05:00, 15:00 y 18:00). El
+  // listener de AppState solo cubre volver de background, así que acá se
+  // revisa el reloj cada minuto: sin esto la ilustración se quedaba en la fase
+  // del último arranque hasta recargar la app.
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const nueva = faseDelDia(new Date().getHours());
+      setFaseActual(prev => prev === nueva ? prev : nueva);
+    }, 60_000);
+    return () => clearInterval(interval);
+  }, []);
+
   // Fallback
   if (!riveFile || isLoading || !instance) {
     return <View testID={testID} style={{ width: '100%', height: 180, ...style }} />;

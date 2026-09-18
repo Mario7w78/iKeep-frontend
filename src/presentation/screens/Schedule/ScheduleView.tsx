@@ -11,6 +11,7 @@ import { ActivityDetailModal } from '../../components/organisms/Schedule/Activit
 import { useTheme } from '../../components/theme/colors';
 import { useScheduleStore, useActivityStore } from '../../../di/Dependencies';
 import { JS_DAY_TO_DAYOFWEEK } from '../../utils/scheduleUtils';
+import { moverOcurrencia } from '../../utils/moverOcurrencia';
 import { ScheduledActivity } from '../../../domain/entities/Schedule';
 import { DayOfWeek } from '../../../domain/entities/Activity';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -359,7 +360,6 @@ export default function ScheduleView() {
   const cargarMes = useCalendarStore((s) => s.cargarMes);
   const irAlMes = useCalendarStore((s) => s.irAlMes);
   const cancelarOcurrenciaEnStore = useCalendarStore((s) => s.cancelar);
-  const moverOcurrenciaEnStore = useCalendarStore((s) => s.mover);
   const restaurarOcurrenciaEnStore = useCalendarStore((s) => s.restaurar);
 
   // Lo importado vive en SU store (D7): si Google falla, esto queda vacio o
@@ -488,11 +488,11 @@ export default function ScheduleView() {
       setMoverPendiente(null);
       setDestinoElegido(null);
       ejecutarConReintento(
-        () => moverOcurrenciaEnStore(pendiente.activityId, pendiente.desde, destino),
+        () => moverOcurrencia(pendiente.activityId, pendiente.desde, destino),
         'mover'
       );
     },
-    [moverOcurrenciaEnStore, ejecutarConReintento]
+    [ejecutarConReintento]
   );
 
   const pedirFechaDestino = useCallback((activityId: string, desde: string) => {

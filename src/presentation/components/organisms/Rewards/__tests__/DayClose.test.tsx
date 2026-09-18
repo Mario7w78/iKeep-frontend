@@ -33,6 +33,7 @@ function montar(props: Partial<React.ComponentProps<typeof DayClose>> = {}) {
       visible
       pendientes={PENDIENTES}
       onResponder={jest.fn()}
+      onVerificar={jest.fn()}
       onCerrar={jest.fn()}
       {...props}
     />
@@ -63,7 +64,7 @@ describe('las tres salidas', () => {
 
     await tocar(vista, 'cierre-todo');
 
-    expect(onResponder).toHaveBeenCalledWith('todo', []);
+    expect(onResponder).toHaveBeenCalledWith('todo');
   });
 
   it('"fue un dia dificil" no pregunta nada mas', async () => {
@@ -73,42 +74,22 @@ describe('las tres salidas', () => {
 
     await tocar(vista, 'cierre-dificil');
 
-    expect(onResponder).toHaveBeenCalledWith('dificil', []);
+    expect(onResponder).toHaveBeenCalledWith('dificil');
   });
 
-  it('la lista solo aparece si dice que hizo algunas', async () => {
-    const vista = await montar();
+  it('"hice algunas" delega la verificación al mazo', async () => {
+    // El detalle de qué sí y qué no se pregunta en el mazo, una por una. El
+    // cierre no repite esa lista: se queda con el resumen principal.
+    const onVerificar = jest.fn();
+    const onResponder = jest.fn();
+    const vista = await montar({ onVerificar, onResponder });
 
     expect(vista.queryByTestId('cierre-item-a1')).toBeNull();
 
     await tocar(vista, 'cierre-algunas');
 
-    expect(vista.getByTestId('cierre-item-a1')).toBeTruthy();
-  });
-});
-
-describe('elegir cuales', () => {
-  it('manda solo las tocadas', async () => {
-    const onResponder = jest.fn();
-    const vista = await montar({ onResponder });
-
-    await tocar(vista, 'cierre-algunas');
-    await tocar(vista, 'cierre-item-a1');
-    await tocar(vista, 'cierre-confirmar');
-
-    expect(onResponder).toHaveBeenCalledWith('algunas', ['a1']);
-  });
-
-  it('tocar dos veces la quita', async () => {
-    const onResponder = jest.fn();
-    const vista = await montar({ onResponder });
-
-    await tocar(vista, 'cierre-algunas');
-    await tocar(vista, 'cierre-item-a1');
-    await tocar(vista, 'cierre-item-a1');
-    await tocar(vista, 'cierre-confirmar');
-
-    expect(onResponder).toHaveBeenCalledWith('algunas', []);
+    expect(onVerificar).toHaveBeenCalled();
+    expect(onResponder).not.toHaveBeenCalled();
   });
 });
 

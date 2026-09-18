@@ -13,6 +13,7 @@ import {
   obtenerEquilibrio,
   obtenerResumen,
 } from '../api/RewardsApiService';
+import { conReintentos } from '../api/backendClient';
 import { notificationScheduler } from '../../di/Dependencies';
 import { sincronizarAvisos } from '../../application/use-cases/SyncReengagementReminders';
 import { Flor, construirFlor } from '../../domain/services/lifeBalance';
@@ -24,6 +25,17 @@ import { Flor, construirFlor } from '../../domain/services/lifeBalance';
  * viene y nunca reconoce lo que pasó. Duolingo funciona porque existe el
  * momento en que terminas la lección — este store es ese momento.
  */
+
+/**
+ * Número de la última carga pedida.
+ *
+ * Marcar es optimista y después refresca contra el servidor. Con dos marcas
+ * seguidas salen dos `obtenerResumen` en paralelo, y el que resuelve último
+ * pisa el estado aunque su foto sea más vieja: marcar dos actividades y ver
+ * una sola. Cada carga se queda con su número y solo aplica si sigue siendo la
+ * última; además, marcar algo invalida lo que esté en vuelo.
+ */
+let secuenciaCarga = 0;
 
 const RACHA_VACIA: Racha = { actual: 0, mejor: 0, enRiesgo: false };
 const PROGRESO_VACIO: ProgresoDelDia = {
@@ -49,6 +61,15 @@ interface RewardsState {
    */
   pendientesPasados: PendientePasado[];
   cargando: boolean;
+  /**
+   * Si ya se trajo el resumen del dia al menos una vez.
+   *
+   * Antes de esto `completadas` y `noHechas` estan vacias, y "vacio" se lee
+   * como "todavia no respondio nada": el cierre del dia se ofrecia por un
+   * instante al abrir la app y se iba cuando llegaba el resumen. Quien dibuja
+   * preguntas tiene que esperar a este dato.
+   */
+  hidratado: boolean;
   /** Sube cada vez que se termina el día. Lo escucha la celebración. */
   diasTerminados: number;
   cargar: (fecha?: string) => Promise<void>;
@@ -73,6 +94,7 @@ export const useRewardsStore = create<RewardsState>()((set, get) => ({
   diasCompletados: [],
   pendientesPasados: [],
   cargando: false,
+  hidratado: false,
   diasTerminados: 0,
 
   /**
@@ -85,19 +107,25 @@ export const useRewardsStore = create<RewardsState>()((set, get) => ({
    * los dos casos y el cron no.
    */
   cargar: async (fecha = fechaLocal()) => {
+    const peticion = ++secuenciaCarga;
     set({ cargando: true });
     try {
-      let resumen: ResumenDeLogros;
-      try {
-        resumen = await obtenerResumen(fecha);
-      } catch {
-        resumen = await obtenerResumen(fecha);
-      }
+      // Reintenta solo fallos pasajeros (502/503/504, red), y deja de
+      // intentar cuando otra carga más nueva tomó el mando.
+      const resumen = await conReintentos(() => obtenerResumen(fecha), {
+        debeSeguir: () => peticion === secuenciaCarga,
+      });
+
+      // Una carga más nueva (o una marca optimista) ya tomó el mando: aplicar
+      // esta foto vieja borraría lo que el usuario acaba de marcar.
+      if (peticion !== secuenciaCarga) return;
+
       set({
         racha: resumen.racha,
         progreso: resumen.progreso,
         diasCompletados: resumen.diasCompletados,
         pendientesPasados: resumen.pendientesPasados,
+        hidratado: true,
       });
 
       // Los avisos se resincronizan con cada lectura: es el unico momento en
@@ -114,7 +142,9 @@ export const useRewardsStore = create<RewardsState>()((set, get) => ({
       // error, porque no hay nada que el usuario deba hacer.
       console.warn('La racha no cargó todavía:', error);
     } finally {
-      set({ cargando: false });
+      // Solo la última carga apaga el indicador: una descartada lo dejaría en
+      // falso mientras la vigente sigue en vuelo.
+      if (peticion === secuenciaCarga) set({ cargando: false });
     }
   },
 
@@ -142,6 +172,11 @@ export const useRewardsStore = create<RewardsState>()((set, get) => ({
       terminado: anterior.total > 0 && ids.length >= anterior.total,
     };
     set({ progreso: optimista });
+
+    // Lo que estuviera en vuelo quedó viejo: ya no incluye esta marca. Se
+    // invalida acá, antes de esperar la red, para que una carga lenta no
+    // borre el check optimista mientras seguimos esperando.
+    secuenciaCarga += 1;
 
     // Solo cuenta al pasar de incompleto a completo: sin esto, desmarcar y
     // volver a marcar dispararía la celebración cada vez.

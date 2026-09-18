@@ -7,7 +7,8 @@ import { useTheme, ThemeColors } from "../../components/theme/colors";
 import { ESPACIO, PESO, RADIO, TEXTO } from "../../components/theme/tokens";
 import { fechaLocal } from "../../../infrastructure/api/RewardsApiService";
 import { useRewardsStore } from "../../../infrastructure/store/useRewardsStore";
-import { useCalendarStore } from "../../../infrastructure/store/useCalendarStore";
+import { useActivityStore, useScheduleStore } from "../../../di/Dependencies";
+import { moverOcurrencia } from "../../utils/moverOcurrencia";
 import { LifeFlower } from "../../components/organisms/Rewards/LifeFlower";
 import { RachaHero } from "../../components/molecules/Rewards/RachaHero";
 import { CarryOverInline } from "../../components/molecules/Rewards/CarryOverInline";
@@ -47,6 +48,10 @@ export default function StatsView() {
   useEffect(() => {
     cargar();
     cargarFlor();
+    // Reprogramar desde acá necesita saber si la actividad es a hora fija y
+    // con qué choca el día destino, igual que el mazo y el mes.
+    useActivityStore.getState().loadActivities();
+    useScheduleStore.getState().loadSchedule();
   }, [cargar, cargarFlor]);
 
   const hechos = useMemo(() => new Set(diasCompletados), [diasCompletados]);
@@ -72,7 +77,7 @@ export default function StatsView() {
   }, []);
 
   const reprogramarPasado = async (activityId: string, fecha: string, nuevaFecha: string) => {
-    await useCalendarStore.getState().mover(activityId, fecha, nuevaFecha);
+    await moverOcurrencia(activityId, fecha, nuevaFecha);
     await cargar();
   };
 

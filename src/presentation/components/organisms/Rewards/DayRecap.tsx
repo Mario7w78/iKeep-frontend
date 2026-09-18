@@ -29,6 +29,8 @@ interface Props {
   selectedEnergy: EnergyLevelConfig;
   /** Días con algo hecho, para dibujar la cadena semanal de la racha. */
   diasCompletados?: string[];
+  /** Qué artboard de la mascota toca según la racha (`useTipoSapo`). */
+  tipoSapo?: 0 | 1 | 2;
 }
 
 /**
@@ -77,6 +79,7 @@ export const DayRecap: React.FC<Props> = ({
   startHour,
   selectedEnergy,
   diasCompletados,
+  tipoSapo = 0,
 }) => {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -173,7 +176,7 @@ export const DayRecap: React.FC<Props> = ({
           <Sapo
             estado={progreso.completadas === progreso.total ? "celebrating" : progreso.completadas > 0 ? "happy" : "thinking"}
             size={64}
-            tipoSapo={0}
+            tipoSapo={tipoSapo}
           />
           <Text style={styles.sapoTitulo}>Resumen del día</Text>
           <Text style={styles.sapoTexto}>

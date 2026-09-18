@@ -18,6 +18,13 @@ import { MonthGrid } from '../MonthGrid';
 
 const AGOSTO = new Date(2026, 7, 15);
 
+// Fija "hoy" en agosto 2026: el candado de "solo de hoy hacia futuro" decide
+// con el reloj real, y sin clavarlo los tests dependerían del día del runner.
+jest.useFakeTimers({ now: AGOSTO });
+afterAll(() => {
+  jest.useRealTimers();
+});
+
 const EVENTO_GOOGLE = {
   id: 'g-ev-1',
   titulo: 'Dentista',
@@ -85,6 +92,17 @@ describe('la cuadricula', () => {
     await act(async () => { fireEvent.press(vista.getByTestId('mes-siguiente')); });
 
     expect(cambiar).toHaveBeenCalledWith(1);
+  });
+
+  it('en el mes actual la flecha de retroceder queda deshabilitada', async () => {
+    // Hoy es agosto 2026 (reloj clavado) y se está mirando agosto: no hay
+    // pasado que ver, el botón se apaga y no llama nada.
+    const cambiar = jest.fn();
+    const vista = await pintar({ onCambiarMes: cambiar });
+
+    expect(vista.getByTestId('mes-anterior').props.accessibilityState).toEqual({ disabled: true });
+    await act(async () => { fireEvent.press(vista.getByTestId('mes-anterior')); });
+    expect(cambiar).not.toHaveBeenCalled();
   });
 });
 

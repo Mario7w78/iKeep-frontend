@@ -96,8 +96,17 @@ export const useCalendarStore = create<CalendarState>()((set, get) => ({
     const { desde, hasta } = rangoDelMes(referencia);
     set({ cargando: true, error: null });
     try {
+      const ocurrencias = await verCalendario(desde, hasta);
+      // Una respuesta lenta de un mes que el usuario ya dejó de mirar no debe
+      // pisar el mes visible: el último pedido manda, no el último que
+      // resuelve (las carreras al navegar mes a mes solapaban los días).
+      const visible = get().mesVisible;
+      const sigueSiendoVisible =
+        visible.getFullYear() === referencia.getFullYear() &&
+        visible.getMonth() === referencia.getMonth();
+      if (!sigueSiendoVisible) return;
       set({
-        porDia: agrupar(await verCalendario(desde, hasta)),
+        porDia: agrupar(ocurrencias),
         ultimaCargaPorMes: { ...get().ultimaCargaPorMes, [clave]: Date.now() },
       });
     } catch (e) {
@@ -113,7 +122,13 @@ export const useCalendarStore = create<CalendarState>()((set, get) => ({
 
   irAlMes: async (delta) => {
     const actual = get().mesVisible;
+    // El calendario mira de hoy hacia adelante: un mes ya vivido solo añade
+    // lecturas que ya no ayudan a planear. Retroceder se queda en el mes en
+    // curso (los botones se deshabilitan, esto es el candado de fondo).
+    const ahora = new Date();
+    const primerMesPermitido = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
     const nuevo = new Date(actual.getFullYear(), actual.getMonth() + delta, 1);
+    if (nuevo < primerMesPermitido) return;
     // Se limpia antes de pedir: mostrar el mes anterior mientras carga el
     // siguiente hace que el usuario lea fechas que no corresponden. Las
     // canceladas viajan con su mes: quedarse aqui seria basura de otro mes.

@@ -136,8 +136,7 @@ export const RachaHero: React.FC<Props> = ({
       <View style={styles.filaSapo}>
         <Fuego testID="fuego-izquierdo" />
         <View style={styles.nidoSapo}>
-          <Sapo estado="celebrating" size={90
-          } tipoSapo={tipoSapo}/>
+          <Sapo estado="celebrating" size={90} tipoSapo={tipoSapo} />
           <View style={styles.mochila} testID="mochila-hito">
             <Text style={styles.mochilaTexto}>{actual}</Text>
           </View>

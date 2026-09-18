@@ -118,6 +118,7 @@ function construirHorario(crudo: any): Schedule {
           dayFrom: item.activity.dayFrom !== undefined ? item.activity.dayFrom : undefined,
           dayTo: item.activity.dayTo !== undefined ? item.activity.dayTo : undefined,
           isAnchor: item.activity.isAnchor ?? false,
+          area: item.activity.area,
         })
       : undefined,
     assignedStartTime: item.assignedStartTime,
@@ -188,6 +189,7 @@ export function createScheduleStore(
             dayFrom: item.activity.dayFrom,
             dayTo: item.activity.dayTo,
             isAnchor: item.activity.isAnchor,
+            area: item.activity.area,
           } : null,
           assignedStartTime: item.assignedStartTime,
           assignedEndTime: item.assignedEndTime,

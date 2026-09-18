@@ -10,6 +10,7 @@ import { EnergyPicker } from '../../components/molecules/Energy/EnergyPicker';
 import { ActivityDetailModal } from '../../components/organisms/Schedule/ActivityDetailModal';
 import { useTheme } from '../../components/theme/colors';
 import { useScheduleStore, useActivityStore } from '../../../di/Dependencies';
+import { useRewardsStore } from '../../../infrastructure/store/useRewardsStore';
 import { JS_DAY_TO_DAYOFWEEK } from '../../utils/scheduleUtils';
 import { moverOcurrencia } from '../../utils/moverOcurrencia';
 import { ScheduledActivity } from '../../../domain/entities/Schedule';
@@ -574,6 +575,9 @@ export default function ScheduleView() {
 
       // Save the record and get history
       await saveEnergyRecord(makeEnergyRecord(nivel));
+      // Reportar energía es aparecer: refresca la racha en segundo plano para
+      // que el Sapo cambie de etapa al momento.
+      useRewardsStore.getState().cargar().catch(() => undefined);
       const historial = await getEnergyHistory(14);
 
       // Call the store with energy data

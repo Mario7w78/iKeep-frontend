@@ -90,6 +90,8 @@ const isLight = esClaro;
   const diasTerminados = useRewardsStore((s) => s.diasTerminados);
   const logrosHidratados = useRewardsStore((s) => s.hidratado);
   const cerrar = useRewardsStore((s) => s.cerrar);
+  const rachaRota = useRewardsStore((s) => s.rachaRota);
+  const descartarRachaRota = useRewardsStore((s) => s.descartarRachaRota);
   const sesion = useFocusSessionStore((s) => s.sesion);
   const iniciarSesion = useFocusSessionStore((s) => s.iniciarSesion);
   const anotarSalida = useFocusSessionStore((s) => s.anotarSalida);
@@ -446,6 +448,7 @@ const isLight = esClaro;
         startHour={startHour}
         selectedEnergy={selectedEnergy}
         diasCompletados={diasCompletados}
+        tipoSapo={tipoSapo}
       />
       <PendientesDeck
         visible={deckAbierto && cartasPendientes.length > 0}
@@ -476,6 +479,23 @@ const isLight = esClaro;
           total={progreso.total}
           fraccion={progreso.fraccion}
         />
+
+        {rachaRota && (
+          <View style={styles.rachaRotaBanner}>
+            <Ionicons name="flame-outline" size={20} color={colors.iconPrimary} />
+            <Text style={styles.rachaRotaBannerText}>
+              Tu racha se apagó. Vuelve hoy con un reporte de energía para
+              encender una nueva.
+            </Text>
+            <TouchableOpacity
+              testID="descartar-racha-rota"
+              style={styles.rachaRotaBannerButton}
+              onPress={descartarRachaRota}
+            >
+              <Text style={styles.rachaRotaBannerButtonText}>Entendido</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {mostrarAvisoCalendario && (
           <View style={styles.googleCalendarBanner}>
@@ -668,6 +688,39 @@ const createStyles = (
   },
   googleCalendarBannerButtonText: {
     color: comfyFontColors.green,
+    fontSize: 14,
+    fontWeight: "800",
+  },
+
+  rachaRotaBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: colors.cardBackground,
+    borderColor: colors.cardBorder,
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginBottom: 20,
+  },
+  rachaRotaBannerText: {
+    flex: 1,
+    color: colors.surface,
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  rachaRotaBannerButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    backgroundColor: comfyColors.orange,
+  },
+  rachaRotaBannerButtonText: {
+    color: comfyFontColors.orange,
     fontSize: 14,
     fontWeight: "800",
   },

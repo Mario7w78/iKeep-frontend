@@ -50,6 +50,8 @@ interface DayModalsProps {
   /** Energía seleccionada del día para el resumen de Sapo. */
   selectedEnergy: EnergyLevelConfig;
   diasCompletados: string[];
+  /** Qué artboard de la mascota toca según la racha (`useTipoSapo`). */
+  tipoSapo?: 0 | 1 | 2;
 }
 
 export const DayModals = ({
@@ -78,6 +80,7 @@ export const DayModals = ({
 startHour,
   selectedEnergy,
   diasCompletados,
+  tipoSapo,
 }: DayModalsProps) => {
   // El dia del usuario, no el del servidor: `toISOString()` normaliza a UTC,
   // y en Lima despues de las 19:00 ya devolveria el dia siguiente, que el
@@ -142,6 +145,7 @@ startHour,
         startHour={startHour}
         selectedEnergy={selectedEnergy}
         diasCompletados={diasCompletados}
+        tipoSapo={tipoSapo}
       />
     </>
   );

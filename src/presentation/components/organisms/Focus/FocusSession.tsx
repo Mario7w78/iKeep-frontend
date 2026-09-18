@@ -19,6 +19,7 @@ import {
 import { ThemeColors, useTheme } from '../../theme/colors';
 import { LotusLandscape } from '../../atoms/Lotus/LotusLandscape';
 import { Sapo } from '../../atoms/Mascot/Sapo';
+import { useTipoSapo } from '../../../screens/Home/hooks/useTipoSapo';
 import { ESPACIO, PESO, RADIO, TEXTO } from '../../theme/tokens';
 
 /**
@@ -65,6 +66,7 @@ export const FocusSession: React.FC<Props> = ({
 }) => {
   const { colors, comfyColors } = useTheme();
   const insets = useSafeAreaInsets();
+  const { tipoSapo } = useTipoSapo();
   const styles = useMemo(() => createStyles(colors, comfyColors), [colors, comfyColors]);
   const [ahora, setAhora] = useState(new Date());
   const [minimizado, setMinimizado] = useState(false);
@@ -154,6 +156,7 @@ export const FocusSession: React.FC<Props> = ({
                 <Sapo
                   estado="idle"
                   size={110}
+                  tipoSapo={tipoSapo}
                   style={styles.sapoOverlay}
                 />
               </View>

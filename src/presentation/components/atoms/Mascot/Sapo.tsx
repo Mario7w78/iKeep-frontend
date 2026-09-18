@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { StyleProp, View, ViewStyle } from 'react-native';
+import { StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import { 
   Fit,
   RiveView, 
@@ -20,6 +20,12 @@ interface Props {
 const DEFAULT_SIZE = 96;
 const ARTBOARD_NAMES = ['Baby_Sapo', 'Kid_Sapo', 'Adult_Sapo'] as const;
 
+/**
+ * La mascota renderiza su lienzo llenando la caja de `size`: sin crops ni
+ * transforms, que cortan la superficie GL y al personaje. Si se quiere un sapo
+ * grande sin robar espacio del layout, se pone detrás del contenido como capa
+ * de fondo (ver el patrón de AIChatView y RachaHero), no agrandando la caja.
+ */
 export const Sapo: React.FC<Props> = ({
   estado = 'idle',
   size = DEFAULT_SIZE,
@@ -56,14 +62,13 @@ export const Sapo: React.FC<Props> = ({
   }
 
   return (
-    <View style={[{ width: size, height: size, overflow: 'hidden' }, style]}>
-    <RiveView
-      testID={testID}
-      file={riveFile}
-      dataBind={instance}
-      fit={Fit.Contain}
-      style={[{ width: size, height: size }]}
-    />
+    <View testID={testID} style={[{ width: size, height: size }, style]}>
+      <RiveView
+        file={riveFile}
+        dataBind={instance}
+        fit={Fit.Contain}
+        style={StyleSheet.absoluteFillObject}
+      />
     </View>
   );
 };

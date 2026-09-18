@@ -24,6 +24,7 @@ jest.mock('../../api/RewardsApiService', () => ({
 }));
 
 import { BackendError } from '../../api/backendClient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRewardsStore } from '../useRewardsStore';
 
 const RESUMEN = {
@@ -59,6 +60,7 @@ describe('useRewardsStore', () => {
       },
       diasTerminados: 0,
       hidratado: false,
+      rachaRota: false,
     });
   });
 
@@ -67,6 +69,48 @@ describe('useRewardsStore', () => {
 
     expect(estado().racha.actual).toBe(3);
     expect(estado().progreso.total).toBe(3);
+  });
+
+  it('no avisa rotura mientras la racha vive', async () => {
+    // Sin racha previa guardada (primera vez) o con racha alta no hay aviso.
+    await estado().cargar();
+    expect(estado().rachaRota).toBe(false);
+  });
+
+  it('avisa cuando la racha se apaga entre cargas', async () => {
+    // La última vez que se supo había 5; el servidor ahora dice 0.
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce('5');
+    mockResumen.mockResolvedValueOnce({
+      ...RESUMEN,
+      racha: { actual: 0, mejor: 5, enRiesgo: false },
+    });
+
+    await estado().cargar();
+
+    expect(estado().racha.actual).toBe(0);
+    expect(estado().rachaRota).toBe(true);
+  });
+
+  it('descartar limpia el aviso de racha apagada', async () => {
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce('5');
+    mockResumen.mockResolvedValueOnce({
+      ...RESUMEN,
+      racha: { actual: 0, mejor: 5, enRiesgo: false },
+    });
+    await estado().cargar();
+
+    estado().descartarRachaRota();
+
+    expect(estado().rachaRota).toBe(false);
+  });
+
+  it('no revive un aviso viejo con una racha nueva', async () => {
+    // Tras la rotura se borra lo guardado: una racha recién iniciada que se
+    // apague sola en el próximo ciclo no debe reavivar nada.
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce(null);
+    await estado().cargar();
+
+    expect(estado().rachaRota).toBe(false);
   });
 
   it('queda hidratado recien cuando el resumen llega', async () => {

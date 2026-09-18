@@ -8,6 +8,7 @@ import {
 } from "../../../../infrastructure/persistence/EnergyHistoryService";
 import { EnergyRecord } from "../../../../application/ports/out/EnergyRepository";
 import { Reflexion, reflexionar } from "../../../../domain/services/energyReflection";
+import { useRewardsStore } from "../../../../infrastructure/store/useRewardsStore";
 import { DIAS_DE_HISTORIAL, ENERGY_LEVELS_CONFIG, EnergyLevelConfig } from "../HomeView.utils";
 
 type HandleGenerateSchedule = (
@@ -101,6 +102,9 @@ export const useEnergyLevel = ({
             try {
               const nivel = energyIndex + 1;
               await saveEnergyRecord(makeEnergyRecord(nivel));
+              // Reportar energía es aparecer: refresca la racha para que el
+              // Sapo cambie de etapa al momento, no en la próxima apertura.
+              await useRewardsStore.getState().cargar();
               const historial = await getEnergyHistory(DIAS_DE_HISTORIAL);
               setHistorialEnergia(historial);
               setReflexion(reflexionar(nivel, historial));

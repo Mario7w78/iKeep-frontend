@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Sapo } from '../../atoms/Mascot/Sapo';
+import { useTipoSapo } from '../../../screens/Home/hooks/useTipoSapo';
 import { useTheme } from '../../theme/colors';
 import { OverlapConflictData } from '../../../../domain/errors/OverlapError';
 import { ActivityProposalCard } from './ActivityProposalCard';
@@ -51,6 +52,7 @@ export const MessageBubble: React.FC<Props> = ({
   const isUser = message.role === 'user';
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { tipoSapo } = useTipoSapo();
 
   // Eliminar y regenerar no construyen una actividad: no traen parsedState,
   // asi que la tarjeta de detalles no aplica y accederle reventaria.
@@ -65,7 +67,7 @@ export const MessageBubble: React.FC<Props> = ({
   return (
     <View style={[styles.row, isUser ? styles.rowUser : styles.rowAI]}>
       {!isUser && (
-        <Sapo testID="sapo-avatar" estado="idle" size={40} style={styles.avatarSapo} />
+        <Sapo testID="sapo-avatar" estado="idle" size={40} tipoSapo={tipoSapo} style={styles.avatarSapo} />
       )}
       <View
         style={[

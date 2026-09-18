@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import {
   PendientePasado,
@@ -38,6 +39,37 @@ import { Flor, construirFlor } from '../../domain/services/lifeBalance';
 let secuenciaCarga = 0;
 
 const RACHA_VACIA: Racha = { actual: 0, mejor: 0, enRiesgo: false };
+
+/**
+ * Lo último que se supo de la racha mientras vivía, guardado en el teléfono.
+ * Sin esto solo se podría avisar la rotura dentro de la misma sesión: cerrar
+ * la app con una racha de 5 y volver a los 3 días con 0 quedaría silencioso.
+ * Se dispara solo al romperse (actual > 0 → 0), no por bajar a medias.
+ */
+const CLAVE_ULTIMA_RACHA = '@ultima_racha_actual';
+
+async function leerUltimaRacha(): Promise<number> {
+  try {
+    const texto = await AsyncStorage.getItem(CLAVE_ULTIMA_RACHA);
+    const valor = texto ? Number(texto) : 0;
+    return Number.isFinite(valor) ? valor : 0;
+  } catch {
+    // Estado de adorno: que la lectura falle no debe tapar la racha.
+    return 0;
+  }
+}
+
+async function guardarUltimaRacha(actual: number): Promise<void> {
+  try {
+    if (actual > 0) {
+      await AsyncStorage.setItem(CLAVE_ULTIMA_RACHA, String(actual));
+    } else {
+      await AsyncStorage.removeItem(CLAVE_ULTIMA_RACHA);
+    }
+  } catch {
+    // Igual que arriba: lo que se guarda es solo un recordatorio.
+  }
+}
 const PROGRESO_VACIO: ProgresoDelDia = {
   completadas: 0,
   total: 0,
@@ -72,6 +104,12 @@ interface RewardsState {
   hidratado: boolean;
   /** Sube cada vez que se termina el día. Lo escucha la celebración. */
   diasTerminados: number;
+  /**
+   * True si la racha se apagó desde la última carga (o desde que se cerró
+   * la app): momento en que se pasa de actual > 0 a 0. Lo muestra el Home
+   * una vez, hasta que se descarta.
+   */
+  rachaRota: boolean;
   cargar: (fecha?: string) => Promise<void>;
   alternar: (activityId: string, fecha?: string) => Promise<void>;
   estaCompletada: (activityId: string) => boolean;
@@ -85,6 +123,8 @@ interface RewardsState {
   marcarPasado: (activityId: string, fecha: string, hecha: boolean) => Promise<void>;
   /** Trae el equilibrio. Aparte de `cargar`: solo lo mira una pantalla. */
   cargarFlor: (fecha?: string) => Promise<void>;
+  /** Reconoce el aviso de racha apagada. Se usa una vez, no para siempre. */
+  descartarRachaRota: () => void;
 }
 
 export const useRewardsStore = create<RewardsState>()((set, get) => ({
@@ -96,6 +136,7 @@ export const useRewardsStore = create<RewardsState>()((set, get) => ({
   cargando: false,
   hidratado: false,
   diasTerminados: 0,
+  rachaRota: false,
 
   /**
    * Trae racha y progreso.
@@ -120,12 +161,19 @@ export const useRewardsStore = create<RewardsState>()((set, get) => ({
       // esta foto vieja borraría lo que el usuario acaba de marcar.
       if (peticion !== secuenciaCarga) return;
 
+      // La rotura se detecta contra lo último que se supo, guardado en el
+      // teléfono: cubre la caída entre sesiones sin pedirle memoria al usuario.
+      const ultimaRacha = await leerUltimaRacha();
+      const seApago = ultimaRacha > 0 && resumen.racha.actual === 0;
+      await guardarUltimaRacha(resumen.racha.actual);
+
       set({
         racha: resumen.racha,
         progreso: resumen.progreso,
         diasCompletados: resumen.diasCompletados,
         pendientesPasados: resumen.pendientesPasados,
         hidratado: true,
+        rachaRota: seApago || get().rachaRota,
       });
 
       // Los avisos se resincronizan con cada lectura: es el unico momento en
@@ -232,6 +280,8 @@ export const useRewardsStore = create<RewardsState>()((set, get) => ({
       console.warn('El equilibrio no cargó todavía:', error);
     }
   },
+
+  descartarRachaRota: () => set({ rachaRota: false }),
 
   /**
    * El cierre del día.

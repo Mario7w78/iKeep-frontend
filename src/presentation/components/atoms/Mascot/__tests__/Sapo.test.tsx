@@ -62,12 +62,14 @@ describe('contrato del artboard principal', () => {
   it('el contenedor escala con size y la RiveView llena ese marco (sin frame fijo)', async () => {
     const vista = await render(<Sapo size={240} testID="sapo-240" />);
 
+    // El testID lo lleva la caja de layout y el lienzo la llena exacto: sin
+    // crops ni transforms (la superficie GL del RiveView se corta).
     const marco = StyleSheet.flatten(vista.getByTestId('sapo-240').props.style);
     const rive = __instancias.at(-1)!;
     const lienzo = StyleSheet.flatten(rive.style);
 
     expect(marco).toEqual(expect.objectContaining({ width: 240, height: 240 }));
-    expect(lienzo).toEqual({ width: 240, height: 240 });
+    expect(lienzo).toEqual({ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 });
   });
 });
 

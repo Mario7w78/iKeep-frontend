@@ -19,6 +19,7 @@ import { TypingIndicator } from '../../atoms/CreateActivity/TypingIndicator';
 import { useTheme, ThemeColors } from '../../theme/colors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Sapo } from '../../atoms/Mascot/Sapo';
+import { useTipoSapo } from '../../../screens/Home/hooks/useTipoSapo';
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -57,6 +58,7 @@ export const NLConversationStep: React.FC<Props> = ({
   sugerencias,
 }) => {
   const { colors, comfyColors, comfyFontColors } = useTheme();
+  const { tipoSapo } = useTipoSapo();
   const styles = useMemo(() => createStyles(colors, comfyColors, comfyFontColors), [colors]);
   const [inputText, setInputText] = useState('');
 
@@ -212,6 +214,7 @@ export const NLConversationStep: React.FC<Props> = ({
               testID="sapo-avatar-typing"
               estado="thinking"
               size={40}
+              tipoSapo={tipoSapo}
               style={styles.avatarSapo}
             />
             <View style={styles.typingBubble}>
@@ -308,6 +311,12 @@ function createStyles(colors: ThemeColors, _comfyColors: Record<string, string>,
     container: {
       flex: 1,
       backgroundColor: colors.screenBackground,
+    },
+    sapoChatFondo: {
+      position: 'absolute',
+      bottom: 150,
+      left: 4,
+      opacity: 0.35,
     },
     header: {
       flexDirection: 'row',

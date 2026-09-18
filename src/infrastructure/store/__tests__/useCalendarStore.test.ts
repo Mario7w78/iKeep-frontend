@@ -23,6 +23,13 @@ jest.mock('../../api/CalendarApiService', () => ({
 
 import { rangoDelMes, useCalendarStore } from '../useCalendarStore';
 
+// Fija "hoy" en agosto 2026: el store bloquea navegar antes del mes actual,
+// y sin un reloj clavado los tests dependerían de la fecha real del runner.
+jest.useFakeTimers({ now: new Date(2026, 7, 15) });
+afterAll(() => {
+  jest.useRealTimers();
+});
+
 describe('rangoDelMes', () => {
   it('cubre las semanas completas, no solo el mes', () => {
     // Agosto 2026 empieza sabado y el 31 cae lunes: la cuadricula necesita
@@ -53,7 +60,7 @@ describe('useCalendarStore', () => {
     mockBorrar.mockReset().mockResolvedValue(undefined);
     useCalendarStore.setState({
       mesVisible: new Date(2026, 7, 15), porDia: {}, cargando: false, error: null,
-      canceladasEnSesion: [],
+      canceladasEnSesion: [], ultimaCargaPorMes: {},
     });
   });
 
@@ -90,6 +97,35 @@ describe('useCalendarStore', () => {
     await useCalendarStore.getState().irAlMes(-1);
 
     expect(useCalendarStore.getState().mesVisible.getMonth()).toBe(7);
+  });
+
+  it('no retrocede antes del mes actual y no pide nada', async () => {
+    // Hoy es agosto 2026 (reloj clavado): retroceder a julio debe quedarse
+    // en agosto y no disparar ninguna lectura de un mes ya vivido.
+    const pedidos = useCalendarStore.getState().ultimaCargaPorMes;
+    await useCalendarStore.getState().irAlMes(-1);
+
+    expect(useCalendarStore.getState().mesVisible.getMonth()).toBe(7);
+    expect(mockVer).not.toHaveBeenCalled();
+    expect(useCalendarStore.getState().ultimaCargaPorMes).toBe(pedidos);
+  });
+
+  it('una respuesta lenta de un mes ya dejado no pisa el visible', async () => {
+    // Carrera clásica: se pide agosto, y mientras está en vuelo el usuario
+    // navega a septiembre. La respuesta de agosto llega tarde y no debe
+    // volver el mes ni colar sus ocurrencias sobre septiembre.
+    let resolver!: (v: any[]) => void;
+    mockVer.mockImplementationOnce(() => new Promise((r) => { resolver = r; }));
+
+    const cargarViejo = useCalendarStore.getState().cargarMes(new Date(2026, 7, 15));
+    await useCalendarStore.getState().irAlMes(1);
+    expect(useCalendarStore.getState().mesVisible.getMonth()).toBe(8);
+
+    resolver([{ fecha: '2026-08-04', actividad: { id: '1' }, movidaDesde: null, esUnica: false }]);
+    await cargarViejo;
+
+    expect(useCalendarStore.getState().mesVisible.getMonth()).toBe(8);
+    expect(useCalendarStore.getState().porDia['2026-08-04']).toBeUndefined();
   });
 
   it('un fallo se dice, no se muestra como mes vacio', async () => {

@@ -19,6 +19,7 @@ import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Sapo } from "../../../components/atoms/Mascot/Sapo";
+import { useTipoSapo } from "../../Home/hooks/useTipoSapo";
 import { Celebration } from "../../../components/atoms/Rewards/Celebration";
 
 import { DayOfWeek } from "../../../../domain/entities/Activity";
@@ -64,6 +65,7 @@ const WEEKDAY_ORDER: DayOfWeek[] = [
 
 export default function CreateActivityView({ navigation, route }: any) {
   const { colors, comfyColors, comfyFontColors } = useTheme();
+  const { tipoSapo } = useTipoSapo();
   const styles = useMemo(() => createStyles(colors, comfyColors, comfyFontColors), [colors]);
   const insets = useSafeAreaInsets();
   const { activities } = useActivityStore();
@@ -1049,7 +1051,7 @@ export default function CreateActivityView({ navigation, route }: any) {
                 disparo={1}
                 mensaje={null}
               />
-              <Sapo estado="celebrating" size={TAMANO_CELEBRACION} />
+              <Sapo estado="celebrating" size={TAMANO_CELEBRACION} tipoSapo={tipoSapo} />
             </>
           ) : (
             <ActivityIndicator size="large" color={colors.secondaryAccent} />

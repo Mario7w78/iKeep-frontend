@@ -105,6 +105,12 @@ export const MonthGrid: React.FC<Props> = ({
   const celdas = useMemo(() => celdasDelMes(mesVisible), [mesVisible]);
   const hoy = aFechaLocal(new Date());
   const mesActual = mesVisible.getMonth();
+  // El calendario solo mira de hoy hacia el futuro: en el mes en curso no hay
+  // nada atrás que ver, y la flecha queda deshabilitada (el store también
+  // rechaza navegar antes del mes actual, por si llega desde otra vía).
+  const esMesActual =
+    mesVisible.getFullYear() === new Date().getFullYear() &&
+    mesVisible.getMonth() === new Date().getMonth();
 
   const delDia = diaSeleccionado ? porDia[diaSeleccionado] ?? [] : [];
   const importadosDelDia = diaSeleccionado
@@ -120,10 +126,16 @@ export const MonthGrid: React.FC<Props> = ({
         <TouchableOpacity
           testID="mes-anterior"
           onPress={() => onCambiarMes(-1)}
+          disabled={esMesActual}
           hitSlop={14}
           accessibilityLabel="Mes anterior"
+          accessibilityState={{ disabled: esMesActual }}
         >
-          <Ionicons name="chevron-back" size={22} color={colors.iconPrimary} />
+          <Ionicons
+            name="chevron-back"
+            size={22}
+            color={esMesActual ? colors.textTertiary : colors.iconPrimary}
+          />
         </TouchableOpacity>
 
         <Text style={styles.titulo}>
